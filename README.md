@@ -203,4 +203,6 @@ public class Sayer : IPropertyPersistable
 
 Being able to persist delegate instances is not something new in .NET. Essentially, a delegate is just a method pointer (instance or static). However, it is somewhat frowned upon as the delegate may point to arbitrary code and possibly compiler generated classes. In Cleipnir we jump straight into the deep end and knowingly take the risk. Cleipnir’s object store is capable of persisting compiler generated classes such as display classes and state machines. E.g.
 
+```csharp
 os.Attach((Action) (() => Console.WriteLine("Come join us!")));
+```
