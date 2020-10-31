@@ -8,4 +8,8 @@
     <ProjectReference Include="..\..\Cleipnir.ObjectDB\Cleipnir.ObjectDB.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="License.txt" />
+  </ItemGroup>
+
 </Project>

@@ -21,4 +21,8 @@
     <ProjectReference Include="..\Cleipnir.StorageEngine\Cleipnir.StorageEngine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="License.txt" />
+  </ItemGroup>
+
 </Project>
