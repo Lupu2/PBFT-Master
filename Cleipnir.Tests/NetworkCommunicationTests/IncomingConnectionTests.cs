@@ -19,13 +19,13 @@ using Shouldly;
 
 namespace Cleipnir.Tests.NetworkCommunicationTests
 {
-    [TestClass]
+    //[TestClass]
     public class IncomingConnectionTests
     {
-        [TestMethod]
+        //[TestMethod]
         public void SentMessageIsProcessed()
         {
-            var hostname = GetLocalIp();
+            var hostname = "127.0.0.1";
             const int port = 10_000;
             
             var storage = new InMemoryStorageEngine();
