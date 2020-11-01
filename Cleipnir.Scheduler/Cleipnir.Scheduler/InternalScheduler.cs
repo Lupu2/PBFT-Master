@@ -97,7 +97,6 @@ namespace Cleipnir.ExecutionEngine
 
                 if (toExecutes.Count == 0)
                 {
-                    if (_synchronizationQueue.Empty) continue;
                     lock (_sync)
                     {
                         _synchronizationQueue.MoveAllTo(_readyToSchedules);
