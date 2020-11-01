@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Cleipnir.Helpers;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.Persistency.Persistency;
 using Cleipnir.StorageEngine;
@@ -32,6 +33,11 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization
         public void Serialize()
         {
             var detectedChanges = DetectChanges();
+            if (detectedChanges.GarbageCollectables.Empty() &&
+                detectedChanges.RemovedEntries.Empty() &&
+                detectedChanges.StorageEntries.Empty())
+                return;
+            
             _storageEngine.Persist(detectedChanges);
         }
 
