@@ -52,5 +52,8 @@ namespace Cleipnir.ObjectDB
 
         public static ObjectStore Load(IStorageEngine storageEngine, params object[] ephemeralInstances) 
             => Deserializer.Load(storageEngine, new HashSet<object>(ephemeralInstances), new SerializerFactory());
+        
+        public static ObjectStore New(IStorageEngine storageEngine) 
+            => new ObjectStore(storageEngine);
     }
 }
