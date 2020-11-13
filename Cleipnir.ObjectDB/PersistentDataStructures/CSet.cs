@@ -141,8 +141,8 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
 
             public void Remove(StateMap sd)
             {
-                sd.Set("Value_" + Id, null);
-                sd.Set("Next_" + Id, null);
+                sd.Remove($"Value_{Id}");
+                sd.Remove($"Next_{Id}");
             }
 
             public static Tuple<Node, int?> Deserialize(int id, IReadOnlyDictionary<string, object> sd, Node prev)
