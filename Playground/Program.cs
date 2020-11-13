@@ -6,8 +6,8 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            SqlExample.P.Do();
-            
+            HeartbeatSender.P.Do();
+
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
         }
