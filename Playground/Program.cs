@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace Playground
 {
@@ -6,7 +7,9 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            HeartbeatSender.P.Do();
+            var executingAssembly = Assembly.GetExecutingAssembly();
+            var fullName = executingAssembly.FullName;
+            Console.WriteLine(fullName);
 
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();

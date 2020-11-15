@@ -5,10 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <ProjectReference Include="..\Cleipnir.Rx\Cleipnir.Rx\Cleipnir.Rx.csproj" />
+    <ProjectReference Include="..\Cleipnir.StorageEngine.SqlServer\Cleipnir.StorageEngine.SqlServer.csproj" />
     <ProjectReference Include="..\Cleipnir.StorageEngine\Cleipnir.StorageEngine.csproj" />
   </ItemGroup>
 
