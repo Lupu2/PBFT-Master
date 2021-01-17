@@ -59,8 +59,8 @@ namespace Cleipnir.StorageEngine.SqlServer
             using var connection = CreateConnection();
           
             connection.Execute(@"
-                IF OBJECT_ID('dbo.KeyValues', 'U') IS NULL 
-                  CREATE TABLE [dbo].[KeyValues](
+                IF OBJECT_ID('KeyValues', 'U') IS NULL 
+                  CREATE TABLE [KeyValues](
 	                [InstanceId] [nvarchar](50) NOT NULL,
 	                [ObjectId] [bigint] NOT NULL,
 	                [Key] [nvarchar](50) NOT NULL,
@@ -78,8 +78,8 @@ namespace Cleipnir.StorageEngine.SqlServer
 
             //CREATE TEMP TABLES
             connection.Execute(@"
-                CREATE TABLE [dbo].[#GarbageCollectables] ( [ObjectId] [bigint] NOT NULL )
-                CREATE TABLE [dbo].[#KeyValues](
+                CREATE TABLE [#GarbageCollectables] ( [ObjectId] [bigint] NOT NULL )
+                CREATE TABLE [#KeyValues](
 	                [InstanceId] [nvarchar](50) NOT NULL,
 	                [ObjectId] [bigint] NOT NULL,
 	                [Key] [nvarchar](50) NOT NULL,
@@ -87,7 +87,7 @@ namespace Cleipnir.StorageEngine.SqlServer
                     [ValueType] [nvarchar](50) NULL,
 	                [Reference] [bigint] NULL
                 )
-                CREATE TABLE [dbo].[#RemovedEntries](
+                CREATE TABLE [#RemovedEntries](
 	                [ObjectId] [bigint] NOT NULL,
 	                [Key] [nvarchar](50) NOT NULL
                 )",

@@ -28,7 +28,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
             using var conn = testHelper.CreateConnection(); 
             conn.QuerySingle<int>(@"
                     SELECT COUNT(*)
-                    FROM [CleipnirTests].[dbo].[KeyValues]
+                    FROM [KeyValues]
                     WHERE [Value] = '""HELLO WORLD""'"
             ).ShouldBe(1);
 
@@ -37,7 +37,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
 
             conn.QuerySingle<int>(@"
                     SELECT COUNT(*)
-                    FROM [CleipnirTests].[dbo].[KeyValues]
+                    FROM [KeyValues]
                     WHERE [Value] = '""HELLO WORLD""'"
             ).ShouldBe(0);
         }

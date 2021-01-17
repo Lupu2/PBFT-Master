@@ -68,7 +68,7 @@ namespace Cleipnir.ExecutionEngine
                                 try
                                 {
                                     awaiter.GetResult();
-                                    Task.Run(() => tcs.SignalCompletion());
+                                    Task.Run(() => tcs.SetResult());
                                 }
                                 catch (Exception e)
                                 {
@@ -102,7 +102,7 @@ namespace Cleipnir.ExecutionEngine
                                 try
                                 {
                                     awaiter.GetResult();
-                                    Task.Run(() => tcs.SignalCompletion());
+                                    Task.Run(() => tcs.SetResult());
                                 }
                                 catch (Exception e)
                                 {
@@ -157,7 +157,7 @@ namespace Cleipnir.ExecutionEngine
         {
             var tcs = new TaskCompletionSource();
             Scheduler.FireAndForget(
-                () => Cleipnir.ExecutionEngine.Sync.AfterNext(() => Task.Run(tcs.SignalCompletion), false)
+                () => Cleipnir.ExecutionEngine.Sync.AfterNext(() => Task.Run(tcs.SetResult), false)
             );
 
             return tcs.Task;
@@ -169,7 +169,7 @@ namespace Cleipnir.ExecutionEngine
             Scheduler.FireAndForget(() =>
             {
                 Roots.Entangle(toEntangle);
-                Task.Run(tcs.SignalCompletion);
+                Task.Run(tcs.SetResult);
             });
 
             return tcs.Task;

@@ -6,8 +6,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
 {
     internal class TestHelper
     {
-        public const string ConnectionString = "Server=localhost; Database=CleipnirTests; Integrated Security=SSPI;";
-        
+        private static readonly string ConnectionString = DatabaseHelper.ConnectionString("localhost", "SagaTest", "sa", "Pa55word");
         public StorageEngine.SqlServer.SqlServerStorageEngine StorageEngineEngine { get; } = new StorageEngine.SqlServer.SqlServerStorageEngine("TEST", ConnectionString);
 
         public TestHelper()
@@ -19,7 +18,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
 
         public ObjectStore NewObjectStore() => new ObjectStore(StorageEngineEngine);
         public ObjectStore LoadExistingObjectStore() => ObjectStore.Load(StorageEngineEngine);
-        public void CreateDatabaseIfNotExist() => DatabaseHelper.CreateDatabaseIfNotExist("localhost", "CleipnirTests");
+        public void CreateDatabaseIfNotExist() => DatabaseHelper.CreateDatabaseIfNotExist("localhost", "CleipnirTests", "sa", "Pa55word");
 
         public SqlConnection CreateConnection()
         {
