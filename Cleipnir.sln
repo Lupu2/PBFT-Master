@@ -29,7 +29,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cleipnir.StorageEngine.InMe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cleipnir.ExecutionEngine.Providers", "Cleipnir.ExecutionEngine.Providers\Cleipnir.ExecutionEngine.Providers.csproj", "{F7B9637E-16AA-41F2-9C5B-C7FF3DA7CA72}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.NetworkCommunication", "Cleipnir.NetworkCommunication\Cleipnir.NetworkCommunication.csproj", "{367DB60F-88F0-4220-9800-49DBF68C650C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.NetworkCommunication", "Cleipnir.NetworkCommunication\Cleipnir.NetworkCommunication.csproj", "{4819FC6B-DD4D-4727-B925-C08EBDB0759A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,10 +89,10 @@ Global
 		{F7B9637E-16AA-41F2-9C5B-C7FF3DA7CA72}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F7B9637E-16AA-41F2-9C5B-C7FF3DA7CA72}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F7B9637E-16AA-41F2-9C5B-C7FF3DA7CA72}.Release|Any CPU.Build.0 = Release|Any CPU
-		{367DB60F-88F0-4220-9800-49DBF68C650C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{367DB60F-88F0-4220-9800-49DBF68C650C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{367DB60F-88F0-4220-9800-49DBF68C650C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{367DB60F-88F0-4220-9800-49DBF68C650C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

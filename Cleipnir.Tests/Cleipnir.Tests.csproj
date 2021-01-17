@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Cleipnir.NetworkCommunication\Cleipnir.NetworkCommunication.csproj" />
     <ProjectReference Include="..\Cleipnir.ObjectDB\Cleipnir.ObjectDB.csproj" />
     <ProjectReference Include="..\Cleipnir.Rx.ExecutionEngine\Cleipnir.Rx.ExecutionEngine.csproj" />
     <ProjectReference Include="..\Cleipnir.Rx\Cleipnir.Rx\Cleipnir.Rx.csproj" />
