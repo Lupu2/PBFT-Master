@@ -14,8 +14,8 @@ namespace Playground.SqlExample
         public static void Do()
         {
             const string databaseName = "CleipnirTest";
-            DatabaseHelper.CreateDatabaseIfNotExist("localhost", databaseName);
-            var storage = new SqlServerStorageEngine("TEST", DatabaseHelper.ConnectionString("localhost", databaseName));
+            DatabaseHelper.CreateDatabaseIfNotExist("localhost", databaseName, "sa", "Pa55word");
+            var storage = new SqlServerStorageEngine("TEST", DatabaseHelper.ConnectionString("localhost", databaseName, "sa", "Pa55word"));
 
             storage.Initialize();
             storage.Clear();

@@ -1,18 +1,18 @@
 ﻿using System;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.ExecutionEngine.Providers;
-using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.StorageEngine;
+using Cleipnir.StorageEngine.InMemory;
 using Cleipnir.StorageEngine.SimpleFile;
+using Cleipnir.StorageEngine.SqlServer;
 
 namespace Playground.SingleMachinePingPong
 {
     internal static class P
     {
-        public static void StartNew()
+        public static void StartNew(StorageEngineImplementation storageEngine)
         {
-            var storage = new SimpleFileStorageEngine(@"./PingPong.txt", true);
+            var storage = CreateStorageEngine(storageEngine, true);
             var scheduler = ExecutionEngineFactory.StartNew(storage);
 
             scheduler.Schedule(() =>
@@ -33,59 +33,48 @@ namespace Playground.SingleMachinePingPong
             Console.WriteLine("PRESS ENTER TO START PING PONG APP");
             Console.ReadLine();
 
-            Continue();
+            Continue(storageEngine);
         }
 
-        public static void Continue()
+        public static void Continue(StorageEngineImplementation storageEngine)
         {
-            var storage = new SimpleFileStorageEngine(@".\PingPong.txt", false);
-            var scheduler = ExecutionEngineFactory.Continue(storage);
+            var storage = CreateStorageEngine(storageEngine, false);
+            var engine = ExecutionEngineFactory.Continue(storage);
 
             while (true)
             {
                 Console.WriteLine("PRESS ENTER TO STOP PING PONG APP");
                 Console.ReadLine();
 
-                scheduler.Dispose();
+                engine.Dispose();
 
                 Console.WriteLine("PRESS ENTER TO START PING PONG APP");
                 Console.ReadLine();
 
-                scheduler = ExecutionEngineFactory.Continue(storage);
+                engine = ExecutionEngineFactory.Continue(storage);
             }
         }
-    }
 
-    class Pinger : IPropertyPersistable
-    {
-        public Source<string> Messages { get; set; }
-        public int Count { get; set; }
-
-        public async CTask Start()
+        private static readonly InMemoryStorageEngine InMemoryStorageEngine = new();
+        private static IStorageEngine CreateStorageEngine(StorageEngineImplementation storageEngine, bool initialize)
         {
-            while (true)
+            switch (storageEngine)
             {
-                await Sleep.Until(1000);
-                Messages.Emit($"PING {Count++}");
-                var msg = await Messages.Where(m => m.StartsWith("PONG")).Next();
-                Console.WriteLine("PINGER: " + msg);
-            }
-        }
-    }
-
-    class Ponger : IPropertyPersistable
-    {
-        public Source<string> Messages { get; set; }
-        public int Count { get; set; }
-
-        public async CTask Start()
-        {
-            while (true)
-            {
-                var msg = await Messages.Where(s => s.StartsWith("PING")).Next();
-                Console.WriteLine($"PONGER: {msg}" );
-                await Sleep.Until(1000);
-                Messages.Emit($"PONG {Count++}");
+                case StorageEngineImplementation.SqlServer:
+                    DatabaseHelper.CreateDatabaseIfNotExist("localhost", "ping_pong", "sa", "Pa55word");
+                    var storage = new SqlServerStorageEngine("1", DatabaseHelper.ConnectionString("localhost", "ping_pong", "sa", "Pa55word"));
+                    if (initialize)
+                    {
+                        storage.Initialize();
+                        storage.Clear();
+                    }
+                    return storage;
+                case StorageEngineImplementation.File:
+                    return new SimpleFileStorageEngine(@"./PingPong.txt", initialize);
+                case StorageEngineImplementation.InMemory:
+                    return InMemoryStorageEngine;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(storageEngine), storageEngine, null);
             }
         }
     }

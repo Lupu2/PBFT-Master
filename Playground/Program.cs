@@ -11,14 +11,15 @@ using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.StorageEngine.InMemory;
+using static Playground.SingleMachinePingPong.StorageEngineImplementation;
 
 namespace Playground
 {
-    internal class Program
+    internal static class Program
     {
         static void Main(string[] args)
         {
-            TravelAgent.P.Do();
+            SingleMachinePingPong.P.StartNew(File);
             
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
