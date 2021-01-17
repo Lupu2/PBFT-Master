@@ -9,6 +9,19 @@ namespace Cleipnir.Rx
 {
     public static class StreamsLinq
     {
+        internal class OfType<TFrom, TTo> : IPersistableOperator<TFrom, TTo>
+        {
+            public void Operator(TFrom next, Action<TTo> notify)
+            {
+                if (next.GetType().IsSubclassOf(typeof(TTo)))
+                    notify((TTo) (object) next);
+            }
+
+            public void Serialize(StateMap sd, SerializationHelper helper) { }
+
+            private static OfType<TFrom, TTo> Deserialize() => new OfType<TFrom, TTo>();
+        }
+
         // ** DO ** //
         public static Stream<T> Do<T>(this Stream<T> s, Action<T> toDo)
             => s.DecorateStream(new DoOperator<T>(toDo));
