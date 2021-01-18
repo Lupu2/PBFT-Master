@@ -36,6 +36,7 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
         public int Count => _inner.Count;
         public bool ContainsKey(TKey key) => _inner.ContainsKey(key);
         public IEnumerable<TValue> Values => _inner.Values.Select(n => n.Value);
+        public IEnumerable<TKey> Keys => _inner.Keys;
 
         public void Set(TKey key, TValue value)
         {

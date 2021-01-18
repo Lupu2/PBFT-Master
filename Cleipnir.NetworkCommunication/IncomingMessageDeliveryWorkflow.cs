@@ -36,7 +36,7 @@ namespace Cleipnir.NetworkCommunication
 
         public void Deliver()
         {
-            if (_messageIndex < _connectionInfo.AtIndex || _toDeliver.ContainsKey(_messageIndex))
+            if (_messageIndex < _connectionInfo.AtIndex || _toDeliver.ContainsKey(_messageIndex))
                 return;
 
             Sync.AfterNext(AfterSync, true);

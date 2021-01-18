@@ -227,9 +227,6 @@ namespace Cleipnir.Rx
                 );
         }
 
-
-        
-
         // ** EPHEMERAL OPERATOR ** //
         public static Stream<T> Ephemeral<T>(this Stream<T> s) => new EphemeralOperator<T>(s, true);
 
@@ -258,8 +255,6 @@ namespace Cleipnir.Rx
 
             public override void Dispose() => _inner?.Unsubscribe(this);
         }
-
-       
 
         // ** DISPOSE ON ** //
         public static Stream<T> DisposeOn<T>(this Stream<T> s, CAwaitable disposeOn)

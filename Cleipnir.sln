@@ -31,6 +31,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cleipnir.ExecutionEngine.Pr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.NetworkCommunication", "Cleipnir.NetworkCommunication\Cleipnir.NetworkCommunication.csproj", "{4819FC6B-DD4D-4727-B925-C08EBDB0759A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.GroupCommunication", "Cleipnir.GroupCommunication\Cleipnir.GroupCommunication.csproj", "{6A89F030-386C-4D2F-86CB-D9F4576C9F62}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.Tests.GroupCommunication", "Cleipnir.Tests.GroupCommunication\Cleipnir.Tests.GroupCommunication.csproj", "{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,6 +97,14 @@ Global
 		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4819FC6B-DD4D-4727-B925-C08EBDB0759A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6A89F030-386C-4D2F-86CB-D9F4576C9F62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6A89F030-386C-4D2F-86CB-D9F4576C9F62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6A89F030-386C-4D2F-86CB-D9F4576C9F62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6A89F030-386C-4D2F-86CB-D9F4576C9F62}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

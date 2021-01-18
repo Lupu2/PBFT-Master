@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using Cleipnir.ExecutionEngine;
 using static Cleipnir.Helpers.FunctionalExtensions;
 
-namespace Cleipnir.NetworkCommunication
+namespace Cleipnir.GroupNetworkCommunication
 {
     internal class ConnectionListener : IDisposable
     {
