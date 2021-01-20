@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.GroupCommunication
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.Tests.GroupCommunication", "Cleipnir.Tests.GroupCommunication\Cleipnir.Tests.GroupCommunication.csproj", "{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.Tests.FileStorageEngine", "Cleipnir.Tests.FileStorageEngine\Cleipnir.Tests.FileStorageEngine.csproj", "{862FB7B4-27D6-44FC-A01C-BF909526C13E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +107,10 @@ Global
 		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9FDA9967-7A65-45A9-8DA3-3ED5A7165737}.Release|Any CPU.Build.0 = Release|Any CPU
+		{862FB7B4-27D6-44FC-A01C-BF909526C13E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{862FB7B4-27D6-44FC-A01C-BF909526C13E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{862FB7B4-27D6-44FC-A01C-BF909526C13E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{862FB7B4-27D6-44FC-A01C-BF909526C13E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

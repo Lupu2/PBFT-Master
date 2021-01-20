@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine;
@@ -12,8 +13,13 @@ namespace Playground.SingleMachinePingPong
     {
         public static void StartNew(StorageEngineImplementation storageEngine)
         {
-            var storage = CreateStorageEngine(storageEngine, true);
-            var scheduler = ExecutionEngineFactory.StartNew(storage);
+            var storage = new SimpleFileStorageEngine("./ping_pong.txt", true);
+            /*DatabaseHelper.CreateDatabaseIfNotExist("localhost", "ping_pong", "sa", "Pa55word");
+            var storage = new SqlServerStorageEngine("1", DatabaseHelper.ConnectionString("localhost", "ping_pong", "sa", "Pa55word"));
+          
+                storage.Initialize();
+                storage.Clear();*/
+                var scheduler = ExecutionEngineFactory.StartNew(storage);
 
             scheduler.Schedule(() =>
             {
@@ -29,16 +35,19 @@ namespace Playground.SingleMachinePingPong
             Console.ReadLine();
 
             scheduler.Dispose();
+            storage.Dispose();
 
             Console.WriteLine("PRESS ENTER TO START PING PONG APP");
             Console.ReadLine();
 
-            Continue(storageEngine);
+            Continue();
         }
 
-        public static void Continue(StorageEngineImplementation storageEngine)
+        private static void Continue()
         {
-            var storage = CreateStorageEngine(storageEngine, false);
+            var storage = new SimpleFileStorageEngine("./ping_pong.txt", false);
+            //var storage = new SqlServerStorageEngine("1", DatabaseHelper.ConnectionString("localhost", "ping_pong", "sa", "Pa55word"));
+
             var engine = ExecutionEngineFactory.Continue(storage);
 
             while (true)
@@ -52,29 +61,6 @@ namespace Playground.SingleMachinePingPong
                 Console.ReadLine();
 
                 engine = ExecutionEngineFactory.Continue(storage);
-            }
-        }
-
-        private static readonly InMemoryStorageEngine InMemoryStorageEngine = new();
-        private static IStorageEngine CreateStorageEngine(StorageEngineImplementation storageEngine, bool initialize)
-        {
-            switch (storageEngine)
-            {
-                case StorageEngineImplementation.SqlServer:
-                    DatabaseHelper.CreateDatabaseIfNotExist("localhost", "ping_pong", "sa", "Pa55word");
-                    var storage = new SqlServerStorageEngine("1", DatabaseHelper.ConnectionString("localhost", "ping_pong", "sa", "Pa55word"));
-                    if (initialize)
-                    {
-                        storage.Initialize();
-                        storage.Clear();
-                    }
-                    return storage;
-                case StorageEngineImplementation.File:
-                    return new SimpleFileStorageEngine(@"./PingPong.txt", initialize);
-                case StorageEngineImplementation.InMemory:
-                    return InMemoryStorageEngine;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(storageEngine), storageEngine, null);
             }
         }
     }
