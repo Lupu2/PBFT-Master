@@ -1,11 +1,19 @@
 ﻿using System;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.StorageEngine.InMemory;
+using Cleipnir.StorageEngine.SimpleFile;
 using Cleipnir.StorageEngine.SqlServer;
 
 namespace Playground.HeartbeatSender
 {
     internal static class P
     {
+        private static readonly InMemoryStorageEngine StorageEngine = new InMemoryStorageEngine();
+        private static readonly SimpleFileStorageEngine FileStorageEngine = new SimpleFileStorageEngine("test", true);
+
+        private static readonly SqlServerStorageEngine SqlServerStorageEngine =
+            new SqlServerStorageEngine("instance1", DatabaseHelper.ConnectionString("localhost", "test2"));
+        
         public static void Do()
         {
             var engine = Start();
@@ -26,16 +34,11 @@ namespace Playground.HeartbeatSender
 
         private static Engine Start()
         {
-            DatabaseHelper.CreateDatabaseIfNotExist("localhost", "Playground");
-
-            var sqlStorageEngine = new SqlServerStorageEngine(
-                "HeartbeatSender",
-                DatabaseHelper.ConnectionString("localhost", "Playground")
-            );
-            sqlStorageEngine.Initialize();
-            sqlStorageEngine.Clear();
-
-            var engine = ExecutionEngineFactory.StartNew(sqlStorageEngine);
+            SqlServerStorageEngine.Initialize();
+            SqlServerStorageEngine.Clear();
+            //var storageEngine = new SimpleFileStorageEngine("test", true);
+           // var storageEngine = new InMemoryStorageEngine();
+            var engine = ExecutionEngineFactory.StartNew(FileStorageEngine);
             engine.Schedule(() => new HeartbeatSender().Start());
 
             return engine;
@@ -43,12 +46,9 @@ namespace Playground.HeartbeatSender
 
         private static Engine Continue()
         {
-            var sqlStorageEngine = new SqlServerStorageEngine(
-                "HeartbeatSender",
-                DatabaseHelper.ConnectionString("localhost", "Playground")
-            );
+            //var storageEngine = new SimpleFileStorageEngine("test", false);
 
-            return ExecutionEngineFactory.Continue(sqlStorageEngine);
+            return ExecutionEngineFactory.Continue(FileStorageEngine);
         }
     }
 }
