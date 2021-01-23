@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using Newtonsoft.Json;
@@ -29,14 +30,23 @@ namespace Cleipnir.StorageEngine.SimpleFile
                         ObjectId = e.ObjectId,
                         Key = e.Key,
                         Reference = e.Reference,
-                        Value = e.Value == null 
-                            ? null 
-                            : e.Value is string s ? s : JsonConvert.SerializeObject(e.Value),
+                        Value = e.Value == null
+                            ? null
+                            : e.Value is string s
+                                ? s
+                                : JsonConvert.SerializeObject(e.Value),
                         ValueType = e.Value?.GetType().FullName
 
                     })
-                .Select(e => JsonConvert.SerializeObject(e, Formatting.None, SerializerSettings))
-                .ToArray();
+                .Concat(detectedChanges.RemovedEntries.Select(r =>
+                    new Entry
+                    {
+                        Key = r.Key,
+                        ObjectId = r.ObjectId,
+                        Removed = true
+                    }))
+                .Select(e => JsonConvert.SerializeObject(e, Formatting.None, SerializerSettings));
+                
 
             File.AppendAllLines(_path, csvEntries);
         }
@@ -45,10 +55,19 @@ namespace Cleipnir.StorageEngine.SimpleFile
         {
             var lines = File.ReadAllLines(_path);
 
-            var dict = new Dictionary<Tuple<long, string>, StorageEntry>();
+            //var dict = new Dictionary<Tuple<long, string>, StorageEntry>();
 
             var entries = lines
                 .Select(JsonConvert.DeserializeObject<Entry>)
+                .Aggregate(
+                    ImmutableDictionary<Tuple<long, string>, Entry>.Empty,
+                    (d, e) => 
+                            e.Removed ? 
+                                d.Remove(Tuple.Create(e.ObjectId, e.Key)) : 
+                                d.SetItem(Tuple.Create(e.ObjectId, e.Key), e
+                        ) 
+                )
+                .Values
                 .Select(e => new StorageEntry(
                     e.ObjectId,
                     e.Key,
@@ -58,12 +77,12 @@ namespace Cleipnir.StorageEngine.SimpleFile
                     e.Reference)
                 );
 
-            foreach (var entry in entries)
+            /*foreach (var entry in entries)
             {
                 dict[Tuple.Create(entry.ObjectId, entry.Key)] = entry;
-            }
+            }*/
 
-            return dict.Values;
+            return entries;
         }
 
         public void Clear() => File.Delete(_path);
@@ -75,6 +94,7 @@ namespace Cleipnir.StorageEngine.SimpleFile
         {
             public long ObjectId { get; set; }
             public string Key { get; set; }
+            public bool Removed { get; set; }
             public string Value { get; set; }
             public string ValueType { get; set; }
             public long? Reference { get; set; }
