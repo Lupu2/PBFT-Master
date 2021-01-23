@@ -14,8 +14,6 @@ namespace Playground.SayerExample
             sayer.Greeting = "Hello";
             Action greet = sayer.Greet;
             
-            os.Attach((Action) (() => Console.WriteLine("Come join us!")));
-            
             os.Attach(sayer);
             os.Attach(greet);
             
