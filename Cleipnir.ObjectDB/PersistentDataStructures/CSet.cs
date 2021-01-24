@@ -30,9 +30,9 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
 
         public int Count => _nodes.Count;
 
-        public void Add(T toAdd)
+        public bool Add(T toAdd)
         {
-            if (_nodes.ContainsKey(toAdd)) return;
+            if (_nodes.ContainsKey(toAdd)) return false;
 
             var id = ++_maxId;
             var node = new Node(id, toAdd);
@@ -50,6 +50,7 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
             _nodes[toAdd] = node;
 
             _changedNodes.Add(node);
+            return true;
         }
 
         public void Remove(T toRemove)

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 
 namespace Cleipnir.Rx
@@ -136,6 +137,44 @@ namespace Cleipnir.Rx
                 => new ScanOperator<TIn, TOut>(
                     sd.Get<TOut>(nameof(_curr)),
                     sd.Get<Func<TOut, TIn, TOut>>(nameof(_folder))
+                );
+        }
+        
+        // ** DISTINCT BY ** //
+        public static Stream<T> DistinctBy<T, TDistinctBy>(this Stream<T> s, Func<T, TDistinctBy> selector)
+            => s.DecorateStream(new DistinctByOperator<T, TDistinctBy>(selector));
+        
+        private class DistinctByOperator<T, TDistinctBy> : IPersistableOperator<T, T>
+        {
+            private readonly Func<T, TDistinctBy> _selector;
+            private readonly CSet<TDistinctBy> _set;
+
+            private bool _isSerialized;
+
+            public DistinctByOperator(Func<T, TDistinctBy> selector, CSet<TDistinctBy> set = null)
+            {
+                _selector = selector;
+                _set = set ?? new CSet<TDistinctBy>();
+            } 
+
+            public void Operator(T next, Action<T> notify)
+            {
+                if (_set.Add(_selector(next)))
+                    notify(next);
+            }
+
+            public void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                if (_isSerialized) return; _isSerialized = true;
+                
+                sd.Set(nameof(_selector), _selector);
+                sd.Set(nameof(_set), _set);
+            }
+
+            private static DistinctByOperator<T, TDistinctBy> Deserialize(IReadOnlyDictionary<string, object> sd)
+                => new DistinctByOperator<T, TDistinctBy>(
+                    sd.Get<Func<T, TDistinctBy>>(nameof(_selector)),
+                    sd.Get<CSet<TDistinctBy>>(nameof(_set))
                 );
         }
 
