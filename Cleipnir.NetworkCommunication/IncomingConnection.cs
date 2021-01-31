@@ -1,22 +1,18 @@
 ﻿using System;
 using System.Net.Sockets;
-using Cleipnir.ExecutionEngine;
+using static Cleipnir.Helpers.FunctionalExtensions;
 
 namespace Cleipnir.NetworkCommunication
 {
-    internal class IncomingConnection
+    internal class IncomingConnection : IDisposable
     {
-        private readonly Engine _scheduler;
-        private readonly IncomingConnectionInfo _connectionInfo;
         private readonly Socket _socket;
-        private readonly Action<ImmutableByteArray> _messageHandler;
+        private readonly IncomingMessageDeliverer _messageDeliverer;
 
-        public IncomingConnection(Engine scheduler, IncomingConnectionInfo connectionInfo, Socket socket, Action<ImmutableByteArray> messageHandler)
+        public IncomingConnection(Socket socket, IncomingMessageDeliverer messageDeliverer)
         {
-            _scheduler = scheduler;
-            _connectionInfo = connectionInfo;
             _socket = socket;
-            _messageHandler = messageHandler;
+            _messageDeliverer = messageDeliverer;
         }
 
         public async void Start()
@@ -47,13 +43,7 @@ namespace Cleipnir.NetworkCommunication
                                 SocketFlags.None
                             );
 
-                        var messageDeliveryWorkflow = new IncomingMessageDeliveryWorkflow(
-                            _connectionInfo,
-                            new ImmutableByteArray(buffer), _messageHandler, messageIndex,
-                            UpdateAtIndex
-                        );
-
-                        _ = _scheduler.Schedule(messageDeliveryWorkflow.Deliver);
+                        _messageDeliverer.EnqueueForDeliver(messageIndex, buffer);
                     }
                 }
             }
@@ -63,6 +53,9 @@ namespace Cleipnir.NetworkCommunication
             }
         }
 
-        private void UpdateAtIndex(int atIndex) => _socket.Send(BitConverter.GetBytes(atIndex));
+        public void SendAtIndexToOtherSide(int atIndex) 
+            => SafeTry(() => _socket.Send(BitConverter.GetBytes(atIndex)));
+
+        public void Dispose() => SafeTry(_socket.Dispose);
     }
 }
