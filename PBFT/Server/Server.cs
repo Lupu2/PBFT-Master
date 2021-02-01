@@ -6,7 +6,7 @@ using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using PBFT.Network;
-using PBFT.ProtocolMessages;
+using PBFT.Messages;
 using PBFT.Helper;
 
 namespace PBFT.Server

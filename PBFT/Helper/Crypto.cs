@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System;
-using PBFT.ProtocolMessages;
-using MessagePack.Resolvers;
+using PBFT.Messages;
 
 namespace PBFT.Helper
 {

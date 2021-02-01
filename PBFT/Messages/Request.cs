@@ -7,9 +7,9 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 
-namespace PBFT.ProtocolMessages
+namespace PBFT.Messages
 {
-    public class Request : IProtocolMessages<Request>, IPersistable 
+    public class Request : IProtocolMessages, SignedMessage, IPersistable 
     {
         public int ClientID {get; set;}
         public string Message{get; set;} //operation might be changed to object later on
@@ -73,7 +73,10 @@ namespace PBFT.ProtocolMessages
             }
         }
 
+        public IProtocolMessages CreateCopyTemplate() => new Request(ClientID, Message, Timestamp);
+        
         public override string ToString() => $"ID: {ClientID}, Message: {Message}, Time:{Timestamp}, Sign:{Signature}";
+
     }
 
 }

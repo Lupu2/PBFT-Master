@@ -1,22 +1,21 @@
 using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
-using PBFT.ProtocolMessages;
 
-namespace PBFT.Network
+namespace PBFT.Messages
 {
     public enum DeviceType
     {
         Client,
         Server,
     }
-    public class SessionMessage
+    public class SessionMessage : IProtocolMessages
     {
         public DeviceType devtype {get; set;}
         public RSAParameters publickey{get; set;}
         public int DevID {get; set;}
 
-        public SessionMessage(DeviceType type, RSAParameters pubkey, int devid)
+        public SessionMessage(DeviceType type, RSAParameters pubkey, int devid) 
         {
             devtype = type;
             publickey = pubkey;

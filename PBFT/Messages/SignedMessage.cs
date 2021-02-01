@@ -1,10 +1,11 @@
 using System.Security.Cryptography;
 
-namespace PBFT.ProtocolMessages
+namespace PBFT.Messages
 {
-    public interface IProtocolMessages<T>
+    public interface SignedMessage
     {
-         public byte[] SerializeToBuffer();
          public void SignMessage(RSAParameters prikey, string haspro="SHA256");
+
+         public IProtocolMessages CreateCopyTemplate();
     }
 }

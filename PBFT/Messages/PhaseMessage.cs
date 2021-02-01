@@ -7,7 +7,7 @@ using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using PBFT.Helper;
 
-namespace PBFT.ProtocolMessages
+namespace PBFT.Messages
 {
     public enum MessageType 
     {
@@ -16,7 +16,7 @@ namespace PBFT.ProtocolMessages
         Commit,
     }
 
-    public class PhaseMessage : IProtocolMessages<PhaseMessage>, IPersistable
+    public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
     {
         public int ServID {get;set;}
 
@@ -36,6 +36,17 @@ namespace PBFT.ProtocolMessages
             ViewNr = view;
             Digest = dig;
             Type = phase;
+        }
+
+        [JsonConstructor]
+        public PhaseMessage(int id,int seq,int view, byte[] dig, MessageType phase, byte[] sign)
+        {
+            ServID = id;
+            SeqNr = seq;
+            ViewNr = view;
+            Digest = dig;
+            Type = phase;
+            Signature = sign;
         }
 
         public byte[] SerializeToBuffer()
@@ -81,7 +92,7 @@ namespace PBFT.ProtocolMessages
         public bool Validate(RSAParameters pubkey,int cviewNr, int seqLow,int seqHigh)
         {
             bool valid = true;
-            var clone = CreateCopyTemplate(this);
+            var clone = CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
             if (ViewNr != cviewNr) return false;
             if (SeqNr > seqLow || SeqNr > seqHigh) return false;
@@ -89,6 +100,7 @@ namespace PBFT.ProtocolMessages
             return valid;
         }
 
-        private PhaseMessage CreateCopyTemplate(PhaseMessage org) => new PhaseMessage(org.ServID,org.SeqNr,org.ViewNr,org.Digest,org.Type);
+        public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID,SeqNr,ViewNr,Digest,Type);
+
     }
 }

@@ -3,9 +3,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace PBFT.ProtocolMessages
+namespace PBFT.Messages
 {
-    public class Reply :IProtocolMessages<Reply>
+    public class Reply : IProtocolMessages, SignedMessage
     {  
         public int ServID{get; set;}
         public int SeqNr{get; set;}
@@ -26,6 +26,18 @@ namespace PBFT.ProtocolMessages
             Timestamp = timestamp;
         }
 
+        [JsonConstructor]
+        public Reply(int id, int seqnr, int vnr, bool success, string res, string timestamp, byte[] sign)
+        {
+            ServID = id;
+            SeqNr = seqnr;
+            ViewNr = vnr;
+            Status = success;
+            Result = res;
+            Timestamp = timestamp;
+            Signature = sign;
+        }
+
         public byte[] SerializeToBuffer()
         {
             string jsonval = JsonConvert.SerializeObject(this);
@@ -38,7 +50,7 @@ namespace PBFT.ProtocolMessages
             return JsonConvert.DeserializeObject<Reply>(jsonobj);
         }
 
-        public void SignMessage(RSAParameters prikey, string haspro = "SHA256") //not used
+        public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
         {
             using (var rsa = RSA.Create())
             {
@@ -57,5 +69,8 @@ namespace PBFT.ProtocolMessages
         }
 
         public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
+
+        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp, Signature);
+        
     }
 }

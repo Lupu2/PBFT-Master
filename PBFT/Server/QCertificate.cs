@@ -2,7 +2,7 @@ using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using PBFT.ProtocolMessages;
+using PBFT.Messages;
 
 namespace PBFT.Server
 {

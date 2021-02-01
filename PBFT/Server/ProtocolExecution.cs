@@ -5,11 +5,8 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using PBFT.Helper;
-using PBFT.ProtocolMessages;
+using PBFT.Messages;
 using System;
-using System.Diagnostics;
-using System.Runtime.ConstrainedExecution;
-using System.Security.Cryptography.X509Certificates;
 
 namespace PBFT.Server
 {

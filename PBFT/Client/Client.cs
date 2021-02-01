@@ -2,7 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using PBFT.ProtocolMessages;
+using PBFT.Messages;
 
 namespace PBFT.Client
 {
