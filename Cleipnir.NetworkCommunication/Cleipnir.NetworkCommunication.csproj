@@ -9,4 +9,8 @@
     <ProjectReference Include="..\Cleipnir.Scheduler\Cleipnir.Scheduler\Cleipnir.ExecutionEngine.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Shouldly" Version="4.0.3" />
+  </ItemGroup>
+
 </Project>

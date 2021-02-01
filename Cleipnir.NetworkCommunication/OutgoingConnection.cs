@@ -1,106 +1,178 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.Helpers;
-using Cleipnir.ObjectDB.Persistency;
-using Cleipnir.ObjectDB.Persistency.Deserialization;
-using Cleipnir.ObjectDB.Persistency.Serialization;
-using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
-using Cleipnir.ObjectDB.PersistentDataStructures;
+using static Cleipnir.Helpers.FunctionalExtensions;
 
 namespace Cleipnir.NetworkCommunication
 {
-    public class OutgoingConnection : IPersistable
+    internal class OutgoingConnection : IDisposable
     {
-        private readonly string _hostName;
-        private readonly int _port;
-        private readonly Guid _identifier;
         private readonly IPEndPoint _endPoint;
+        private readonly string _identifier;
+        private Socket _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
 
-        private readonly CQueue<ImmutableByteArray> _unackedQueue;
-        private int _ackedUntil;
+        private readonly OutgoingMessageQueue _persistentUnackedMessageQueue;
+        private Queue<Tuple<int, ImmutableByteArray>> _localQueue;
 
-        private readonly QueueWorker _queueWorker = new QueueWorker();
-        private OutgoingMessageSender _messageSender;
+        private bool _running;
+        
+        private readonly Engine _engine;
 
-        public OutgoingConnection(string hostName, int port)
+        private volatile bool _disposed;
+
+        private readonly object _sync = new();
+
+        public OutgoingConnection(IPEndPoint endPoint, string identifier, OutgoingMessageQueue persistentUnackedMessageQueue)
         {
-            _hostName = hostName;
-            _port = port;
-            _endPoint = IPEndPoint.Parse($"{hostName}:{port}");
-            _unackedQueue = new CQueue<ImmutableByteArray>();
-            _ackedUntil = -1;
-            _identifier = Guid.NewGuid();
-
-            Scheduler.Schedule(CreateNewMessageSender, false);
-        }
-
-        private OutgoingConnection(
-            string hostName, int port, Guid identifier, 
-            CQueue<ImmutableByteArray> unackedQueue, int ackedUntil)
-        {
-            _hostName = hostName;
-            _port = port;
-            _unackedQueue = unackedQueue;
-            _ackedUntil = ackedUntil;
+            _endPoint = endPoint;
             _identifier = identifier;
+            _persistentUnackedMessageQueue = persistentUnackedMessageQueue;
+
+            _localQueue = new (persistentUnackedMessageQueue.GetSyncedUnackedMessages());
             
-            Scheduler.Schedule(CreateNewMessageSender, false);
+            _engine = Engine.Current;
         }
 
-        public void Send(byte[] msg)
+        public void Start() => Notify();
+
+        public void Send(int index, ImmutableByteArray bytes)
         {
-            _unackedQueue.Enqueue(new ImmutableByteArray(msg));
-            var messageSender = _messageSender;
-            Task SendMsg() => messageSender?.Send(msg) ?? Task.CompletedTask;
-            Sync.AfterNext(() => _queueWorker.Do(SendMsg), false);
+            lock (_sync)
+                _localQueue.Enqueue(Tuple.Create(index, bytes));
+            
+            Notify();
         }
 
-        private void CreateNewMessageSender()
+        private void Notify()
         {
-            _messageSender = new OutgoingMessageSender(
-                _endPoint,
-                _identifier,
-                _ackedUntil + 1,
-                HandleAck,
-                HandleLostConnection
-            );
-
-            _messageSender.CreateConnection();
-
-            foreach (var bytes in _unackedQueue)
-                _queueWorker.Do(() => _messageSender.Send(bytes.Array));
-        }
-
-        private void HandleAck(int ackedUntil)
-        {
-            while (_ackedUntil < ackedUntil)
+            lock (_sync)
             {
-                _unackedQueue.Dequeue();
-                _ackedUntil++;
+                if (_running || _disposed)
+                    return;
+
+                _running = true;
+            }
+
+            _ = ExecuteSendMessagesWorkflow();
+        }
+
+        private async Task ExecuteSendMessagesWorkflow()
+        {
+            while (!_disposed)
+            {
+                int atIndex;
+                ImmutableByteArray payload;
+                
+                lock (_sync)
+                    if (_localQueue.Count == 0)
+                    {
+                        _running = false;
+                        return;
+                    }
+                    else
+                        (atIndex, payload) = _localQueue.Dequeue();
+                try
+                {
+                    if (_socket == null || !_socket.Connected)    
+                        await CreateConnection();
+                    
+                    await SendMessage(atIndex, payload.Array);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    Restart();
+                }
             }
         }
 
-        private void HandleLostConnection() => CreateNewMessageSender();
-
-        public void Serialize(StateMap sd, SerializationHelper helper)
+        public async Task CreateConnection()
         {
-            sd.Set(nameof(_hostName), _hostName);
-            sd.Set(nameof(_port), _port);
-            sd.Set(nameof(_identifier), _identifier);
-            sd.Set(nameof(_unackedQueue), _unackedQueue);
-            sd.Set(nameof(_ackedUntil), _ackedUntil);
+            while (true)
+            {
+                try
+                {
+                    SafeTry(_socket.Dispose);
+                    
+                    _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+                    await _socket.ConnectAsync(_endPoint);
+
+                    var identifierBytes = Encoding.UTF8.GetBytes(_identifier);
+
+                    await _socket.SendAsync(BitConverter.GetBytes(identifierBytes.Length), SocketFlags.None);
+                    await _socket.SendAsync(identifierBytes, SocketFlags.None);
+
+                    Receiver(_socket);
+
+                    return;
+                }
+                catch (Exception _)
+                {
+                    Console.WriteLine($"Unable to connect to endpoint: {_endPoint} retrying in 5 seconds");
+                    await Task.Delay(5000);
+                }
+            }
+        }
+        
+        private async Task SendMessage(int atIndex, byte[] payload)
+        {
+            var arraySegments = new List<ArraySegment<byte>>();
+
+            arraySegments.Add(BitConverter.GetBytes(atIndex));
+            arraySegments.Add(BitConverter.GetBytes(payload.Length));
+            arraySegments.Add(payload);
+
+            await _socket.SendAsync(arraySegments, SocketFlags.None);
+        }
+        
+        private async void Receiver(Socket socket)
+        {
+            var ackedUntilBuffer = new byte[4];
+            try
+            {
+                while (!_disposed)
+                {
+                    var readSoFar = 0;
+
+                    while (readSoFar < 4)
+                        readSoFar += await socket.ReceiveAsync(
+                            new ArraySegment<byte>(ackedUntilBuffer, readSoFar, ackedUntilBuffer.Length - readSoFar),
+                            SocketFlags.None
+                        );
+
+                    var ackedUntil = BitConverter.ToInt32(ackedUntilBuffer);
+
+                    _ = _engine.Schedule(() => _persistentUnackedMessageQueue.AckUntil(ackedUntil));
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                Restart();
+            }
         }
 
-        private static OutgoingConnection Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new OutgoingConnection(
-                sd.Get<string>(nameof(_hostName)),
-                sd.Get<int>(nameof(_port)),
-                sd.Get<Guid>(nameof(_identifier)),
-                sd.Get<CQueue<ImmutableByteArray>>(nameof(_unackedQueue)),
-                sd.Get<int>(nameof(_ackedUntil))
-            );
+        private void Restart()
+        {
+            var unackedMessages = _engine
+                .Schedule(() => _persistentUnackedMessageQueue.GetSyncedUnackedMessages().ToList())
+                .Result;
+
+            lock (_sync)
+                _localQueue = new Queue<Tuple<int, ImmutableByteArray>>(unackedMessages);
+            
+            Notify();
+        }
+
+        public void Dispose()
+        {
+            _disposed = true;
+            SafeTry(_socket.Dispose);
+        }
     }
 }

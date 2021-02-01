@@ -9,6 +9,7 @@ namespace Cleipnir.NetworkCommunication
 {
     public class ImmutableByteArray : IPersistable
     {
+        //todo add support for spans and other non-strict array types
         public byte[] Array { get; }
 
         public ImmutableByteArray(byte[] array) => Array = array;
