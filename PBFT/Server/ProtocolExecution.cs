@@ -25,7 +25,7 @@ namespace PBFT.Server
             {
                 Serv.CurSeqNr++;
                 qcertpre = new QCertificate(CertType.Prepared, Serv.CurSeqNr, Serv.CurView);
-                PhaseMessage preprepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, MessageType.PrePrepare);
+                PhaseMessage preprepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, PMessageType.PrePrepare);
                 //Log preprepare as Prepare
                 //Send async message PrePrepare
                 await Serv.Multicast(preprepare.SerializeToBuffer());
@@ -34,7 +34,7 @@ namespace PBFT.Server
                 // await incomming PhaseMessages Where = MessageType.PrePrepare
                 //Add Prepare to Certificate
                 //Send async message Prepare
-                PhaseMessage prepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, MessageType.Prepare);
+                PhaseMessage prepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, PMessageType.Prepare);
                 await Serv.Multicast(prepare.SerializeToBuffer());
             }
             //Prepare phase

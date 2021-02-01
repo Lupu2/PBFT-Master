@@ -9,7 +9,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public enum MessageType 
+    public enum PMessageType 
     {
         PrePrepare,
         Prepare,
@@ -27,9 +27,9 @@ namespace PBFT.Messages
         
         public byte[] Signature{get;set;}
 
-        public MessageType Type{get;set;}
+        public PMessageType Type{get;set;}
 
-        public PhaseMessage(int id,int seq,int view, byte[] dig, MessageType phase)
+        public PhaseMessage(int id,int seq,int view, byte[] dig, PMessageType phase)
         {
             ServID = id;
             SeqNr = seq;
@@ -39,7 +39,7 @@ namespace PBFT.Messages
         }
 
         [JsonConstructor]
-        public PhaseMessage(int id,int seq,int view, byte[] dig, MessageType phase, byte[] sign)
+        public PhaseMessage(int id,int seq,int view, byte[] dig, PMessageType phase, byte[] sign)
         {
             ServID = id;
             SeqNr = seq;
@@ -96,7 +96,7 @@ namespace PBFT.Messages
             if (!Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
             if (ViewNr != cviewNr) return false;
             if (SeqNr > seqLow || SeqNr > seqHigh) return false;
-            if(Type == MessageType.PrePrepare) Console.WriteLine("Extra check!"); //check if already exist a stored prepare with seqnr = to this message
+            if(Type == PMessageType.PrePrepare) Console.WriteLine("Extra check!"); //check if already exist a stored prepare with seqnr = to this message
             return valid;
         }
 

@@ -5,18 +5,8 @@ using PBFT.Messages;
 
 namespace PBFT.Helper
 {
-    public static class Deserializer
+    public static class Deserializer 
     {
-        internal enum MessageType
-        {
-            SessionMessage = 0,
-            Request = 1,
-            PhaseMessage = 2,
-            Reply = 3,
-            ViewChange = 4,
-            NewView = 5,
-        }
-
         public static IProtocolMessages ChooseDeserialize(byte[] sermessage)
         {
             int formatByte = sermessage[sermessage.Length-1];
@@ -35,8 +25,8 @@ namespace PBFT.Helper
                     return ViewChange.DeSerializeToObject(serobj);
                 case (int) MessageType.NewView:
                     return NewView.DeSerializeToObject(serobj);
-                    default:
-                        throw new ArgumentOutOfRangeException();
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
     }
