@@ -71,6 +71,15 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(Type), Type);
         }
 
+        //Example of Clipnir deserialize
+        // private static OutgoingMessageDeliverer Deserialize(IReadOnlyDictionary<string, object> sd)
+        //     => new OutgoingMessageDeliverer(
+        //         sd.Get<string>(nameof(_hostName)),
+        //         sd.Get<int>(nameof(_port)),
+        //         sd.Get<string>(nameof(_identifier)),
+        //         sd.Get<OutgoingMessageQueue>(nameof(_unackedQueue))
+        //     );
+
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
             using (var rsa = RSA.Create())

@@ -3,6 +3,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Messages;
+using System.Linq;
 
 namespace PBFT.Server
 {
@@ -36,7 +37,12 @@ namespace PBFT.Server
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
-            throw new System.NotImplementedException();
+            //throw new System.NotImplementedException();
+            stateToSerialize.Set(nameof(Type), Type);
+            stateToSerialize.Set(nameof(SeqNr), SeqNr);
+            stateToSerialize.Set(nameof(ViewNr), ViewNr);
+            stateToSerialize.Set(nameof(Valid), Valid);
+            stateToSerialize.Set(nameof(ProofList), ProofList);
         }
 
         private bool QReached(int FNodes)
@@ -44,9 +50,16 @@ namespace PBFT.Server
             return ProofList.Count >= 2 * FNodes + 1;
         }
 
+        private bool CheckForDuplicates()
+        {
+            return ProofList.GroupBy(c => new {c.ServID, c.Signature})
+                            .Any(p => p.Count() > 1); //https://stackoverflow.com/questions/16197290/checking-for-duplicates-in-a-list-of-objects-c-sharp/16197491
+            
+        }
+
         public bool ValidateCertificate(int FNodes) //potentially asynchrous together with QReached
         {
-            Valid = QReached(FNodes);
+            if (!Valid) if (QReached(FNodes) && !CheckForDuplicates()) Valid = true;
             return Valid;
         }
     }

@@ -6,6 +6,7 @@ using Newtonsoft.Json;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 
 namespace PBFT.Messages
 {
@@ -31,7 +32,7 @@ namespace PBFT.Messages
             Timestamp = time;
             Signature = sign;
         }
-        public byte[] SerializeToBuffer()
+        public byte[] SerializeToBuffer() 
         {
             string jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
@@ -51,7 +52,9 @@ namespace PBFT.Messages
         }
 
         public static Request Deserialize(IReadOnlyDictionary<string, object> sd) 
-        => new Request((int) sd[nameof(ClientID)], (string) sd[nameof(Message)], (string) sd[nameof(Timestamp)], (byte[]) sd[nameof(Signature)]);
+        //=> new Request( sd.Get<int>(nameof(ClientID)), sd.Get<string>(nameof(Message)), sd.Get<string>(nameof(Timestamp)), sd<byte[]>(nameof(Signature)));
+        =>  new Request((int) sd[nameof(ClientID)], (string) sd[nameof(Message)], (string) sd[nameof(Timestamp)], (byte[]) sd[nameof(Signature)]);
+
 
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {

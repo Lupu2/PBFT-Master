@@ -1,4 +1,3 @@
-using System.Security.Cryptography.X509Certificates;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -6,7 +5,6 @@ using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using PBFT.Network;
-using PBFT.Messages;
 using PBFT.Helper;
 
 namespace PBFT.Server
@@ -35,6 +33,7 @@ namespace PBFT.Server
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         public Dictionary<int, bool> ClientActive;
+
         public Server(int id, int curview, Engine sche) //Initial constructor
         {
             ServID = id;
@@ -78,12 +77,12 @@ namespace PBFT.Server
 
         public async void InitializeConnections(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
         {
-
+            
         }
 
         /*public async Conn Listen()
         {   //To be implemented
-
+            
         }*/
 
         public async CTask Multicast(byte[] sermessage)
