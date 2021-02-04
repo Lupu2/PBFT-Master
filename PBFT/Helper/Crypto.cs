@@ -17,7 +17,7 @@ namespace PBFT.Helper
             }
         }*/
 
-        public static (RSAParameters,RSAParameters) InitializeKeyPairs()
+        public static (RSAParameters, RSAParameters) InitializeKeyPairs()
         {
             RSA rsa = RSA.Create();
             var prikey = rsa.ExportParameters(true);

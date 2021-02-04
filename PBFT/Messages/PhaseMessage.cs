@@ -18,18 +18,18 @@ namespace PBFT.Messages
 
     public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
     {
-        public int ServID {get;set;}
+        public int ServID {get; set;}
 
-        public int SeqNr {get;set;}
+        public int SeqNr {get; set;}
         
-        public int ViewNr{get;set;}
-        public byte[] Digest{get;set;}
+        public int ViewNr{get; set;}
+        public byte[] Digest{get; set;}
         
-        public byte[] Signature{get;set;}
+        public byte[] Signature{get; set;}
 
-        public PMessageType Type{get;set;}
+        public PMessageType Type{get; set;}
 
-        public PhaseMessage(int id,int seq,int view, byte[] dig, PMessageType phase)
+        public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase)
         {
             ServID = id;
             SeqNr = seq;
@@ -39,7 +39,7 @@ namespace PBFT.Messages
         }
 
         [JsonConstructor]
-        public PhaseMessage(int id,int seq,int view, byte[] dig, PMessageType phase, byte[] sign)
+        public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase, byte[] sign)
         {
             ServID = id;
             SeqNr = seq;
@@ -98,7 +98,7 @@ namespace PBFT.Messages
             }
         }
 
-        public bool Validate(RSAParameters pubkey,int cviewNr, int seqLow,int seqHigh)
+        public bool Validate(RSAParameters pubkey,int cviewNr, int seqLow, int seqHigh)
         {
             bool valid = true;
             var clone = CreateCopyTemplate();
@@ -109,7 +109,7 @@ namespace PBFT.Messages
             return valid;
         }
 
-        public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID,SeqNr,ViewNr,Digest,Type);
+        public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, Type);
 
     }
 }
