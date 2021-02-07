@@ -27,7 +27,7 @@ namespace Playground.PoormansExecutionEngine
                 cw.Do,
                 false,
                 scheduler
-            ).Start();
+            );
         }
 
         private static void Continue()

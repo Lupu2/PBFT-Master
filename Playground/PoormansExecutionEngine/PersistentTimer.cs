@@ -26,7 +26,7 @@ namespace Playground.PoormansExecutionEngine
                 executionEngine.Schedule(Start);
         }
 
-        public void Start()
+        private void Start()
         {
             _executionEngine.Entangle(this);
             var now = DateTime.Now;
