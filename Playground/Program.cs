@@ -1,5 +1,4 @@
 ﻿using System;
-using static Playground.SingleMachinePingPong.StorageEngineImplementation;
 
 namespace Playground
 {
@@ -7,7 +6,7 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            SingleMachinePingPong.P.StartNew(File);
+            PoormansExecutionEngine.P.Do();
             
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
