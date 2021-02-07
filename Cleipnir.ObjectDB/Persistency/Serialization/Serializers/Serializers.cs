@@ -9,14 +9,14 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 {
     internal class Serializers : IEnumerable<ISerializer>
     {
-        private readonly ISerializerFactory _serializerFactory;
+        private readonly SerializerFactory _serializerFactory;
         private readonly DictionaryWithDefault<object, long> _objectToId;
 
         private readonly IDictionary<long, ISerializer> _serializers = new Dictionary<long, ISerializer>();
 
         private long _nextObjectId;
 
-        public Serializers(long nextObjectId, ISerializerFactory serializerFactory)
+        public Serializers(long nextObjectId, SerializerFactory serializerFactory)
         {
             _nextObjectId = nextObjectId;
             _serializerFactory = serializerFactory;
