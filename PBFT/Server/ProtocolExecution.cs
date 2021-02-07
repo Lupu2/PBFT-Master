@@ -31,11 +31,12 @@ namespace PBFT.Server
             byte[] digest;
             QCertificate qcertpre;
             digest = Crypto.CreateDigest(clireq);
+            int curSeq = 0; //change later
             if (Serv.IsPrimary())
             {
-                Serv.CurSeqNr++;
+                curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request
                 qcertpre = new QCertificate(CertType.Prepared, Serv.CurSeqNr, Serv.CurView);
-                PhaseMessage preprepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, PMessageType.PrePrepare);
+                PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                 //Log preprepare as Prepare
                 //Send async message PrePrepare
                 await Serv.Multicast(preprepare.SerializeToBuffer());
@@ -44,11 +45,12 @@ namespace PBFT.Server
                 try 
                 {
                     // await incomming PhaseMessages Where = MessageType.PrePrepare
-                //Add Prepare to Certificate
-                //Send async message Prepare
-                cancel.CancelAfter(60000); 
-                PhaseMessage prepare = new PhaseMessage(Serv.ServID, Serv.CurSeqNr, Serv.CurView, digest, PMessageType.Prepare);
-                await Serv.Multicast(prepare.SerializeToBuffer());    
+                    //Add Prepare to Certificate
+                    //Send async message Prepare
+                    curSeq = Serv.CurSeqNr++; //TODO change to take sequence nr from Preprepare
+                    cancel.CancelAfter(60000); 
+                    PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare);
+                    await Serv.Multicast(prepare.SerializeToBuffer());    
                 }
                 catch(TaskCanceledException) //Probably placed so that the rest of the code is not runned after primary is deemed faulty
                 {   
@@ -61,14 +63,16 @@ namespace PBFT.Server
             //await incomming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
 
             //Commit phase
-            QCertificate qcertcom = new QCertificate(CertType.Committed, Serv.CurSeqNr, Serv.CurView);
+            QCertificate qcertcom = new QCertificate(CertType.Committed, curSeq, Serv.CurView);
             //Send async message Commit
             //await incomming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-
+            
             //Reply
             //Save the 2 Certificates
+            //Need to move or insert await for curSeqNr to be the next request to be handled
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
+            await Serv.SendMessage(rep.SerializeToBuffer());
             return rep;
         }
     }

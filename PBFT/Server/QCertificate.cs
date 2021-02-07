@@ -18,7 +18,7 @@ namespace PBFT.Server
 
  }
     public class QCertificate : IPersistable
-    {
+    { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
         public CertType Type {get; set;}
         public int SeqNr;
         public int ViewNr;
@@ -33,8 +33,7 @@ namespace PBFT.Server
                 ViewNr = vnr;
                 Valid = false;
         }
-
-
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             //throw new System.NotImplementedException();
