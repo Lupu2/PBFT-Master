@@ -3,6 +3,7 @@ using System.IO;
 using PBFT.Helper;
 using PBFT.Messages;
 using System.Security.Cryptography;
+using System.Text.Encodings.Web;
 using System.Threading;
 using Cleipnir.StorageEngine.SimpleFile;
 using Cleipnir.ExecutionEngine;
@@ -60,9 +61,24 @@ namespace PBFT
             // Console.WriteLine(deser.publickey.P);
                 
             //Actual initialization
-            
+            //Console.WriteLine(args[0]);
             var storageEngine = new SimpleFileStorageEngine(".PBFTStorage.txt", true); //change to false when done debugging
+            Console.WriteLine(args.Length);
+
+            var test = LoadJSONValues.GetServerData("serverInfo.json", 0).Result;
+            var id = test.Item1;
+            var ipaddr = test.Item2;
+            Console.WriteLine("Result");
+            Console.WriteLine(id);
+            Console.WriteLine(ipaddr);
             
+            if (args.Length > 0) //add arguments by editing configuration program arguments or by adding paramters behind executable directly
+            {
+                foreach (var arg in args)
+                {
+                    Console.WriteLine(arg);
+                }
+            }
             var con = File.Exists("./PBFTStorage.txt");
             if (!con)
             {

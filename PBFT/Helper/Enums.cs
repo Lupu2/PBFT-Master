@@ -4,7 +4,30 @@ using PBFT.Messages;
 
 namespace PBFT.Helper
 {
-    public static class EnumTransformer
+    //Enums
+    public enum CertType {
+        Prepared,
+        Committed,
+        Reply,
+        Checkpoint,
+        ViewChange,
+    }
+    
+    public enum PMessageType 
+    {
+        PrePrepare,
+        Prepare,
+        Commit,
+    }
+    
+    public enum DeviceType
+    {
+        Client,
+        Server,
+    }
+    
+    //Transformations
+    public static class Enums
     {
         public static DeviceType ToEnumDeviceType(int number)
         {

@@ -1,14 +1,10 @@
 using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
-
+using PBFT.Helper;
 namespace PBFT.Messages
 {
-    public enum DeviceType
-    {
-        Client,
-        Server,
-    }
+    
     public class SessionMessage : IProtocolMessages
     {
         public DeviceType devtype {get; set;}
@@ -30,11 +26,8 @@ namespace PBFT.Messages
 
         public static SessionMessage DeSerializeToObject(byte[] buffer)
         {
-
             var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<SessionMessage>(jsonobj);
         }
-        
-        
     }
 }

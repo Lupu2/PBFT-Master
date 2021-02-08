@@ -13,15 +13,7 @@ using PBFT.Helper;
 namespace PBFT.Server
 {
  
- public enum CertType {
-     Prepared,
-     Committed,
-
-     Reply,
-     Checkpoint,
-     ViewChange,
-
- }
+ 
     public class QCertificate : IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
         public CertType Type {get; set;}
@@ -62,21 +54,17 @@ namespace PBFT.Server
         }
         
         private static QCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
-        {
-            return new QCertificate(
-                EnumTransformer.ToEnumCertType(sd.Get<int>(nameof(Type))),
+            => new QCertificate(
+                Enums.ToEnumCertType(sd.Get<int>(nameof(Type))),
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 sd.Get<bool>(nameof(Valid)),
                 (CList<PhaseMessage>) sd[nameof(ProofList)]
                 );
-        }
+        
 
-        private bool QReached(int FNodes)
-        {
-            return ProofList.Count >= 2 * FNodes + 1;
-        }
-
+        private bool QReached(int fNodes) => ProofList.Count >= 2 * fNodes + 1;
+        
         private bool CheckForDuplicates()
         {
             return ProofList.GroupBy(c => new {c.ServID, c.Signature})
@@ -84,9 +72,9 @@ namespace PBFT.Server
             
         }
 
-        public bool ValidateCertificate(int FNodes) //potentially asynchrous together with QReached
+        public bool ValidateCertificate(int fNodes) //potentially asynchrous together with QReached
         {
-            if (!Valid) if (QReached(FNodes) && !CheckForDuplicates()) Valid = true;
+            if (!Valid) if (QReached(fNodes) && !CheckForDuplicates()) Valid = true;
             return Valid;
         }
     }

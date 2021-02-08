@@ -11,13 +11,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public enum PMessageType 
-    {
-        PrePrepare,
-        Prepare,
-        Commit,
-    }
-    
+
     public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
     {
         public int ServID {get; set;}
@@ -81,7 +75,7 @@ namespace PBFT.Messages
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 sd.Get<byte[]>(nameof(Digest)),
-                EnumTransformer.ToEnumPMessageType(sd.Get<int>(nameof(Type))),
+                Enums.ToEnumPMessageType(sd.Get<int>(nameof(Type))),
                 sd.Get<byte[]>(nameof(Signature))
                 );
         }

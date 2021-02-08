@@ -34,13 +34,13 @@ namespace PBFT.Messages
         }
         public byte[] SerializeToBuffer() 
         {
-            string jsonval = JsonConvert.SerializeObject(this);
+            var jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
         }
 
         public static Request DeSerializeToObject(byte[] buffer)
         {
-            string jsonobj = Encoding.ASCII.GetString(buffer);
+            var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<Request>(jsonobj);
         }
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
@@ -72,10 +72,10 @@ namespace PBFT.Messages
                     Console.WriteLine(BitConverter.ToString(hashmes));
                 }
                 rsa.ImportParameters(prikey);
-                RSAPKCS1SignatureFormatter RSAFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
-                RSAFormatter.SetHashAlgorithm(haspro);
-                RSAFormatter.SetKey(rsa);
-                Signature = RSAFormatter.CreateSignature(hashmes);
+                RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
+                rsaFormatter.SetHashAlgorithm(haspro);
+                rsaFormatter.SetKey(rsa);
+                Signature = rsaFormatter.CreateSignature(hashmes);
             }
         }
 
