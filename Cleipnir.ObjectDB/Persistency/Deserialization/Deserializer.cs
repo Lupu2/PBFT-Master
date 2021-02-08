@@ -12,7 +12,7 @@ namespace Cleipnir.ObjectDB.Persistency.Deserialization
 {
     internal static class Deserializer
     {
-        public static ObjectStore Load(IStorageEngine storageEngine, ISet<object> ephemeralInstances, ISerializerFactory serializerFactory)
+        public static ObjectStore Load(IStorageEngine storageEngine, ISet<object> ephemeralInstances, SerializerFactory serializerFactory)
         {
             var valuesDictionaries = new DictionaryWithDefault<long, Dictionary<string, object>>(_ => new Dictionary<string, object>());
 

@@ -35,6 +35,11 @@ namespace Cleipnir.ObjectDB.Persistency
                 .ToDictionary(kv => kv.Key, kv => serializers.AddAndWrapUp(kv.Value));
         }
 
+        public object this[string key]
+        {
+            set => Set(key, value);
+        }
+        
         internal IEnumerable<SerializerOrValue> PullChangedEntries()
         {
             var changedEntries = _changedEntries;
@@ -95,36 +100,8 @@ namespace Cleipnir.ObjectDB.Persistency
             _removedKeys.Add(key);
         }
 
-        public void Set<T>(string key, Action<T> action)
-        {
-            if (action == null) { SetNull(key); return; }
-
-            if (_entries.ContainsKey(key) && !_entries[key].Set(action)) return; //no change detected
-
-            var (serializer, objectId) = _serializers.GetSerializerOrNextObjectIndex(action);
-            if (serializer == null)
-            {
-                serializer = new ActionSerializer<T>(objectId, action);
-                _serializers.Add(serializer);
-            }
-
-            if (!_entries.ContainsKey(key))
-                _entries[key] = new Entry(action);
-
-            _serializables[key] = serializer;
-            _changedEntries[key] = SerializerOrValue.CreateSerializer(key, serializer);
-        }
-
-        private void SetNull(string key)
-        {
-            if (_entries.ContainsKey(key) && !_entries[key].Set(null)) return;
-
-            _changedEntries[key] = SerializerOrValue.CreateValue(key, null);
-            _serializables.Remove(key);
-        }
-
         private bool IsPrimitiveOrIPersistable(object o) 
-            => o == null || o.GetType().IsPrimitive || o is DateTime || o is string || o is Guid  || _serializers.IsSerializable(o);
+            => o == null || o.GetType().IsPrimitive || o is DateTime || o is string || o is Guid  || _serializers.IsSerializable(o);
 
         internal class Entry
         {

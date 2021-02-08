@@ -5,7 +5,7 @@ using Cleipnir.Persistency.Persistency;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 {
-    public class SerializerFactory : ISerializerFactory
+    public class SerializerFactory 
     {
         public ISerializer CreateSerializer(object o, long id)
         {
