@@ -1,9 +1,14 @@
+using System;
+using System.Collections.Generic;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using PBFT.Messages;
 using System.Linq;
+using Newtonsoft.Json;
+using PBFT.Helper;
 
 namespace PBFT.Server
 {
@@ -32,16 +37,39 @@ namespace PBFT.Server
                 SeqNr = seq;
                 ViewNr = vnr;
                 Valid = false;
+                ProofList = new CList<PhaseMessage>();
+                
+        }
+        
+        [JsonConstructor]
+        public QCertificate(CertType type, int seq, int vnr, bool val, CList<PhaseMessage> proof)
+        {
+            Type = type;
+            SeqNr = seq;
+            ViewNr = vnr;
+            Valid = false;
+            ProofList = proof;
         }
         
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             //throw new System.NotImplementedException();
-            stateToSerialize.Set(nameof(Type), Type);
+            stateToSerialize.Set(nameof(Type), (int)Type);
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
             stateToSerialize.Set(nameof(Valid), Valid);
             stateToSerialize.Set(nameof(ProofList), ProofList);
+        }
+        
+        private static QCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
+        {
+            return new QCertificate(
+                EnumTransformer.ToEnumCertType(sd.Get<int>(nameof(Type))),
+                sd.Get<int>(nameof(SeqNr)),
+                sd.Get<int>(nameof(ViewNr)),
+                sd.Get<bool>(nameof(Valid)),
+                (CList<PhaseMessage>) sd[nameof(ProofList)]
+                );
         }
 
         private bool QReached(int FNodes)

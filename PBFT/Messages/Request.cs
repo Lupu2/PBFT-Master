@@ -51,9 +51,12 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(Signature), Signature); //might have to use ListSerializer for this.
         }
 
-        public static Request Deserialize(IReadOnlyDictionary<string, object> sd) 
-        //=> new Request( sd.Get<int>(nameof(ClientID)), sd.Get<string>(nameof(Message)), sd.Get<string>(nameof(Timestamp)), sd<byte[]>(nameof(Signature)));
-        =>  new Request((int) sd[nameof(ClientID)], (string) sd[nameof(Message)], (string) sd[nameof(Timestamp)], (byte[]) sd[nameof(Signature)]);
+        public static Request Deserialize(IReadOnlyDictionary<string, object> sd)
+            =>  new Request((int) sd.Get<int>(nameof(ClientID)), (string) 
+                                 sd.Get<string>(nameof(Message)), (string) 
+                                 sd.Get<string>(nameof(Timestamp)), (byte[]) 
+                                 sd.Get<byte[]>(nameof(Signature))
+                           );
 
 
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")

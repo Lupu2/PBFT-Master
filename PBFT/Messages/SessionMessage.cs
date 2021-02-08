@@ -24,15 +24,17 @@ namespace PBFT.Messages
 
         public byte[] SerializeToBuffer()
         {
-            string jsonval = JsonConvert.SerializeObject(this);
+            var jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
         }
 
         public static SessionMessage DeSerializeToObject(byte[] buffer)
         {
 
-            string jsonobj = Encoding.ASCII.GetString(buffer);
+            var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<SessionMessage>(jsonobj);
         }
+        
+        
     }
 }

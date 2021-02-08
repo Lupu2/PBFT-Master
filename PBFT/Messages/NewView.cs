@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using Newtonsoft.Json; //Replace Newtonsoft.JSON with System.Text.Json it is faster apperently
+using Newtonsoft.Json;
 using System.Text;
 
 namespace PBFT.Messages
@@ -12,7 +12,7 @@ namespace PBFT.Messages
         }
         public static NewView DeSerializeToObject(byte[] buffer)
         {
-            string jsonobj = Encoding.ASCII.GetString(buffer);
+            var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<NewView>(jsonobj);
         }
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")

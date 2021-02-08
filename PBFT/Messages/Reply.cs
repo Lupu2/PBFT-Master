@@ -46,7 +46,7 @@ namespace PBFT.Messages
 
         public static Reply DeSerializeToObject(byte[] buffer)
         {
-            string jsonobj = Encoding.ASCII.GetString(buffer);
+            var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<Reply>(jsonobj);
         }
 

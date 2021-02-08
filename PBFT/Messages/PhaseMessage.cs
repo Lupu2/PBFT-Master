@@ -1,9 +1,11 @@
 using Newtonsoft.Json; //Replace Newtonsoft.JSON with System.Text.Json it is faster apperently
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Security.Cryptography;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using PBFT.Helper;
 
@@ -15,7 +17,7 @@ namespace PBFT.Messages
         Prepare,
         Commit,
     }
-
+    
     public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
     {
         public int ServID {get; set;}
@@ -68,18 +70,22 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
             stateToSerialize.Set(nameof(Digest), Digest);
             stateToSerialize.Set(nameof(Signature), Signature);
-            stateToSerialize.Set(nameof(Type), Type);
+            stateToSerialize.Set(nameof(Type), (int)Type);
+            
         }
 
-        //Example of Clipnir deserialize
-        // private static OutgoingMessageDeliverer Deserialize(IReadOnlyDictionary<string, object> sd)
-        //     => new OutgoingMessageDeliverer(
-        //         sd.Get<string>(nameof(_hostName)),
-        //         sd.Get<int>(nameof(_port)),
-        //         sd.Get<string>(nameof(_identifier)),
-        //         sd.Get<OutgoingMessageQueue>(nameof(_unackedQueue))
-        //     );
-
+        private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
+        {
+            return new PhaseMessage(
+                sd.Get<int>(nameof(ServID)),
+                sd.Get<int>(nameof(SeqNr)),
+                sd.Get<int>(nameof(ViewNr)),
+                sd.Get<byte[]>(nameof(Digest)),
+                EnumTransformer.ToEnumPMessageType(sd.Get<int>(nameof(Type))),
+                sd.Get<byte[]>(nameof(Signature))
+                );
+        }
+        
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
             using (var rsa = RSA.Create())
@@ -91,10 +97,10 @@ namespace PBFT.Messages
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
-                RSAPKCS1SignatureFormatter RSAFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
-                RSAFormatter.SetHashAlgorithm(haspro);
-                RSAFormatter.SetKey(rsa);
-                Signature = RSAFormatter.CreateSignature(hashmes);
+                RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
+                rsaFormatter.SetHashAlgorithm(haspro);
+                rsaFormatter.SetKey(rsa);
+                Signature = rsaFormatter.CreateSignature(hashmes);
             }
         }
 
@@ -110,6 +116,6 @@ namespace PBFT.Messages
         }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, Type);
-
+        
     }
 }

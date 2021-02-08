@@ -7,12 +7,26 @@ namespace PBFT.Messages
     public class ViewChange : IProtocolMessages, SignedMessage
     {
         public int ServID;
-        public int nextViewNr;
+        public int NextViewNr;
         //public int StableSequenceNr (based on checkpoints)
         //Proof of last Checkpoint
         
         public byte[] Signature;
 
+        public ViewChange(int rid, int newViewNr) //update when you have an understanding of proofs
+        {
+            ServID = rid;
+            NextViewNr = newViewNr;
+        }
+
+        [JsonConstructor]
+        public ViewChange(int rid, int newViewNr, byte[] sign) //update when you have an understaning of proofs
+        {
+            ServID = rid;
+            NextViewNr = newViewNr;
+            Signature = sign;
+        }
+        
         public byte[] SerializeToBuffer()
         {
             throw new System.NotImplementedException();
@@ -20,7 +34,7 @@ namespace PBFT.Messages
 
         public static ViewChange DeSerializeToObject(byte[] buffer)
         {
-            string jsonobj = Encoding.ASCII.GetString(buffer);
+            var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<ViewChange>(jsonobj);
         }
 
@@ -35,16 +49,14 @@ namespace PBFT.Messages
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
-                RSAPKCS1SignatureFormatter RSAFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
-                RSAFormatter.SetHashAlgorithm(haspro);
-                RSAFormatter.SetKey(rsa);
-                Signature = RSAFormatter.CreateSignature(hashmes);
+                RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
+                rsaFormatter.SetHashAlgorithm(haspro);
+                rsaFormatter.SetKey(rsa);
+                Signature = rsaFormatter.CreateSignature(hashmes);
             }
         }
 
-        public IProtocolMessages CreateCopyTemplate()
-        {
-            throw new System.NotImplementedException();
-        }
+        public IProtocolMessages CreateCopyTemplate() =>
+            new ViewChange(ServID, NextViewNr); //update when constructor is updated
     }
 }

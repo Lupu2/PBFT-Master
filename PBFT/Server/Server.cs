@@ -18,7 +18,9 @@ namespace PBFT.Server
 
         public int NrOfReplicas {get; set;} //increment each time a server is added
 
-        private Engine scheduler {get; set;}
+        private Engine _scheduler {get; set;}
+
+        private object _sync = new object();
         private RSAParameters _prikey{get; set;} 
 
         public RSAParameters Pubkey{get; set;}
@@ -40,7 +42,7 @@ namespace PBFT.Server
             CurView = curview;
             CurSeqNr = 0;
             NrOfReplicas = 1;
-            scheduler = sche;
+            _scheduler = sche;
             CurPrimary = new ViewPrimary(0,0); //Leader of view 0 = server 0
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
         }
@@ -51,7 +53,7 @@ namespace PBFT.Server
             CurView = curview;
             CurSeqNr = seqnr;
             NrOfReplicas = 1;
-            scheduler = sche;
+            _scheduler = sche;
             CurPrimary = new ViewPrimary(id,curview); //assume it is the leader
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
         }
@@ -62,7 +64,7 @@ namespace PBFT.Server
             CurView = curview;
             CurSeqNr = seqnr;
             NrOfReplicas = replicas;
-            scheduler = sche;
+            _scheduler = sche;
             CurPrimary = lead;
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
         }
@@ -103,7 +105,7 @@ namespace PBFT.Server
 
         public void InitializeClient() //Add Client To Client Dictionaries
         {
-
+    
         }
 
         public void ChangeClientStatus(int cid)
