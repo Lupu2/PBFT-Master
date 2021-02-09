@@ -21,6 +21,9 @@ namespace PBFT.Server
         private Engine _scheduler {get; set;}
 
         private object _sync = new object();
+
+        private CDictionary<int, CList<QCertificate>> Log = new(); 
+        
         private RSAParameters _prikey{get; set;} 
 
         public RSAParameters Pubkey{get; set;}
@@ -114,5 +117,22 @@ namespace PBFT.Server
             if (ClientActive[cid]) ClientActive[cid] = false;
             else    ClientActive[cid] = true;
         }
+
+        
+        //Log functions
+        public void InitializeLog(int seqNr) => Log[seqNr] = new CList<QCertificate>();
+
+        public CList<QCertificate> GetCertInfo(int seqNr) => Log[seqNr];
+        
+        public void AddCertificate(int seqNr, QCertificate cert) => Log[seqNr].Add(cert);
+
+        public void GarbageCollect(int seqNr)
+        {
+            foreach (var (entrySeqNr, entryLog) in Log)
+                if (entrySeqNr < seqNr) 
+                    Log.Remove(entrySeqNr);
+        }
+
+
     }
 }
