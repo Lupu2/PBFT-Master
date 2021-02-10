@@ -9,8 +9,8 @@ namespace PBFT.Helper
 {
     public class JSONServerObj
     {
-        public int ID { get; set; }
-        public string IP { get; set; }
+        public int ID { get; }
+        public string IP { get; }
 
         public JSONServerObj(int id, string ipaddr)
         {
@@ -34,7 +34,7 @@ namespace PBFT.Helper
             using (StreamReader sr = new StreamReader(filepath))
             {
                 var jsonValue = await sr.ReadToEndAsync();
-                var jsonServ = JsonConvert.DeserializeObject<List<JSONServerObj>>(jsonValue); //change to list
+                var jsonServ = JsonConvert.DeserializeObject<List<JSONServerObj>>(jsonValue);
                 var serv = jsonServ.Single(s => s.ID == actualID);
                 return serv;
             }

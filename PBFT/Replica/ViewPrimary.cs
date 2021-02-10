@@ -1,6 +1,6 @@
 using System.Diagnostics.Tracing;
 
-namespace PBFT.Server
+namespace PBFT.Replica
 {
     public class ViewPrimary
     {

@@ -9,6 +9,7 @@ using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using PBFT.Helper;
 
+
 namespace PBFT.Messages
 {
 
@@ -98,15 +99,16 @@ namespace PBFT.Messages
             }
         }
 
-        public bool Validate(RSAParameters pubkey,int cviewNr, int seqLow, int seqHigh)
+        public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval)
         {
-            bool valid = true;
+            int seqLow = curSeqInterval.Start.Value;
+            int seqHigh = curSeqInterval.End.Value;
             var clone = CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
             if (ViewNr != cviewNr) return false;
             if (SeqNr > seqLow || SeqNr > seqHigh) return false;
             if(Type == PMessageType.PrePrepare) Console.WriteLine("Extra check!"); //check if already exist a stored prepare with seqnr = to this message
-            return valid;
+            return true;
         }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, Type);

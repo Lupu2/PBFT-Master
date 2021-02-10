@@ -7,10 +7,11 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using PBFT.Messages;
 using System.Linq;
+using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Newtonsoft.Json;
 using PBFT.Helper;
 
-namespace PBFT.Server
+namespace PBFT.Replica
 {
  
  
@@ -23,22 +24,32 @@ namespace PBFT.Server
         private bool Valid{get; set;}
 
         public CList<PhaseMessage> ProofList {get; set;}
-        public QCertificate(CertType type, int seq, int vnr)
+        public QCertificate(int seq, int vnr, CertType type)
         {
-                Type = type;
                 SeqNr = seq;
                 ViewNr = vnr;
+                Type = type;
                 Valid = false;
                 ProofList = new CList<PhaseMessage>();
                 
         }
-        
-        [JsonConstructor]
-        public QCertificate(CertType type, int seq, int vnr, bool val, CList<PhaseMessage> proof)
+
+        public QCertificate(int seq, int vnr, CertType type, PhaseMessage firstrecord)
         {
-            Type = type;
             SeqNr = seq;
             ViewNr = vnr;
+            Type = type;
+            Valid = false;
+            ProofList = new CList<PhaseMessage>();
+            ProofList.Add(firstrecord);
+        }
+        
+        [JsonConstructor]
+        public QCertificate(int seq, int vnr, CertType type, bool val, CList<PhaseMessage> proof)
+        {
+            SeqNr = seq;
+            ViewNr = vnr;
+            Type = type;
             Valid = false;
             ProofList = proof;
         }
@@ -46,18 +57,18 @@ namespace PBFT.Server
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             //throw new System.NotImplementedException();
-            stateToSerialize.Set(nameof(Type), (int)Type);
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
+            stateToSerialize.Set(nameof(Type), (int)Type);
             stateToSerialize.Set(nameof(Valid), Valid);
             stateToSerialize.Set(nameof(ProofList), ProofList);
         }
         
         private static QCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
             => new QCertificate(
-                Enums.ToEnumCertType(sd.Get<int>(nameof(Type))),
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
+                Enums.ToEnumCertType(sd.Get<int>(nameof(Type))),
                 sd.Get<bool>(nameof(Valid)),
                 sd.Get<CList<PhaseMessage>>(nameof(ProofList))
                 );
@@ -72,7 +83,7 @@ namespace PBFT.Server
             
         }
 
-        public bool ValidateCertificate(int fNodes) //potentially asynchrous together with QReached
+        public bool ValidateCertificate(int fNodes) //potentially asynchronous together with QReached
         {
             if (!Valid) if (QReached(fNodes) && !CheckForDuplicates()) Valid = true;
             return Valid;

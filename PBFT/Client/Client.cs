@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using PBFT.Messages;
@@ -10,13 +12,13 @@ namespace PBFT.Client
     public class Client
     {
         
-        public int ClientID {get; set;}
-        private RSAParameters _prikey{get; set;} //Keep private key secret, can't leak info about: p,q & d
-        public RSAParameters Pubkey {get; set;} //Contains only info for Exponent e & Modulus n
+        public int ClientID { get; }
+        private RSAParameters _prikey{ get; } //Keep private key secret, can't leak info about: p,q & d
+        public RSAParameters Pubkey { get; } //Contains only info for Exponent e & Modulus n
 
-        public CDictionary<int, string> FinishedRequest;
+        public Dictionary<int, string> FinishedRequest;
         
-        public CList<ServerInfo> ServerInformation;
+        public List<ServerInfo> ServerInformation;
         //add more fields later
         
         public Client(int id)
@@ -28,16 +30,9 @@ namespace PBFT.Client
                 Pubkey = rsa.ExportParameters(false);
             }
 
-            FinishedRequest = new CDictionary<int, string>();
+            FinishedRequest = new Dictionary<int, string>();
         }
-
-        public Client(int id, CDictionary<int,string> fin)
-        {
-            id = id;
-            fin = fin;
-            
-        }
-
+        
         public Request CreateRequest(string mes)
         {
             Request req = new Request(ClientID, mes, DateTime.Now.ToString());
@@ -71,17 +66,16 @@ namespace PBFT.Client
             return operations;
         }
 
-        public async CTask RunCommands(CList<string> ops)
+        public async Task RunCommands(List<string> ops)
         {
             foreach (string op in ops)
             {
                 Request req = CreateRequest(op);
                 await SendRequest(req);
-                
             }
         }
 
-        public async CTask SendRequest(Request req)
+        public async Task SendRequest(Request req)
         {
             foreach (var servinfo in ServerInformation)
             {
@@ -89,7 +83,7 @@ namespace PBFT.Client
             }
         }
 
-        public async CTask ListenForResponse()
+        public async Task ListenForResponse()
         {
             while (true)
             {

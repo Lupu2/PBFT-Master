@@ -1,4 +1,4 @@
-namespace PBFT.Server
+namespace PBFT.Replica
 {
     public class CheckPoint
     {

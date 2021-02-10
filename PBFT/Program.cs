@@ -2,8 +2,7 @@
 using System.IO;
 using PBFT.Helper;
 using PBFT.Messages;
-using System.Security.Cryptography;
-using System.Text.Encodings.Web;
+using PBFT.Replica;
 using System.Threading;
 using Cleipnir.StorageEngine.SimpleFile;
 using Cleipnir.ExecutionEngine;
@@ -23,16 +22,16 @@ namespace PBFT
             //Initialize Server/Client
 
             //DEBUG/Testing
-            // Request cliRequest = new Request(1, "Hello PBFT", DateTime.Now.ToString());
-            // Console.WriteLine(cliRequest.Timestamp);
-            // byte[] bufferrequest = Crypto.CreateDigest(cliRequest);
-            // string hash2 = BitConverter.ToString(bufferrequest);
-            // Console.WriteLine(hash2);
-            //
-            // Request cliRequest2 = new Request(0, "Hello ZAWARUDO",DateTime.Now.ToString());
-            // //byte[] buff = cliRequest.SerializeToBuffer();
-            // //Thread.Sleep(1000);
-            // //Request copyRequest = Request.DeSerializeToObject(buff);
+            Request cliRequest = new Request(1, "Hello PBFT", DateTime.Now.ToString());
+            Console.WriteLine(cliRequest.Timestamp);
+            byte[] bufferrequest = Crypto.CreateDigest(cliRequest);
+            string hash2 = BitConverter.ToString(bufferrequest);
+            Console.WriteLine(hash2);
+            
+            Request cliRequest2 = new Request(0, "Hello ZAWARUDO",DateTime.Now.ToString());
+            //byte[] buff = cliRequest.SerializeToBuffer();
+            //Thread.Sleep(1000);
+            //Request copyRequest = Request.DeSerializeToObject(buff);
             //
             // RSA rsa = RSA.Create();
             // var prikey = rsa.ExportParameters(true);
@@ -80,15 +79,16 @@ namespace PBFT
                 }
             }
             var con = File.Exists("./PBFTStorage.txt");
+            Engine scheduler;
             if (!con)
             {
-                var scheduler = ExecutionEngineFactory.StartNew(storageEngine);    
+                scheduler = ExecutionEngineFactory.StartNew(storageEngine);    
             }
             else
             {
-                var scheduler = ExecutionEngineFactory.Continue(storageEngine);
+                scheduler = ExecutionEngineFactory.Continue(storageEngine);
             }
-            
+            Server serv = new Server(id, 0, scheduler, 10);
 
         }
     }
