@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
@@ -48,7 +49,11 @@ namespace Playground.SimulateSendReceive
         }
 
         private static Work Deserialize(IReadOnlyDictionary<string, object> sd) 
-            => new Work((int) sd[nameof(duration)], (string) sd[nameof(name)], (int) sd[nameof(earning)], (Worker) sd[nameof(assignedworker)], (bool) sd[nameof(finished)]);
+            => new Work(sd.Get<int>(nameof(duration)),  
+                        sd.Get<string>(nameof(name)),  
+                       sd.Get<int>(nameof(earning)), 
+                    sd.Get<Worker>(nameof(assignedworker)), 
+                        sd.Get<bool>(nameof(finished)));
 
         public override string ToString() => $"Job: {name}, Worker: {assignedworker.name}, TimeDuration: {duration}, Earning: {earning}, Finished: {finished}";
     }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
@@ -38,8 +39,8 @@ namespace Playground.SimulateSendReceive
         {
             return new Worker()
             {
-                Contactmedium = (Source<Work>) sd[nameof(Contactmedium)],
-                name = (string) sd[nameof(name)]
+                Contactmedium = sd.Get<Source<Work>>(nameof(Contactmedium)),
+                name = sd.Get<string>(nameof(name))
             };
         }
     }

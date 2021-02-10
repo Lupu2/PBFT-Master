@@ -59,7 +59,7 @@ namespace PBFT.Server
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 sd.Get<bool>(nameof(Valid)),
-                (CList<PhaseMessage>) sd[nameof(ProofList)]
+                sd.Get<CList<PhaseMessage>>(nameof(ProofList))
                 );
         
 

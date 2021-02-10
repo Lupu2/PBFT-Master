@@ -3,12 +3,12 @@ using System;
 using System.Collections.Generic;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using Playground.TravelAgent;
 
 namespace Playground.SimulateSendReceive
 {
@@ -89,10 +89,10 @@ namespace Playground.SimulateSendReceive
         private static WorkAssigner Deserialize(IReadOnlyDictionary<string, object> sd)
         {
             return new WorkAssigner{
-                MasterChannel = (Source<Work>) sd[nameof(MasterChannel)],
-                WorkerChannel = (Source<Work>) sd[nameof(WorkerChannel)],
-                WorkerList = (CList<Worker>) sd[nameof(WorkerList)],
-                WorkerStatus = (CDictionary<string, bool>) sd[nameof(WorkerStatus)]
+                MasterChannel = sd.Get<Source<Work>>(nameof(MasterChannel)),
+                WorkerChannel = sd.Get<Source<Work>>(nameof(WorkerChannel)),
+                WorkerList = sd.Get<CList<Worker>>(nameof(WorkerList)),
+                WorkerStatus = sd.Get<CDictionary<string,bool>>(nameof(WorkerStatus))
             };
         }
     }

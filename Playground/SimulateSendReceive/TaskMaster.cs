@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -63,11 +64,10 @@ namespace Playground.SimulateSendReceive
         {
             return new TaskMaster()
             {
-                FinishedTaskList = (CList<Work>) sd[nameof(FinishedTaskList)],
-                //WorkerList = (CList<Worker>) sd[nameof(WorkerList)],
-                Contactmedium = (Source<Work>) sd[nameof(Contactmedium)],
-                Readermedium = (Source<Work>) sd[nameof(Readermedium)]
-                //rng = new Random() //doesn't need to be saved, but unsure if it will be assigned
+                FinishedTaskList = sd.Get<CList<Work>>(nameof(FinishedTaskList)),
+                Contactmedium = sd.Get<Source<Work>>(nameof(Contactmedium)),
+                Readermedium = sd.Get<Source<Work>>(nameof(Readermedium)),
+                rng = new Random() //doesn't need to be saved, but unsure if it will be assigned
             };
         }
 
