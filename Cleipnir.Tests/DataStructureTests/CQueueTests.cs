@@ -14,7 +14,7 @@ namespace Cleipnir.Tests.DataStructureTests
         public void Initialize()
         {
             StableStorageEngine = new InMemoryStorageEngine();
-            ObjectStore = new ObjectStore(StableStorageEngine);
+            ObjectStore = ObjectStore.New(StableStorageEngine);
         }
 
         private InMemoryStorageEngine StableStorageEngine { get; set; }

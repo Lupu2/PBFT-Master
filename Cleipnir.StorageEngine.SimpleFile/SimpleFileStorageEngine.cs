@@ -22,8 +22,10 @@ namespace Cleipnir.StorageEngine.SimpleFile
 
         public void Persist(DetectedChanges detectedChanges)
         {
+            throw new NotImplementedException();
+            /*
             //todo add support for removed entries and garbage collected
-            var csvEntries = detectedChanges.StorageEntries
+            var csvEntries = detectedChanges.AddedEntries
                 .Select(e =>
                     new Entry
                     {
@@ -48,11 +50,13 @@ namespace Cleipnir.StorageEngine.SimpleFile
                 .Select(e => JsonConvert.SerializeObject(e, Formatting.None, SerializerSettings));
                 
 
-            File.AppendAllLines(_path, csvEntries);
+            File.AppendAllLines(_path, csvEntries);*/
         }
 
-        public IEnumerable<StorageEntry> Load()
+        public StoredState Load()
         {
+            throw new NotImplementedException();
+            /*
             var lines = File.ReadAllLines(_path);
 
             //var dict = new Dictionary<Tuple<long, string>, StorageEntry>();
@@ -82,11 +86,11 @@ namespace Cleipnir.StorageEngine.SimpleFile
                 dict[Tuple.Create(entry.ObjectId, entry.Key)] = entry;
             }*/
 
-            return entries;
+            //return entries;
         }
 
         public void Clear() => File.Delete(_path);
-        public bool Exist => File.Exists(_path);
+        public bool Exist2 => File.Exists(_path);
 
         public void Dispose() { } 
 

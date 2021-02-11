@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
+using Cleipnir.StorageEngine;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 {

@@ -16,7 +16,7 @@ namespace Cleipnir.Tests.GarbageCollectionTests
         {
             var gc = new GarbageCollector();
 
-            var rootEntry = new StorageEntry(RootsInstance.PersistableId, "Next", 1);
+            var rootEntry = new StorageEntry(0, "Next", 1);
             var node_1 = new StorageEntry(1, "Next", 2);
             var node_2 = new StorageEntry(2, "Next", 3);
             var node_3 = new StorageEntry(3, "Next", 4);
@@ -41,7 +41,7 @@ namespace Cleipnir.Tests.GarbageCollectionTests
             collectables[1].ShouldBe(4);
 
             collectables = gc.Collect(
-                    new List<StorageEntry>() { new StorageEntry(RootsInstance.PersistableId, "Next", null) },
+                    new List<StorageEntry>() { new StorageEntry(0, "Next", null) },
                     Enumerable.Empty<ObjectIdAndKey>()
                 ).OrderBy(_ => _).ToArray();
 
@@ -55,7 +55,7 @@ namespace Cleipnir.Tests.GarbageCollectionTests
         {
             var gc = new GarbageCollector();
 
-            var rootEntry = new StorageEntry(RootsInstance.PersistableId, "Next", 1);
+            var rootEntry = new StorageEntry(0, "Next", 1);
             var node_1a = new StorageEntry(1, "Next_A", 2);
             var node_1b = new StorageEntry(1, "Next_B", 3);
             var node_2 = new StorageEntry(2, "Next", 3);
@@ -73,18 +73,6 @@ namespace Cleipnir.Tests.GarbageCollectionTests
             ).ToArray();
            
             collectables.Length.ShouldBe(0);
-        }
-
-        private class StorageEngine : IStorageEngine
-        {
-            public Synced<IReadOnlyList<long>> Garbage { get; private set; } = new Synced<IReadOnlyList<long>>();
-            public void Persist(DetectedChanges detectedChanges) { }
-
-            public IEnumerable<StorageEntry> Load() => Enumerable.Empty<StorageEntry>();
-
-            public bool Exist { get; } = false;
-
-            public void Dispose() { }
         }
     }
 }

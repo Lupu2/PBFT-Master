@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Text;
 
-namespace Cleipnir.ObjectDB.Persistency.Serialization.Helpers
+namespace Cleipnir.StorageEngine
 {
-    internal static class TypeHelper
+    public static class TypeHelper
     {
         public static string SimpleQualifiedName(this Type type)
         {

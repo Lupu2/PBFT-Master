@@ -15,32 +15,29 @@ namespace Cleipnir.ObjectDB
         public IStorageEngine StorageEngine { get; }
 
         //Used when data does not already exists
-        public ObjectStore(IStorageEngine storageEngine)
+        private ObjectStore(IStorageEngine storageEngine)
         {
             StorageEngine = storageEngine;
             var roots = new RootsInstance();
-            var serializers = new Serializers(0, new SerializerFactory());
+            var serializers = new Serializers(new SerializerFactory());
             var stateMaps = new StateMaps(serializers);
-            
-            var serializersTypeEntries = new SerializersTypeEntries();
-
-            serializers.Add(new PersistableSerializer(RootsInstance.PersistableId, roots));
 
             Roots = roots;
 
-            _persister = new Persister(StorageEngine, Roots, serializers, stateMaps, serializersTypeEntries);
+            _persister = new Persister(StorageEngine, Roots, serializers, stateMaps);
         }
 
         //Used when data exists
-        internal ObjectStore(
+        //todo make construct private
+        private ObjectStore(
             RootsInstance roots, 
-            StateMaps stateMaps, Serializers serializers, SerializersTypeEntries serializersTypeEntries,
+            StateMaps stateMaps, Serializers serializers,
             IStorageEngine storageEngine)
         {
             Roots = roots;
             StorageEngine = storageEngine;
 
-            _persister = new Persister(StorageEngine, Roots, serializers, stateMaps, serializersTypeEntries);
+            _persister = new Persister(StorageEngine, Roots, serializers, stateMaps);
         }
 
         public void Attach(object toAttach) => Roots.Entangle(toAttach);
@@ -50,8 +47,11 @@ namespace Cleipnir.ObjectDB
 
         public void Persist() => _persister.Serialize();
 
-        public static ObjectStore Load(IStorageEngine storageEngine, params object[] ephemeralInstances) 
-            => Deserializer.Load(storageEngine, new HashSet<object>(ephemeralInstances), new SerializerFactory());
+        public static ObjectStore Load(IStorageEngine storageEngine, params object[] ephemeralInstances)
+        {
+            var (roots, stateMaps, serializers) = Deserializer.Load(storageEngine, new HashSet<object>(ephemeralInstances));
+            return new ObjectStore(roots, stateMaps, serializers, storageEngine);
+        }
         
         public static ObjectStore New(IStorageEngine storageEngine) 
             => new ObjectStore(storageEngine);

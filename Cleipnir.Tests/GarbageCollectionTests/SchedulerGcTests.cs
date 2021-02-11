@@ -11,14 +11,14 @@ namespace Cleipnir.Tests.GarbageCollectionTests
     [TestClass]
     public class SchedulerGcTests
     {
-        private InMemoryStorageEngine StableStorageEngine { get; set; }
+        private InMemoryStorageEngine StorageEngine { get; set; }
         private Engine Scheduler { get; set; }
 
         [TestInitialize]
         public void Initialize()
         {
-            StableStorageEngine = new InMemoryStorageEngine();
-            Scheduler = ExecutionEngine.ExecutionEngineFactory.StartNew(StableStorageEngine);
+            StorageEngine = new InMemoryStorageEngine();
+            Scheduler = ExecutionEngine.ExecutionEngineFactory.StartNew(StorageEngine);
         }
 
         [TestCleanup]
@@ -34,14 +34,14 @@ namespace Cleipnir.Tests.GarbageCollectionTests
             await Scheduler.Entangle(p1);
             await Scheduler.Sync();
 
-            var count = StableStorageEngine.Load().Count(e => e.Value is string s && (s == "P3" || s == "P2" || s == "P1"));
+            var count = StorageEngine.Entries.Count(e => e.Value is string s && (s == "P3" || s == "P2" || s == "P1"));
             count.ShouldBe(3);
 
             await Scheduler.Schedule(() => p1.Other = null);
             await Scheduler.Sync();
             Scheduler.Dispose();
 
-            count = StableStorageEngine.Load().Count(e => e.Value is string s && (s == "P3" || s == "P2" || s == "P1"));
+            count = StorageEngine.Entries.Count(e => e.Value is string s && (s == "P3" || s == "P2" || s == "P1"));
             count.ShouldBe(1);
         }
     }

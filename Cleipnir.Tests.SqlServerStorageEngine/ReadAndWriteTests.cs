@@ -18,7 +18,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
         {
             var testHelper = new TestHelper();
 
-            var os = new ObjectStore(testHelper.StorageEngineEngine);
+            var os = ObjectStore.New(testHelper.StorageEngineEngine);
 
             var p = new P();
             os.Attach(p);

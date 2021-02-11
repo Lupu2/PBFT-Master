@@ -19,11 +19,11 @@ namespace Cleipnir.Tests
         [TestInitialize]
         public void Initialize()
         {
-            StableStorageEngine = new InMemoryStorageEngine();
-            ObjectStore = new ObjectStore(StableStorageEngine);
+            StorageEngine = new InMemoryStorageEngine(false);
+            ObjectStore = ObjectStore.New(StorageEngine);
         }
 
-        private InMemoryStorageEngine StableStorageEngine { get; set; }
+        private InMemoryStorageEngine StorageEngine { get; set; }
         private ObjectStore ObjectStore { get; set; }
 
         [TestMethod]
@@ -34,7 +34,7 @@ namespace Cleipnir.Tests
             ObjectStore.Attach(reference);
             ObjectStore.Persist();
 
-            ObjectStore = ObjectStore.Load(StableStorageEngine, false);
+            ObjectStore = ObjectStore.Load(StorageEngine, false);
             reference = ObjectStore.Resolve<Reference>();
             reference.Value.GetValue.ShouldBe(10);
         }
@@ -47,7 +47,7 @@ namespace Cleipnir.Tests
             ObjectStore.Attach(reference);
             ObjectStore.Persist();
 
-            ObjectStore = ObjectStore.Load(StableStorageEngine, false);
+            ObjectStore = ObjectStore.Load(StorageEngine, false);
             reference = ObjectStore.Resolve<Reference>();
             Simple s = null;
 
@@ -76,18 +76,16 @@ namespace Cleipnir.Tests
             p1.Other = p2;
             p2.Other = p1;
 
-            AttachAndPersist(p1);
+            ObjectStore.Attach(p1);
+            ObjectStore.Attach(p2);
+            ObjectStore.Persist();
 
             var loadedPerson = Load();
             loadedPerson.Name.ShouldBe("Ole");
             loadedPerson.Other.Name.ShouldBe("Peter");
 
-            
-            var storageEntries = StableStorageEngine.Load();
-            var serializerTypes = new SerializersTypeEntries(storageEntries);
-            var count = serializerTypes
-                .GetAll()
-                .Select(t => t.Item2)
+            var count = StorageEngine
+                .SerializerTypes
                 .Count(t => typeof(ReferenceSerializer) == t);
             count.ShouldBe(4);
 
@@ -98,12 +96,9 @@ namespace Cleipnir.Tests
             loadedPerson = Load();
             loadedPerson.Name.ShouldBe("Ole");
             loadedPerson.Other.Name.ShouldBe("Peter");
-
-            storageEntries = StableStorageEngine.Load();
-            serializerTypes = new SerializersTypeEntries(storageEntries);
-            count = serializerTypes
-                .GetAll()
-                .Select(t => t.Item2)
+            
+            count = StorageEngine
+                .SerializerTypes
                 .Count(t => typeof(ReferenceSerializer) == t);
             count.ShouldBe(4);
 
@@ -114,26 +109,17 @@ namespace Cleipnir.Tests
             loadedPerson = Load();
             loadedPerson.Name.ShouldBe("Ole");
             loadedPerson.Other.Name.ShouldBe("Ole");
-
-            storageEntries = StableStorageEngine.Load();
-            serializerTypes = new SerializersTypeEntries(storageEntries);
-            count = serializerTypes
-                .GetAll()
-                .Select(t => t.Item2)
+            
+            count = StorageEngine
+                .SerializerTypes
                 .Count(t => typeof(ReferenceSerializer) == t);
             count.ShouldBe(5);
         }
 
         private Person Load()
         {
-            ObjectStore = ObjectStore.Load(StableStorageEngine, false);
-            return ObjectStore.Resolve<Person>();
-        } 
-
-        private void AttachAndPersist<T>(T t)
-        {
-            ObjectStore.Attach(t);
-            ObjectStore.Persist();
+            ObjectStore = ObjectStore.Load(StorageEngine, false);
+            return ObjectStore.ResolveAll<Person>().Single(p => p.Name == "Ole");
         }
 
         private void Persist() => ObjectStore.Persist();

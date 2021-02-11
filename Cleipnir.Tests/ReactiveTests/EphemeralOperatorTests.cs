@@ -13,7 +13,7 @@ namespace Cleipnir.Tests.ReactiveTests
         public void DependentOperatorsAreNotDeserializedForEphemeralOperator()
         {
             var storage = new InMemoryStorageEngine();
-            var os = new ObjectStore(storage);
+            var os = ObjectStore.New(storage);
 
             var source = new Source<int>();
             var valueHolder = new ValueHolder<int>();

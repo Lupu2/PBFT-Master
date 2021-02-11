@@ -10,9 +10,6 @@ namespace Cleipnir.StorageEngine
 
         private bool _color;
 
-        private const int SerializersTypeEntriesPersistableId = -1;
-        private const int RootsPersistableId = -2;
-
         public GarbageCollector()
         {
             _nodes = new DictionaryWithDefault<long, Node>(id => new Node(id) {Color = _color});
@@ -30,14 +27,12 @@ namespace Cleipnir.StorageEngine
         {
             var allObjectIds = entries
                 .Select(e => e.ObjectId)
-                .Where(id => id != SerializersTypeEntriesPersistableId)
                 .Distinct();
 
             foreach (var objectId in allObjectIds)
                 _nodes.AddIfNotExists(objectId);
 
             var frameworkReferenceIds = entries
-                .Where(e => e.ObjectId == SerializersTypeEntriesPersistableId)
                 .Where(e => e.Value != null)
                 .Where(e => e.Value.ToString().Contains("ReferenceSerializer"))
                 .Select(e => long.Parse(e.Key))
@@ -52,8 +47,6 @@ namespace Cleipnir.StorageEngine
 
             foreach (var commonReference in entries)
             {
-                if (commonReference.ObjectId == SerializersTypeEntriesPersistableId) continue;
-
                 if (commonReference.Reference.HasValue)
                     _nodes[commonReference.ObjectId].References[commonReference.Key] = _nodes[commonReference.Reference.Value];
                 else
@@ -73,7 +66,7 @@ namespace Cleipnir.StorageEngine
             _color = !_color;
 
             var toVisit = new Queue<Node>();
-            toVisit.Enqueue(_nodes[RootsPersistableId]);
+            toVisit.Enqueue(_nodes[0]);
 
             while (toVisit.Count > 0)
             {
@@ -102,7 +95,7 @@ namespace Cleipnir.StorageEngine
             public bool Color { get; set; }
             public Dictionary<string, Node> References { get; set; } = new Dictionary<string, Node>();
 
-            public override string ToString() => $"{Id} -> {string.Join($" | {Id} -> ", References)}";
+            public override string ToString() => $"{Id} -> {string.Join($" | {Id} -> ", References)}";
         }
     }
 }

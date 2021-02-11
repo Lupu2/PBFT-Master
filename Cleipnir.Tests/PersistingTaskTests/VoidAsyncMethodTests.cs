@@ -15,7 +15,7 @@ namespace Cleipnir.Tests.PersistingTaskTests
         public void AsyncVoidMethodCanBeSerialized()
         {
             var storage = new InMemoryStorageEngine();
-            var os = new ObjectStore(storage);
+            var os = ObjectStore.New(storage);
 
             var a1 = new CAwaitable();
             var a2 = new CAwaitable();

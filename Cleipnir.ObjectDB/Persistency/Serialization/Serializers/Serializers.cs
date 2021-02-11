@@ -16,9 +16,10 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 
         private long _nextObjectId;
 
-        public Serializers(long nextObjectId, SerializerFactory serializerFactory)
+        public long NextObjectId => _nextObjectId;
+
+        public Serializers(SerializerFactory serializerFactory)
         {
-            _nextObjectId = nextObjectId;
             _serializerFactory = serializerFactory;
             _objectToId = new DictionaryWithDefault<object, long>(
                 _ => _nextObjectId++,
@@ -47,6 +48,7 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
         {
             _objectToId[serializer.Instance] = serializer.Id;
             _serializers[serializer.Id] = serializer;
+            _nextObjectId = Math.Max(_nextObjectId, serializer.Id + 1);
         }
 
         public void Remove(long id)
@@ -58,13 +60,6 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
             _serializers.Remove(id);
             _objectToId.Remove(serializer.Instance);
         }
-
-        public Tuple<ISerializer, long> GetSerializerOrNextObjectIndex<T>(T obj)
-        {
-            return !_objectToId.ContainsKey(obj) 
-                ? Tuple.Create(default(ISerializer), _nextObjectId++) 
-                : Tuple.Create(_serializers[_objectToId[obj]], -1L);
-        } 
 
         public bool ContainsKey(long id) => _serializers.ContainsKey(id);
 

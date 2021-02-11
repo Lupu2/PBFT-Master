@@ -16,7 +16,7 @@ namespace Cleipnir.Tests.SqlServerStorageEngine
             StorageEngineEngine.Clear();
         }
 
-        public ObjectStore NewObjectStore() => new ObjectStore(StorageEngineEngine);
+        public ObjectStore NewObjectStore() => ObjectStore.New(StorageEngineEngine);
         public ObjectStore LoadExistingObjectStore() => ObjectStore.Load(StorageEngineEngine);
         public void CreateDatabaseIfNotExist() => DatabaseHelper.CreateDatabaseIfNotExist("localhost", "CleipnirTests", "sa", "Pa55word");
 

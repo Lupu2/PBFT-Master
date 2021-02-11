@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
-using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
+using Cleipnir.StorageEngine;
 using Newtonsoft.Json;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers

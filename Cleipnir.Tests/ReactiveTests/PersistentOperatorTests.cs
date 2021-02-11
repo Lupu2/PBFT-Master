@@ -17,7 +17,7 @@ namespace Cleipnir.Tests.ReactiveTests
             var source = new Source<int>();
             var valueHolder = new ValueHolder();
             source.CallOnEvent(valueHolder.SetValue);
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
             store.Attach(source);
             store.Attach(valueHolder);
             store.Persist();
@@ -36,7 +36,7 @@ namespace Cleipnir.Tests.ReactiveTests
             var source = new Source<int>();
             var valueHolder = new ValueHolder();
             source.Select(_ => _).CallOnEvent(valueHolder.SetValue);
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
             store.Attach(source);
             store.Attach(valueHolder);
             store.Persist();
@@ -55,7 +55,7 @@ namespace Cleipnir.Tests.ReactiveTests
             var source = new Source<int>();
             var holder  = new ValueHolder();
             var emitter = new ValueEmitter(source.Scan(0, (akk, i) => akk + i), holder);
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
 
             source.Emit(1);
             source.Emit(2);

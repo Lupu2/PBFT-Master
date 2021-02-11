@@ -14,8 +14,6 @@ namespace Cleipnir.ObjectDB.Persistency
         private bool _serialized;
         public IEnumerable<object> Instances => _roots;
 
-        public static long PersistableId { get; } = -2;
-
         public void Entangle(object persistable) => _roots.Add(persistable);
         public void Untangle(object persistable) => _roots.Remove(persistable);
 

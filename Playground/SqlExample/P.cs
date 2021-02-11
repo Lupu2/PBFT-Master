@@ -24,7 +24,7 @@ namespace Playground.SqlExample
             var p2 = new Person {Name = "Hans"};
             p1.Other = p2;
 
-            var objectStore = new ObjectStore(storage);
+            var objectStore = ObjectStore.New(storage);
             objectStore.Attach(p1);
 
             objectStore.Persist();

@@ -14,7 +14,7 @@ namespace Cleipnir.Tests.DataStructureTests
         public void SerializeAndDeserializeEmptyList()
         {
             var storage = new InMemoryStorageEngine();
-            var os = new ObjectStore(storage);
+            var os = ObjectStore.New(storage);
 
             var l = new CAppendOnlyList<int>();
             
@@ -33,7 +33,7 @@ namespace Cleipnir.Tests.DataStructureTests
         public void AddBeforeAndAfterSerializationAndDeserialization()
         {
             var storage = new InMemoryStorageEngine();
-            var os = new ObjectStore(storage);
+            var os = ObjectStore.New(storage);
 
             var l = new CAppendOnlyList<int> {1};
 
