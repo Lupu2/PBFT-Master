@@ -35,7 +35,7 @@ namespace PBFT.Client
         
         public Request CreateRequest(string mes)
         {
-            Request req = new Request(ClientID, mes, DateTime.Now.ToString());
+            Request req = new Request(ClientID, mes, DateTime.Now.ToString()); //G, or empty
             req.SignMessage(_prikey);
             return req;
         }

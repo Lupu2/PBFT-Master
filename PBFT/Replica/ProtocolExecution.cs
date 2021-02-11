@@ -41,16 +41,17 @@ namespace PBFT.Replica
             byte[] digest;
             QCertificate qcertpre;
             digest = Crypto.CreateDigest(clireq);
-            int curSeq = 0; //change later
+            int curSeq; //change later
             
-            prepare:
+            Prepare:
             if (Serv.IsPrimary()) //Primary
             {
                 lock (_sync)
                 {
                     curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request    
                 }
-                
+                var init = Serv.InitializeLog(curSeq);
+                if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                 qcertpre = new QCertificate(preprepare.SeqNr, preprepare.ViewNr, CertType.Prepared, preprepare); //Log preprepare as Prepare
                 await Serv.Multicast(preprepare.SerializeToBuffer()); //Send async message PrePrepare
@@ -63,6 +64,8 @@ namespace PBFT.Replica
                     
                     qcertpre = new QCertificate(preprepared.SeqNr, Serv.CurView, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr;
+                    var init = Serv.InitializeLog(curSeq);
+                    if (!init) return null;
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
                     await Serv.Multicast(prepare.SerializeToBuffer());
                     /*catch(TaskCanceledException) //Probably placed so that the rest of the code is not runned after primary is deemed faulty
@@ -72,15 +75,17 @@ namespace PBFT.Replica
                         //await Serv.Multicast(vc.SerializeToBuffer());
                     }*/
             }
+            
             //Prepare phase
             //await incoming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
             await MesBridge
                 .Where(pm => pm.Type == PMessageType.Prepare)
-                .Where(pm => pm.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange))
+                .Where(pm => pm.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertpre))
                 .Do(pm => qcertpre.ProofList.Add(pm))
                 .Where(pm => qcertpre.ValidateCertificate(FailureNr)) //probably won't work
                 .Next();
             Serv.AddCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
+            
             //Commit phase
             Commit:
             QCertificate qcertcom = new QCertificate(qcertpre.SeqNr, Serv.CurView, CertType.Committed);
@@ -88,7 +93,7 @@ namespace PBFT.Replica
             await Serv.Multicast(commitmes.SerializeToBuffer()); //Send async message Commit
             await MesBridge  //await incomming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.Type == PMessageType.Commit)
-                .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange))
+                .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertcom))
                 .Do(pm => qcertcom.ProofList.Add(pm))
                 .Where(pm => qcertcom.ValidateCertificate(FailureNr))
                 .Next();

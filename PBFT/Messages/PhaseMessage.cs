@@ -8,6 +8,7 @@ using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using PBFT.Helper;
+using PBFT.Replica;
 
 
 namespace PBFT.Messages
@@ -66,7 +67,6 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(Digest), Digest);
             stateToSerialize.Set(nameof(Signature), Signature);
             stateToSerialize.Set(nameof(Type), (int)Type);
-            
         }
 
         private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -99,15 +99,23 @@ namespace PBFT.Messages
             }
         }
 
-        public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval)
+        public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, QCertificate cert = null)
         {
             int seqLow = curSeqInterval.Start.Value;
             int seqHigh = curSeqInterval.End.Value;
             var clone = CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
             if (ViewNr != cviewNr) return false;
-            if (SeqNr > seqLow || SeqNr > seqHigh) return false;
-            if(Type == PMessageType.PrePrepare) Console.WriteLine("Extra check!"); //check if already exist a stored prepare with seqnr = to this message
+            if (SeqNr < seqLow || SeqNr > seqHigh) return false;
+            if (cert != null && cert.ProofList.Count > 0)
+                if (Type == PMessageType.PrePrepare) //check if already exist a stored prepare with seqnr = to this message
+                {
+                    foreach (var proof in cert.ProofList)
+                    {
+                        if (proof.Type == PMessageType.PrePrepare && proof.SeqNr == SeqNr) return false; //should usually be the first entry in the list
+                    }
+                }
+                    
             return true;
         }
 

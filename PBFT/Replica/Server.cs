@@ -84,9 +84,10 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
         }
-        
+
         [JsonConstructor]
-        public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, CDictionary<int, CList<QCertificate>> oldlog)
+        public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas,
+            CDictionary<int, CList<QCertificate>> oldlog)
         {
             ServID = id;
             CurView = curview;
@@ -97,12 +98,6 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
         }
-        
-        /* public bool IsPrimary()
-        {
-            if (ServID == CurPrimary.ServID && CurView == CurPrimary.ViewNr) return true;
-            return false;
-        } */
 
         public bool IsPrimary() => (ServID == CurPrimary.ServID && CurView == CurPrimary.ViewNr);
 
@@ -146,8 +141,13 @@ namespace PBFT.Replica
 
         
         //Log functions
-        public void InitializeLog(int seqNr) => Log[seqNr] = new CList<QCertificate>();
-
+        public bool InitializeLog(int seqNr)
+        {
+            if (!Log.ContainsKey(seqNr)) Log[seqNr] = new CList<QCertificate>();
+            else return false;
+            return true;
+        }
+        
         public CList<QCertificate> GetCertInfo(int seqNr) => Log[seqNr];
         
         public void AddCertificate(int seqNr, QCertificate cert) => Log[seqNr].Add(cert);
@@ -158,8 +158,7 @@ namespace PBFT.Replica
                 if (entrySeqNr < seqNr) 
                     Log.Remove(entrySeqNr);
         }
-
-
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -171,9 +170,8 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(NrOfReplicas), NrOfReplicas);
             stateToSerialize.Set(nameof(Log), Log);
         }
-
-        public void AddEngine(Engine sche) => _scheduler = sche;
         
+        public void AddEngine(Engine sche) => _scheduler = sche;
         
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
         => new Server(
@@ -185,8 +183,5 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(NrOfReplicas)),
                 sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log))
             );
-
-        
-       
     }
 }
