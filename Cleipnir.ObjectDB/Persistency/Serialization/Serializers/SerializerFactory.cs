@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using Cleipnir.Persistency.Persistency;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
@@ -45,23 +43,5 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 
         public bool IsSerializable(object o)
             => o is IPersistable || o is Reference || o is Exception || o.GetType().IsDisplayClass() || o is Delegate || o is StateMap || o is IPropertyPersistable;
-
-        private static ISerializer IsList(object o, long id)
-        {
-            if (o == null) return null;
-            var isList = o is IList l &&
-                   o.GetType().IsGenericType &&
-                   o.GetType().GetGenericTypeDefinition().IsAssignableFrom(typeof(List<>));
-
-            if (!isList) return null;
-
-            var type = o.GetType().GetGenericArguments()[0];
-            
-            var method = typeof(ListSerializer).GetMethod(nameof(ListSerializer.Create));
-            var generic = method.MakeGenericMethod(type);
-            var result = generic.Invoke(null, new [] {id, o});
-
-            return (ISerializer) result;
-        }
     }
 }
