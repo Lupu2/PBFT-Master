@@ -104,7 +104,7 @@ namespace Cleipnir.Rx.ExecutionEngine
 
             public void Operator(T next, Action<T> notify)
             {
-                Scheduler.Schedule(PAction.Create(next, notify), _persistable);
+                Scheduler.Schedule(CActionWithSpecifiedParameters.Create(next, notify), _persistable);
             }
 
             public void Serialize(StateMap sd, SerializationHelper helper) =>
