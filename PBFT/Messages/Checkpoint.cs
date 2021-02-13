@@ -66,15 +66,15 @@ namespace PBFT.Messages
         {
             stateToSerialize.Set(nameof(ServID), ServID);
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
-            stateToSerialize.Set(nameof(Digest), Digest);
-            stateToSerialize.Set(nameof(Signature), Signature);
+            stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
         private static Checkpoint Deserialize(IReadOnlyDictionary<string, object> sd)
             => new Checkpoint(sd.Get<int>(nameof(ServID)),
                               sd.Get<int>(nameof(SeqNr)),
-                              sd.Get<byte[]>(nameof(Digest)),
-                              sd.Get<byte[]>(nameof(Signature))
+                              Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
+                              Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
                              );
 
     }

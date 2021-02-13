@@ -29,5 +29,7 @@ namespace PBFT.Helper
                     throw new ArgumentOutOfRangeException();
             }
         }
+        
+        public static byte[] DeserializeHash(string hashstring) => Convert.FromBase64String(hashstring);
     }
 }

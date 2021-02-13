@@ -44,5 +44,8 @@ namespace PBFT.Helper
             }
             return copyobj;
         }
+
+        public static string SerializeHash(byte[] hash) => System.Convert.ToBase64String(hash);
+        
     }
 }

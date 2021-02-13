@@ -1,6 +1,7 @@
 using Newtonsoft.Json; //Replace Newtonsoft.JSON with System.Text.Json it is faster apperently
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Security.Cryptography;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
@@ -64,9 +65,9 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(ServID), ServID);
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
-            stateToSerialize.Set(nameof(Digest), Digest);
-            stateToSerialize.Set(nameof(Signature), Signature);
+            stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
             stateToSerialize.Set(nameof(Type), (int)Type);
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
         private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -75,9 +76,9 @@ namespace PBFT.Messages
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
-                sd.Get<byte[]>(nameof(Digest)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
                 Enums.ToEnumPMessageType(sd.Get<int>(nameof(Type))),
-                sd.Get<byte[]>(nameof(Signature))
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
                 );
         }
         
@@ -112,7 +113,7 @@ namespace PBFT.Messages
                 {
                     foreach (var proof in cert.ProofList)
                     {
-                        if (proof.Type == PMessageType.PrePrepare && proof.SeqNr == SeqNr) return false; //should usually be the first entry in the list
+                        if (proof.Type == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
                     }
                 }
                     

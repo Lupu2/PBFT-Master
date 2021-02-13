@@ -20,7 +20,6 @@ namespace PBFT.Replica
         public CertType Type {get; set;}
         public int SeqNr;
         public int ViewNr;
-
         private bool Valid{get; set;}
 
         public CList<PhaseMessage> ProofList {get; set;}
@@ -31,7 +30,6 @@ namespace PBFT.Replica
                 Type = type;
                 Valid = false;
                 ProofList = new CList<PhaseMessage>();
-                
         }
 
         public QCertificate(int seq, int vnr, CertType type, PhaseMessage firstrecord)

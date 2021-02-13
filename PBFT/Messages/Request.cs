@@ -7,6 +7,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
+using PBFT.Helper;
 
 namespace PBFT.Messages
 {
@@ -48,14 +49,14 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(ClientID), ClientID);
             stateToSerialize.Set(nameof(Message), Message);
             stateToSerialize.Set(nameof(Timestamp), Timestamp);
-            stateToSerialize.Set(nameof(Signature), Signature); //might have to use ListSerializer for this.
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature)); //might have to use ListSerializer for this.
         }
 
         public static Request Deserialize(IReadOnlyDictionary<string, object> sd)
             =>  new Request((int) sd.Get<int>(nameof(ClientID)), (string) 
                                  sd.Get<string>(nameof(Message)), (string) 
                                  sd.Get<string>(nameof(Timestamp)), (byte[]) 
-                                 sd.Get<byte[]>(nameof(Signature))
+                                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
                            );
 
 

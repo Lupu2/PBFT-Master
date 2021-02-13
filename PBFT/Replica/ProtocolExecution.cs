@@ -43,13 +43,14 @@ namespace PBFT.Replica
             digest = Crypto.CreateDigest(clireq);
             int curSeq; //change later
             
-            Prepare:
+            //Prepare:
             if (Serv.IsPrimary()) //Primary
             {
-                lock (_sync)
+                /*lock (_sync)
                 {
-                    curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request    
-                }
+                    curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request 
+                }*/
+                curSeq = Serv.CurSeqNr++; //singlethreded, so multiple requests should be a problem curSeq.
                 var init = Serv.InitializeLog(curSeq);
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
@@ -59,6 +60,7 @@ namespace PBFT.Replica
                 // await incomming PhaseMessages Where = MessageType.PrePrepare
                     var preprepared = await MesBridge
                         .Where(pm => pm.Type == PMessageType.PrePrepare)
+                        
                         .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange))
                         .Next();
                     
@@ -84,14 +86,22 @@ namespace PBFT.Replica
                 .Do(pm => qcertpre.ProofList.Add(pm))
                 .Where(pm => qcertpre.ValidateCertificate(FailureNr)) //probably won't work
                 .Next();
+            
+            //validate
+            //add list
+            //if not quorum -> continue in await
+            //else break out continue with rest of the code
+            //WAITFORALL()
+            
             Serv.AddCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
             
             //Commit phase
-            Commit:
+            //Commit:
             QCertificate qcertcom = new QCertificate(qcertpre.SeqNr, Serv.CurView, CertType.Committed);
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
+            
             await Serv.Multicast(commitmes.SerializeToBuffer()); //Send async message Commit
-            await MesBridge  //await incomming PhaseMessages Where = MessageType.Commit Until Consensus Reached
+            await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.Type == PMessageType.Commit)
                 .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertcom))
                 .Do(pm => qcertcom.ProofList.Add(pm))

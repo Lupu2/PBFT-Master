@@ -40,9 +40,9 @@ namespace PBFT.Client
             return req;
         }
 
-        public CList<string> CreateOperations()
+        public List<string> CreateOperations()
         {
-            CList<string> operations = new CList<string>();
+            List<string> operations = new List<string>();
             bool done = false;
             ConsoleKey resp = ConsoleKey.Clear;
             while (!done)
