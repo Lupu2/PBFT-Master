@@ -15,31 +15,8 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            var storageEngine = new SimpleFileStorageEngine(@"./action.txt", true);
-            var os = ObjectStore.New(storageEngine);
+            ReactiveFun.P.Do();
 
-            var person = new Person() {Name = "Peter", Awaitable = new CAwaitable()};
-            //Action<object> greet = person.Greet;
-
-            //var casted = (Action<string>) greet;
-            //casted("OK");
-
-            os.Attach(person);
-
-            _ = person.DoStuff();
-            
-            os.Persist();
-
-            //greet("Hello");
-            
-            os = ObjectStore.Load(storageEngine);
-            //greet = os.Resolve<Action<string>>();
-
-            //greet("Hello again");
-
-            person = os.Resolve<Person>();
-            person.Awaitable.SignalCompletion();
-            
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
         }
