@@ -40,7 +40,9 @@ namespace Cleipnir.Rx
         public Stream<TNewStream> DecorateStream<TNewStream>(IPersistableOperator<T, TNewStream> @operator) 
             => new StreamOperator<T, TNewStream>(this, @operator);
 
-        public Stream<TNewStream> OfType<TNewStream>()=> throw new NotImplementedException();
+        public Stream<TNewStream> OfType<TNewStream>() where TNewStream : T => this
+            .Where(t => t is TNewStream)
+            .Select(tNew => (TNewStream) (object) tNew);
 
         public abstract void Dispose();
 
