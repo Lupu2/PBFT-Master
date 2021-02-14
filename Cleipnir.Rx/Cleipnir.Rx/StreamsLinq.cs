@@ -8,6 +8,21 @@ using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 
 namespace Cleipnir.Rx
 {
+    //Currently supported operations:
+    /*
+     * OfType (currently not working properly) - emit only those items from the stream that pass a predicate test
+     * Do - register an action to take upon a variety of stream lifecycle events, you register callbacks that will call when certain events take place, called independently.
+     * Pin - Root/Entangle the operator so that it won't be send to the garbage collector
+     * Where/Filter - emit only those items from the stream that pass a predicate test, filters a stream by only allowing items through that pass a test that you specify in a form of a predicate function.
+     * Map - transform the items emitted by the stream by applying a function to each item, applies a function of your choosing to each item emitted by the source stream, and returns a stream that emits the results of these functions applications.
+     * Scan - Apply a function to each item emitted by a stream, sequentially, and emit each successive value. Applies function to the first item emitted by the source and then emits the result of that function as its own first emission. It also feeds the result of the function back into the function along with the second item emitted by the source in order to generate its second emission.
+     * Distinct By -  suppress duplicate items emitted by a stream. Filters the stream by only allowing items through that may have not already been emitted.
+     * Max - emits the item from the source that had the maximum value. The Max operator operates on an Observable that emits numbers and emits a single item: the item with the largest number.
+     * MaxDateTime - Assume its just like Max but only for dateTime objects, OG Max only works for integer...
+     * Ephemeral - Not persisted objects are called ephermal objects. Whatever comes after this operator will not be persisted or serialized/deserialized in the system.
+     * Dispose on - (based on its previous name UnsubscribeOn I assume this operator will unsubscribe from the stream if the condition given is met)
+     */
+    
     public static class StreamsLinq
     {
         internal class OfType<TFrom, TTo> : IPersistableOperator<TFrom, TTo>
