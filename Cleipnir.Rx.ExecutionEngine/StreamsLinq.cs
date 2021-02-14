@@ -13,6 +13,11 @@ namespace Cleipnir.Rx.ExecutionEngine
 {
     public static class StreamsLinq
     {
+        /*
+         * Wait_For - Wait until the state has reached the desired state.
+         * Scheduler - Schedule an event to be called on the scheduler
+         */
+        
         // ** WAIT_FOR ** //
         public static CAwaitable<IEnumerable<T>> WaitFor<T>(this Stream<T> s, int count, bool persistable, TimeSpan? timeout = null)
             => new WaitForOperator<T>(count, s, timeout, persistable).Awaitable;

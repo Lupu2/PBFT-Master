@@ -1,15 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.Helpers;
+using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.Rx.ExecutionEngine;
 using Cleipnir.StorageEngine.InMemory;
 
 namespace Playground.ReactiveFun
@@ -19,49 +21,50 @@ namespace Playground.ReactiveFun
         public static void Do()
         {
             var storageEngine = new InMemoryStorageEngine();
-            //var os = ObjectStore.New(storageEngine);
             var executionEngine = ExecutionEngineFactory.StartNew(storageEngine);
 
             executionEngine.Schedule(() =>
             {
+                var network = new Network();
                 var source = new Source<object>();
                 Roots.Entangle(source);
-                var proposer = new PaxosProposer(source);
+                
+                var proposer = new PaxosProposer(source, network);
                 _ = proposer.StartRound("hello", 0);
-            });
 
-            
-            executionEngine.Schedule(() =>
-            {
-                var source = Roots.Resolve<Source<object>>();
-                source.Emit(new Promise() {Ballot = 0});
-                source.Emit(new Promise() {Ballot = 0});
-                source.Emit(new Promise() {Ballot = 0});
+                _ = OutsideFlow(source, network);
             });
+        }
+
+        private static async CTask OutsideFlow(Source<object> messages, Network network)
+        {
+            await Sleep.Until(1000);
+            var accepts = network.OutgoingMessages.OfType<Accept>().Next();
             
-            Thread.Sleep(1000);
-            
-            executionEngine.Schedule(() =>
-            {
-                var source = Roots.Resolve<Source<object>>();
-                source.Emit(new Accepted() {});
-                source.Emit(new Accepted() {});
-                source.Emit(new Accepted() {});
-            });
-            
-            Thread.Sleep(100_000);
-            Console.WriteLine();
-            Console.WriteLine();
+            messages.Emit(new Promise() {Ballot = 0});
+            messages.Emit(new Promise() {Ballot = 0});
+            messages.Emit(new Promise() {Ballot = 0});
+
+            await accepts;
+
+            await Sleep.Until(1000);
+            messages.Emit(new Accepted() {});
+            messages.Emit(new Accepted() {});
+            messages.Emit(new Accepted() {});
         }
 
         public class PaxosProposer : IPersistable
         {
             private Stream<object> Messages { get; }
-            public CList<object> Broadcast { get; } = new CList<object>();
+            public Network Network { get; }
 
             private const int Quorum = 3;
 
-            public PaxosProposer(Stream<object> messages) => Messages = messages;
+            public PaxosProposer(Stream<object> messages, Network network)
+            {
+                Messages = messages;
+                Network = network;
+            }
 
             public async CTask DecideProposal(string proposal)
             {
@@ -70,15 +73,14 @@ namespace Playground.ReactiveFun
 
             public async CTask StartRound(string proposal, int ballot)
             {
-                CAppendOnlyList<Promise> promList = new CAppendOnlyList<Promise>();
-                Broadcast.Add(new Prepare {Ballot = ballot});
-                var promises = await Messages //IENUMERABLE of Promises 
-                    //.OfType<Promise>()
-                    .Where(m => m is Promise)
-                    .Scan(promList, (l, p) => { l.Add((Promise) p); return l; })
+                var promlist = new CAppendOnlyList<Promise>();
+                Network.Broadcast(new Prepare {Ballot = ballot});
+                var promises = await Messages 
+                    .OfType<Promise>()
+                    .Scan(promlist, (l, p) => { l.Add(p); return l; })
                     .Where(l => l.Count == Quorum)
                     .Next();
-                Console.WriteLine(promList.Count);
+
                 var toPropose = promises
                     .Append(new Promise {PromisedBallot = -1, PromisedValue = proposal})
                     .Where(p => p.PromisedBallot != null)
@@ -86,21 +88,19 @@ namespace Playground.ReactiveFun
                     .First()
                     .PromisedValue;
 
-                Broadcast.Add(new Accept() {Ballot = ballot, Value = toPropose});
-                CAppendOnlyList<Accepted> accedList = new CAppendOnlyList<Accepted>();
-                Console.WriteLine(accedList.Count);
-                
+                Network.Broadcast(new Accept() {Ballot = ballot, Value = toPropose});
                 await Messages
-                    //.OfType<Accepted>()
-                    .Where(m => m is Accepted)
-                    .Scan(accedList, (l, a) => { l.Add((Accepted) a); return l; })
-                    .Where(l => l.Count == Quorum)
-                    .Next();
-                Console.WriteLine(accedList.Count);
+                    .OfType<Accepted>()
+                    .WaitFor(Quorum, true);
+
                 Console.WriteLine("COMPLETED!!!");
             }
 
-            public void Serialize(StateMap sd, SerializationHelper helper) { }
+            public void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                sd[nameof(Messages)] = Messages;
+                sd[nameof(Network)] = Network;
+            }
 
             private static PaxosProposer Deserialize(IReadOnlyDictionary<string, object> sd)
                 => throw new NotImplementedException();
@@ -125,5 +125,36 @@ namespace Playground.ReactiveFun
         }
         public class Accepted : IPropertyPersistable 
         {}
+    }
+
+    public class Network : IPersistable
+    {
+        private CList<object> BroadcastMessages { get; init; }
+        private readonly object _sync = new object();
+
+        private Source<object> Source = new();
+        public Stream<object> OutgoingMessages => Source;
+
+        public Network() => BroadcastMessages = new();
+
+        public void Broadcast(object msg)
+        {
+            lock (_sync)
+                BroadcastMessages.Add(msg);
+            
+            Task.Run(() => Source.Emit(msg));
+        }
+
+        public List<object> GetAll()
+        {
+            lock (_sync)
+                return BroadcastMessages.ToList();
+        }
+        
+        public void Serialize(StateMap sd, SerializationHelper helper) => 
+            sd[nameof(BroadcastMessages)] = BroadcastMessages;
+
+        private static Network Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new Network() {BroadcastMessages = sd.Get<CList<object>>(nameof(BroadcastMessages))};
     }
 }

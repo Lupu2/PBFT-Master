@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
@@ -15,10 +16,13 @@ namespace Cleipnir.Rx
      * Pin - Root/Entangle the operator so that it won't be send to the garbage collector
      * Where/Filter - emit only those items from the stream that pass a predicate test, filters a stream by only allowing items through that pass a test that you specify in a form of a predicate function.
      * Map - transform the items emitted by the stream by applying a function to each item, applies a function of your choosing to each item emitted by the source stream, and returns a stream that emits the results of these functions applications.
+     * Select - 
      * Scan - Apply a function to each item emitted by a stream, sequentially, and emit each successive value. Applies function to the first item emitted by the source and then emits the result of that function as its own first emission. It also feeds the result of the function back into the function along with the second item emitted by the source in order to generate its second emission.
      * Distinct By -  suppress duplicate items emitted by a stream. Filters the stream by only allowing items through that may have not already been emitted.
      * Max - emits the item from the source that had the maximum value. The Max operator operates on an Observable that emits numbers and emits a single item: the item with the largest number.
-     * MaxDateTime - Assume its just like Max but only for dateTime objects, OG Max only works for integer...
+     * Min - emits the item from the source that had the minimum value. The Min operator operates on an Observable that emits numbers and emits a single item: the item with the smallest number.
+     * MaxDateTime - Emits the datetime item from the source that has the latest time based value.
+     * MinDateTime - Emits the datetime item from the source that has the earliest time based value.
      * Ephemeral - Not persisted objects are called ephermal objects. Whatever comes after this operator will not be persisted or serialized/deserialized in the system.
      * Dispose on - (based on its previous name UnsubscribeOn I assume this operator will unsubscribe from the stream if the condition given is met)
      */
@@ -122,6 +126,7 @@ namespace Cleipnir.Rx
                 => new MapOperator<TIn, TOut>(sd.Get<Func<TIn, TOut>>(nameof(_mapper)));
         }
 
+        //** Select **/
         public static Stream<TOut> Select<TIn, TOut>(this Stream<TIn> s, Func<TIn, TOut> mapper) => Map(s, mapper);
 
         // ** SCAN ** //
@@ -281,7 +286,104 @@ namespace Cleipnir.Rx
                 );
         }
 
-        // ** EPHEMERAL OPERATOR ** //
+        /*Min*/
+        public static Stream<int> Min(this Stream<int> s)
+        => s.DecorateStream(new MinIntOperator(false, int.MaxValue));
+        
+        private class MinIntOperator : IPersistableOperator<int, int>
+        {
+            private bool _exist;
+            private int _currentMin;
+
+            public MinIntOperator(bool exist, int currentMin)
+            {
+                _exist = exist;
+                _currentMin = currentMin;
+            }
+
+            public void Operator(int next, Action<int> notify)
+            {
+                if (!_exist)
+                {
+                    _exist = true;
+                    _currentMin = next;
+                    notify(next);
+                }
+
+                if (next >= _currentMin) return;
+                _currentMin = next;
+                notify(next);
+            }
+
+            public void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                sd.Set(nameof(_exist), _exist);
+                sd.Set(nameof(_currentMin), _currentMin);
+            }
+
+            private static MinIntOperator Deserialize(IReadOnlyDictionary<string, object> sd) 
+                => new MinIntOperator(sd.Get<bool>(nameof(_exist)), 
+                                  sd.Get<int>(nameof(_currentMin))
+                );
+        }
+
+        public static Stream<DateTime> Min(this Stream<DateTime> s)
+            => s.DecorateStream(new MinDateTimeOperator(false, DateTime.MaxValue));
+        
+        private class MinDateTimeOperator : IPersistableOperator<DateTime, DateTime> //in, out <-- stream
+        {
+            private bool _exist;
+            private DateTime _currentMin;
+
+            public MinDateTimeOperator(bool exist, DateTime currentMin)
+            {
+                _exist = exist;
+                _currentMin = currentMin;
+            }
+
+            public void Operator(DateTime next, Action<DateTime> notify)
+            {
+                if (!_exist)
+                {
+                    _exist = true;
+                    _currentMin = next;
+                    notify(next);
+                }
+
+                if (next >= _currentMin) return;
+                _currentMin = next;
+                notify(next);
+            }
+            
+            public void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                sd.Set(nameof(_exist), _exist);
+                sd.Set(nameof(_currentMin), _currentMin);
+            }
+
+            private static MinDateTimeOperator Deserialize(IReadOnlyDictionary<string, object> sd) 
+                => new MinDateTimeOperator(sd.Get<bool>(nameof(_exist)), 
+                    sd.Get<DateTime>(nameof(_currentMin))
+                );
+        }
+        
+        /*Count*/
+        public static Stream<int> Count<T>(this Stream<T> s)
+            => s.DecorateStream(new CountOperator<T>());
+
+        private class CountOperator<T> : IPersistableOperator<T, int>
+        {
+            private int _count = 0;
+            
+            public void Operator(T next, Action<int> notify) => notify(++_count);
+
+            public void Serialize(StateMap sd, SerializationHelper helper) => sd.Set(nameof(_count), _count);
+
+            private static CountOperator<T> Deserialize(IReadOnlyDictionary<string, object> sd)
+                => new CountOperator<T>() {_count = sd.Get<int>(nameof(_count))};
+        }
+
+            // ** EPHEMERAL OPERATOR ** //
         public static Stream<T> Ephemeral<T>(this Stream<T> s) => new EphemeralOperator<T>(s, true);
 
         private class EphemeralOperator<T> : Stream<T>
@@ -392,6 +494,46 @@ namespace Cleipnir.Rx
 
                 sd.Set(nameof(_inner), _inner);
             }
+        }
+
+        
+        /*ALL operator does not work! issue in regards to generics, keeping track of previous events as well as not really doing what All is supposed to.*/
+        public static Stream<bool> All<T,CList>(this Stream<T> s, Func<T, CList<T>, bool> criteria) => s.DecorateStream(new AllOperator<T,CList>(criteria));
+
+        private class AllOperator<T,CList> : IPersistableOperator<T, bool>
+        {
+            private readonly CList<T> _events;
+
+            private readonly Func<T, CList<T>, bool> _criteria;
+
+            public AllOperator(Func<T, CList<T>, bool> crit)
+            {
+                _events = new CList<T>();
+                _criteria = crit;   
+            }
+            
+            public AllOperator(CList<T> events, Func<T, CList<T>, bool> crit)
+            {
+                _events = events;
+                _criteria = crit;
+            }
+            public void Operator(T next, Action<bool> notify)
+            {  
+                _events.Add(next);
+                notify(_criteria(next, _events));
+            }
+
+            public void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                sd.Set(nameof(_events), _events);
+                sd.Set(nameof(_criteria), _criteria); //Might present a security risk!!! Serializing delegates is a big nono, discuss with Thomas
+            }
+
+            private static AllOperator<T,CList> Deserialize(IReadOnlyDictionary<string, object> sd)
+                => new AllOperator<T,CList>(
+                        sd.Get<CList<T>>(nameof(_events)), 
+                        sd.Get<Func<T, CList<T>, bool>>(nameof(_criteria))
+                    );
         }
     }
 }
