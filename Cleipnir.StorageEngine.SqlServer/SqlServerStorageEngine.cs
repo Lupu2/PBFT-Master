@@ -69,6 +69,15 @@ namespace Cleipnir.StorageEngine.SqlServer
 	                [Reference] [bigint] NULL,
                     CONSTRAINT [PK_KeyValues] PRIMARY KEY CLUSTERED ([InstanceId] ASC, [ObjectId] ASC, [Key] ASC)
                 )");
+            
+            connection.Execute(@"
+                IF OBJECT_ID('SerializerTypes', 'U') IS NULL 
+                  CREATE TABLE [SerializerTypes](
+	                [InstanceId] [nvarchar](50) NOT NULL,
+	                [ObjectId] [bigint] NOT NULL,
+	                [SerializerType] [nvarchar](max) NULL,
+                    CONSTRAINT [PK_SerializerTypes] PRIMARY KEY CLUSTERED ([InstanceId] ASC, [ObjectId] ASC)
+                )");
         }
 
         public void Persist(DetectedChanges detectedChanges)
@@ -93,9 +102,10 @@ namespace Cleipnir.StorageEngine.SqlServer
                 )",
                 transaction: transaction);
 
-            UpsertEntries(detectedChanges.StorageEntries, connection, transaction);
+            AddSerializerTypes(detectedChanges.NewSerializerTypes, connection, transaction);
+            UpsertEntries(detectedChanges.NewEntries, connection, transaction);
             RemoveRemovedEntries(detectedChanges.RemovedEntries, connection, transaction);
-            RemoveGarbageCollectables(detectedChanges.GarbageCollectables, connection, transaction);
+            RemoveGarbageCollectables(detectedChanges.GarbageCollectableIds, connection, transaction);
 
             transaction.Commit();
         }
@@ -144,6 +154,25 @@ namespace Cleipnir.StorageEngine.SqlServer
             );
         }
 
+        private void AddSerializerTypes(IEnumerable<ObjectIdAndType> serializerTypes, SqlConnection connection, SqlTransaction transaction)
+        {
+            const string sql = @"
+                INSERT INTO SerializerTypes 
+                    (InstanceId, ObjectId, SerializerType) 
+                VALUES 
+                    (@InstanceId, @ObjectId, @SerializerType)";
+
+            connection.Execute(
+                sql,
+                serializerTypes.Select(ot => new
+                {
+                    InstanceId = _instanceId,
+                    ObjectId = ot.ObjectId,
+                    SerializerType = ot.SerializerType.SimpleQualifiedName()
+                }),
+                transaction: transaction);
+        }
+        
         private void UpsertEntries(IEnumerable<StorageEntry> entries, SqlConnection connection, SqlTransaction transaction)
         {
             var dataTable = new DataTable("#KeyValues");
@@ -187,8 +216,9 @@ namespace Cleipnir.StorageEngine.SqlServer
             );
         }
 
-        public IEnumerable<StorageEntry> Load()
+        public StoredState Load()
         {
+            throw new NotImplementedException();/*
             if (!_initialized) Initialize();
             using var connection = CreateConnection();
 
@@ -206,7 +236,7 @@ namespace Cleipnir.StorageEngine.SqlServer
                     )
                 ).ToList();
 
-            return toReturn;
+            return toReturn;*/
         }
 
         public class Entry 

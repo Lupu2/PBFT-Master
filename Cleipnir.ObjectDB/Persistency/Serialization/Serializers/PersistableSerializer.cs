@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
+using Cleipnir.StorageEngine;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 {
@@ -31,6 +32,9 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 
         public static PersistableSerializer Deserialize(long id, IReadOnlyDictionary<string, object> sm, ISet<object> instances)
         {
+            if (!sm.ContainsKey("Type"))
+                Console.WriteLine("OH NO");
+            
             var type = Type.GetType(sm["Type"].ToString());
             //var persistableStateMap = (StateMap) sm["PersistableStateMap"];
 

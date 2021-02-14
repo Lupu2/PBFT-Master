@@ -298,11 +298,11 @@ namespace Cleipnir.Rx
             public override void Serialize(StateMap sd, SerializationHelper helper) 
                 => sd.Set(nameof(_inner), _inner);
 
-            private static EphemeralOperator<T> Deserialize(IReadOnlyDictionary<string, object> sd, DeserializationHelper helper)
+            private static EphemeralOperator<T> Deserialize(IReadOnlyDictionary<string, object> sd)
             {
                 var inner = sd.Get<Stream<T>>(nameof(_inner));
                 var instance = new EphemeralOperator<T>(inner, false);
-                helper.DoPostInstanceCreation(() => inner.Unsubscribe(instance));
+                //todo helper.DoPostInstanceCreation(() => inner.Unsubscribe(instance));
 
                 return instance;
             }

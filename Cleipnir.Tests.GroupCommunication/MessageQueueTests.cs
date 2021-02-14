@@ -50,7 +50,7 @@ namespace Cleipnir.Tests.GroupCommunication
                 q.Add(hello, helloTask);
                 q.Add(world, worldTask);
                 Roots.Entangle(q);
-                Roots.Entangle(new ImmutableCList<CTask>(new [] {helloTask, worldTask}));
+                Roots.Entangle(new CImmutableList<CTask>(new [] {helloTask, worldTask}));
             });
 
             c.Sync().Wait();
@@ -68,7 +68,7 @@ namespace Cleipnir.Tests.GroupCommunication
                 var s2 = Encoding.UTF8.GetString(elms[1].Array);
                 s2.ShouldBe("world");
                 
-                Roots.Resolve<ImmutableCList<CTask>>()[0].SignalCompletion();
+                Roots.Resolve<CImmutableList<CTask>>()[0].SignalCompletion();
             }).Wait();
             
             c.Sync().Wait();
@@ -83,7 +83,7 @@ namespace Cleipnir.Tests.GroupCommunication
                 var s1 = Encoding.UTF8.GetString(elms[0].Array);
                 s1.ShouldBe("world");
                 
-                Roots.Resolve<ImmutableCList<CTask>>()[1].SignalCompletion();
+                Roots.Resolve<CImmutableList<CTask>>()[1].SignalCompletion();
             }).Wait();
             
             c.Sync().Wait();

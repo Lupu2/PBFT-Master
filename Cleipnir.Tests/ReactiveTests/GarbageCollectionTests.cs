@@ -27,7 +27,7 @@ namespace Cleipnir.Tests.ReactiveTests
             staticNonPersistable.Value.ShouldBe(25);
             StaticAndNonStaticValue.StaticValue.ShouldBe(25);
 
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
 
             store.Attach(source);
             store.Attach(staticNonPersistable);
@@ -60,7 +60,7 @@ namespace Cleipnir.Tests.ReactiveTests
             staticNonPersistable.Value.ShouldBe(25);
             StaticAndNonStaticValue.StaticValue.ShouldBe(25);
 
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
 
             store.Attach(source);
             store.Attach(staticNonPersistable);
@@ -147,7 +147,7 @@ namespace Cleipnir.Tests.ReactiveTests
             valueHolder.Value.ShouldBe(25);
             subscriptionHolder.Value.ShouldBe(25);
 
-            var store = new ObjectStore(storage);
+            var store = ObjectStore.New(storage);
 
             store.Attach(source);
             store.Attach(valueHolder);

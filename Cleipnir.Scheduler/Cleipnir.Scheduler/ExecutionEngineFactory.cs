@@ -37,7 +37,7 @@ namespace Cleipnir.ExecutionEngine
         {
             var syncs = new SynchronizationQueue();
 
-            var objectStore = new ObjectStore(storageEngine);
+            var objectStore = ObjectStore.New(storageEngine);
 
             var readyToSchedules = new ReadyToSchedules();
             

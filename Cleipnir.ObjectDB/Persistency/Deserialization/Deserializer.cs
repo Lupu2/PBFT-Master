@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
+﻿using System.Collections.Generic;
 using System.Linq;
-using Cleipnir.Helpers;
 using Cleipnir.ObjectDB.Helpers.DataStructures;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.Persistency.Persistency;
@@ -12,72 +9,48 @@ namespace Cleipnir.ObjectDB.Persistency.Deserialization
 {
     internal static class Deserializer
     {
-        public static ObjectStore Load(IStorageEngine storageEngine, ISet<object> ephemeralInstances, SerializerFactory serializerFactory)
+        public static State Load(IStorageEngine storageEngine, ISet<object> ephemeralInstances)
         {
             var valuesDictionaries = new DictionaryWithDefault<long, Dictionary<string, object>>(_ => new Dictionary<string, object>());
 
             //Load all entries from log file
-            var entries = storageEngine.Load().ToList();
+            var storedState = storageEngine.Load();
 
-            var serializers = new Serializers(entries.Select(e => e.ObjectId).Max() + 1, serializerFactory);
+            var serializers = new Serializers(new SerializerFactory());
             var stateMaps = new StateMaps(serializers);
+            var entriesPerOwner = storedState.StorageEntries;
+            //var entriesPerOwner = storedState.StorageEntries;
 
-            var entriesPerOwner = entries
-                .GroupBy(keySelector: a => a.ObjectId, elementSelector: a => a)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.ToDictionary(a => a.Key, a => a)
-                );
-
-            var serializersTypeEntries = new SerializersTypeEntries(entriesPerOwner[SerializersTypeEntries.PersistableId].Values);
+            var serializersTypeEntries = storedState.Serializers;
 
             var toDeserialize = new Queue<long>();
             var referenced = new DictionaryWithDefault<long, List<Reference>>(_ => new List<Reference>());
 
-            var deserializationHelper = new DeserializationHelper();
-            ephemeralInstances.Add(deserializationHelper);
-
-            ISerializer Deserialize(long id, ImmutableList<long> path)
+            ISerializer Deserialize(long id)
             {
-                if (path.Contains(id))
-                {
-                    var pathStr = path.Aggregate(
-                        seed: new { Found = false, Elms = Enumerable.Empty<long>() },
-                        func: (akk, pId) =>
-                            akk.Found || pId == id ? new { Found = true, Elms = akk.Elms.Append(pId) } : akk
-                    ).Elms
-                        .Select(pId => valuesDictionaries[pId].ContainsKey("Type") ? Type.GetType(valuesDictionaries[pId]["Type"].ToString()).Name : "?")
-                        .StringJoin("-> ");
-
-                    throw new Exception("Circular dependency detected: " + pathStr);
-                }
-
-                path = path.Add(id);
-
                 if (serializers.ContainsKey(id))
                     return serializers[id];
 
                 var ownerEntries = entriesPerOwner.ContainsKey(id)
                     ? entriesPerOwner[id]
-                    : new Dictionary<string, StorageEntry>();
+                    : Enumerable.Empty<StorageEntry>();
 
                 var resolvedValues = valuesDictionaries[id];
 
                 //deserialize non-referencing values
                 var resolvableEntries = ownerEntries
-                    .Values
                     .Where(e => !e.Reference.HasValue)
                     .ToList();
 
                 foreach (var resolvableEntry in resolvableEntries)
                     resolvedValues[resolvableEntry.Key] = resolvableEntry.Value;
 
-                var referencedEntries = ownerEntries.Where(e => e.Value.Reference.HasValue);
+                var referencedEntries = ownerEntries.Where(e => e.Reference.HasValue);
 
                 foreach (var referencedEntry in referencedEntries)
                 {
                     // ReSharper disable once PossibleInvalidOperationException
-                    var wp = Deserialize(referencedEntry.Value.Reference.Value, path);
+                    var wp = Deserialize(referencedEntry.Reference.Value);
                     resolvedValues[referencedEntry.Key] = wp.Instance;
                 }
 
@@ -101,19 +74,19 @@ namespace Cleipnir.ObjectDB.Persistency.Deserialization
                 return serializer;
             }
 
-            var roots = (RootsInstance) Deserialize(RootsInstance.PersistableId, ImmutableList<long>.Empty).Instance;
+            var roots = (RootsInstance) Deserialize(0).Instance;
             ephemeralInstances.Add(roots);
 
             while (toDeserialize.Any())
-                Deserialize(toDeserialize.Dequeue(), ImmutableList<long>.Empty);
+                Deserialize(toDeserialize.Dequeue());
 
             foreach (var serializer in serializers)
                 foreach (var reference in referenced[serializer.Id])
                     reference.SetSerializer(serializer);
-
-            deserializationHelper.ExecutePostInstanceCreationCallbacks();
-
-            return new ObjectStore(roots, stateMaps, serializers, serializersTypeEntries, storageEngine);
+            
+            return new State(roots, stateMaps, serializers);
         }
+
+        public record State(RootsInstance Roots, StateMaps StateMaps, Serializers Serializers) { }
     }
 }

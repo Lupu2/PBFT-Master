@@ -33,13 +33,11 @@ namespace Cleipnir.Tests.ObjectStoreTests
                 InvokedCount.Value++;
             }
 
-            public IEnumerable<StorageEntry> Load()
+            public StoredState Load()
             {
                 throw new System.NotImplementedException();
             }
 
-            public bool Exist { get; } = false;
-            
             public void Dispose() { }
         }
     }

@@ -8,12 +8,12 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 
 namespace Cleipnir.ObjectDB.PersistentDataStructures
 {
-    public class ImmutableCList<T> : IPersistable, IEnumerable<T>
+    public class CImmutableList<T> : IPersistable, IEnumerable<T>
     {
         private readonly T[] _inner;
         private bool _serialized;
 
-        public ImmutableCList(T[] inner) => _inner = inner;
+        public CImmutableList(T[] inner) => _inner = inner;
 
         public T this[int index] => _inner[index];
         public int Count => _inner.Length;
@@ -27,7 +27,7 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
                 sd.Set(i.ToString(), _inner[i]);
         }
 
-        private static ImmutableCList<T> Deserialize(IReadOnlyDictionary<string, object> sd)
+        private static CImmutableList<T> Deserialize(IReadOnlyDictionary<string, object> sd)
         {
             var length = sd.Get<int>("Length");
             var inner = new T[length];
@@ -35,7 +35,7 @@ namespace Cleipnir.ObjectDB.PersistentDataStructures
             for (var i = 0; i < length; i++)
                 inner[i] = sd.Get<T>(i.ToString());
 
-            return new ImmutableCList<T>(inner) {_serialized = true};
+            return new CImmutableList<T>(inner) {_serialized = true};
         }
 
         public IEnumerator<T> GetEnumerator() => _inner.Select(_ => _).GetEnumerator();

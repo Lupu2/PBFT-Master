@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
+using Cleipnir.StorageEngine;
 
 namespace Cleipnir.ObjectDB.Persistency.Serialization.Serializers
 {

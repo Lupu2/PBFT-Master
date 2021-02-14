@@ -9,7 +9,7 @@ namespace Playground.SayerExample
         public static void Do()
         {
             var storageEngine = new InMemoryStorageEngine();
-            var os = new ObjectStore(storageEngine);
+            var os = ObjectStore.New(storageEngine);
             var sayer = new Sayer();
             sayer.Greeting = "Hello";
             Action greet = sayer.Greet;

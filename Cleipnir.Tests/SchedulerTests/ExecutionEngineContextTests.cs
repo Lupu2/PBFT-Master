@@ -12,7 +12,7 @@ namespace Cleipnir.Tests.SchedulerTests
         [TestMethod]
         public void DelegatesAndSchedulerAreSetAfterStartingTheScheduler()
         {
-            var objectStore = new ObjectStore(new InMemoryStorageEngine());
+            var objectStore = ObjectStore.New(new InMemoryStorageEngine());
             var syncs = new SynchronizationQueue();
             var scheduler = new InternalScheduler(objectStore, new ReadyToSchedules(), syncs, new Engine());
 

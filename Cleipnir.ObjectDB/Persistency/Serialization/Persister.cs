@@ -13,29 +13,28 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization
         private readonly RootsInstance _roots;
         private readonly StateMaps _stateMaps;
         private readonly Serializers.Serializers _serializers;
-
-        private readonly SerializersTypeEntries _serializersTypeEntries;
+        
+        private long _maxObjectId;
 
         public Persister(
             IStorageEngine storageEngine,
             RootsInstance roots,
             Serializers.Serializers serializers, 
-            StateMaps stateMaps,
-            SerializersTypeEntries serializersTypeEntries)
+            StateMaps stateMaps)
         {
             _storageEngine = storageEngine;
             _roots = roots;
             _serializers = serializers;
             _stateMaps = stateMaps;
-            _serializersTypeEntries = serializersTypeEntries;
+            _maxObjectId = serializers.NextObjectId - 1;
         }
 
         public void Serialize()
         {
             var detectedChanges = DetectChanges();
-            if (detectedChanges.GarbageCollectables.Empty() &&
+            if (detectedChanges.GarbageCollectableIds.Empty() &&
                 detectedChanges.RemovedEntries.Empty() &&
-                detectedChanges.StorageEntries.Empty())
+                detectedChanges.NewEntries.Empty())
                 return;
             
             _storageEngine.Persist(detectedChanges);
@@ -43,8 +42,9 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization
 
         private DetectedChanges DetectChanges()
         {
-            var persistableChanges = new List<StorageEntry>();
+            var changedEntries = new List<StorageEntry>();
             var removedEntries = new List<ObjectIdAndKey>();
+            var newSerializerTypes = new List<ObjectIdAndType>();
 
             var readyToBeSerializeds = new Queue<ISerializer>(new[] { _serializers.AddAndWrapUp(_roots) });
 
@@ -59,13 +59,16 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization
                 if (serializedIds.Contains(objectId))
                     continue; //the object has already been serialized
 
-                if (!_serializersTypeEntries.ContainsObjectId(objectId))
-                    _serializersTypeEntries[objectId] = serializer.GetType();
-
+                if (_maxObjectId < objectId) 
+                    newSerializerTypes.Add(new ObjectIdAndType(objectId, serializer.GetType()));
+                
                 var stateMap = _stateMaps.Get(objectId);
 
                 serializer.Serialize(stateMap, serializationHelper);
 
+                //if the serializer is a reference and it points to another object enqueue that objets serializer  
+                //note that the reference only holds long. thus, without special handling we would not serialize
+                //what it is pointing to 
                 if (serializer.Instance is Reference r && r.Id.HasValue)
                     readyToBeSerializeds.Enqueue(_serializers[r.Id.Value]);
 
@@ -84,34 +87,30 @@ namespace Cleipnir.ObjectDB.Persistency.Serialization
                             : new StorageEntry(objectId, change.Key, change.Value)
                     );
 
+                changedEntries.AddRange(changes);
                 removedEntries.AddRange(stateMap.PullRemovedKeys().Select(key => new ObjectIdAndKey(objectId, key)));
-
-                persistableChanges.AddRange(changes);
 
                 //add just serialized entity to list of serialized ids in order to short circuit if/when reaching then same entity again
                 serializedIds.Add(serializer.Id);
             }
 
-            var serializersTypeEntriesChanges = _serializersTypeEntries.PullChanges();
-            var removedSerializersTypeEntries = _serializersTypeEntries.PullRemoved();
-            removedEntries.AddRange(removedSerializersTypeEntries);
-
-            var allChanges = persistableChanges.Concat(serializersTypeEntriesChanges).ToList();
-
             var garbageCollectables = _stateMaps.Ids.Where(id => !serializedIds.Contains(id)).ToList();
-            RemoveGarbageCollectables(garbageCollectables);
-
-            return new DetectedChanges(allChanges, removedEntries, garbageCollectables);
-        }
-
-        private void RemoveGarbageCollectables(IEnumerable<long> garbageCollectables)
-        {
             foreach (var garbageCollectable in garbageCollectables)
             {
                 _serializers.Remove(garbageCollectable);
                 _stateMaps.Remove(garbageCollectable);
-                _serializersTypeEntries.Remove(garbageCollectable);
             }
+
+            _maxObjectId = newSerializerTypes.Count == 0 
+                ? _maxObjectId
+                : newSerializerTypes.Select(r => r.ObjectId).Max();
+
+            return new DetectedChanges(
+                changedEntries, 
+                removedEntries,
+                newSerializerTypes,
+                garbageCollectables
+            );
         }
     }
 }

@@ -2,17 +2,9 @@
 
 namespace Cleipnir.StorageEngine
 {
-    public class DetectedChanges
-    {
-        public IReadOnlyList<StorageEntry> StorageEntries { get; }
-        public IReadOnlyList<ObjectIdAndKey> RemovedEntries { get; }
-        public IEnumerable<long> GarbageCollectables { get; } //todo make IReadOnlySet
-
-        public DetectedChanges(IReadOnlyList<StorageEntry> storageEntries, IReadOnlyList<ObjectIdAndKey> removedEntries = null, IEnumerable<long> garbageCollectables = null)
-        {
-            StorageEntries = storageEntries;
-            GarbageCollectables = garbageCollectables;
-            RemovedEntries = removedEntries ?? new ObjectIdAndKey[0];
-        }
-    }
+    public record DetectedChanges(
+        IReadOnlyList<StorageEntry> NewEntries,
+        IReadOnlyList<ObjectIdAndKey> RemovedEntries,
+        IEnumerable<ObjectIdAndType> NewSerializerTypes,
+        IEnumerable<long> GarbageCollectableIds) {}
 }

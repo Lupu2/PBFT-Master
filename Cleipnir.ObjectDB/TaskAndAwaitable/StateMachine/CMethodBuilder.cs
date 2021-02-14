@@ -6,6 +6,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.Persistency.Persistency;
+using Cleipnir.StorageEngine;
 
 namespace Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine
 {
