@@ -266,7 +266,22 @@ namespace Cleipnir.Rx
                 );
         }
 
-        // ** EPHEMERAL OPERATOR ** //
+        public static Stream<int> Count<T>(this Stream<T> s)
+            => s.DecorateStream(new CountOperator<T>());
+
+        private class CountOperator<T> : IPersistableOperator<T, int>
+        {
+            private int _count = 0;
+            
+            public void Operator(T next, Action<int> notify) => notify(++_count);
+
+            public void Serialize(StateMap sd, SerializationHelper helper) => sd.Set(nameof(_count), _count);
+
+            private static CountOperator<T> Deserialize(IReadOnlyDictionary<string, object> sd)
+                => new CountOperator<T>() {_count = sd.Get<int>(nameof(_count))};
+        }
+
+            // ** EPHEMERAL OPERATOR ** //
         public static Stream<T> Ephemeral<T>(this Stream<T> s) => new EphemeralOperator<T>(s, true);
 
         private class EphemeralOperator<T> : Stream<T>
