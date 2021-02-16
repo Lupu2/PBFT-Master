@@ -4,7 +4,7 @@ namespace PBFT.Replica
     {
         public int K; //Checkpoint period
 
-        
+        //TODO implement CheckPoint
 
     }
 }

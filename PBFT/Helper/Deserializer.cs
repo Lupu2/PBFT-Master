@@ -7,24 +7,26 @@ namespace PBFT.Helper
 {
     public static class Deserializer 
     {
-        public static IProtocolMessages ChooseDeserialize(byte[] sermessage)
+        public static (int, IProtocolMessages) ChooseDeserialize(byte[] sermessage)
         {
             int formatByte = sermessage[sermessage.Length-1];
             byte[] serobj = sermessage.Take(sermessage.Length-1).ToArray();
             switch (formatByte) 
             {
                 case (int) MessageType.SessionMessage:
-                     return SessionMessage.DeSerializeToObject(serobj);
+                     return (formatByte, SessionMessage.DeSerializeToObject(serobj));
                 case (int) MessageType.Request:
-                    return Request.DeSerializeToObject(serobj);
+                    return (formatByte, Request.DeSerializeToObject(serobj));
                 case (int) MessageType.PhaseMessage:
-                    return PhaseMessage.DeSerializeToObject(serobj);
+                    return (formatByte, PhaseMessage.DeSerializeToObject(serobj));
                 case (int) MessageType.Reply:
-                    return Reply.DeSerializeToObject(serobj);
+                    return (formatByte, Reply.DeSerializeToObject(serobj));
                 case (int) MessageType.ViewChange:
-                    return ViewChange.DeSerializeToObject(serobj);
+                    return (formatByte, ViewChange.DeSerializeToObject(serobj));
                 case (int) MessageType.NewView:
-                    return NewView.DeSerializeToObject(serobj);
+                    return (formatByte, NewView.DeSerializeToObject(serobj));
+                case (int) MessageType.Checkpoint:
+                    //TODO insert deserialization for Checkpoint
                 default:
                     throw new ArgumentOutOfRangeException();
             }

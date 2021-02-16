@@ -52,6 +52,8 @@ namespace PBFT
              Console.WriteLine(cliRequest2.ToString());
              Console.WriteLine(Crypto.VerifySignature(sign, sermes, pubkey));
              
+             App.Run(args);
+             
              // RSA rsa = RSA.Create();
              // var prikey = rsa.ExportParameters(true);
              // var pubkey = rsa.ExportParameters(false);

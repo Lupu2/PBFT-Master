@@ -4,45 +4,37 @@ using System.Linq;
 
 namespace PBFT.Helper
 {
-    public enum MessageType
-    {
-            SessionMessage = 0,
-            Request = 1,
-            PhaseMessage = 2,
-            Reply = 3,
-            ViewChange = 4,
-            NewView = 5,
-    }
+    
     public static class Serializer
     {
         public static byte[] AddTypeIdentifierToBytes(byte[] sermes, MessageType type)
         {
             byte[] copyobj = sermes.ToArray();
-
+            byte[] resobj;
             switch (type) 
             {
                 case MessageType.SessionMessage:
-                    copyobj.Concat(BitConverter.GetBytes(0));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(0)).ToArray();
                     break;
                 case MessageType.Request:
-                    copyobj.Concat(BitConverter.GetBytes(1));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(1)).ToArray();
                     break;
                 case MessageType.PhaseMessage:
-                    copyobj.Concat(BitConverter.GetBytes(2));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(2)).ToArray();
                     break;
                 case MessageType.Reply:
-                    copyobj.Concat(BitConverter.GetBytes(3));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(3)).ToArray();
                     break;
                 case MessageType.ViewChange:
-                    copyobj.Concat(BitConverter.GetBytes(4));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(4)).ToArray();
                     break;
                 case MessageType.NewView:
-                    copyobj.Concat(BitConverter.GetBytes(5));
+                    resobj = copyobj.Concat(BitConverter.GetBytes(5)).ToArray();
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-            return copyobj;
+            return resobj;
         }
 
         public static string SerializeHash(byte[] hash) => System.Convert.ToBase64String(hash);

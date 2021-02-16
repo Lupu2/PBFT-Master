@@ -7,6 +7,7 @@ using Cleipnir.Rx;
 using PBFT.Helper;
 using PBFT.Messages;
 using System;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -50,7 +51,7 @@ namespace PBFT.Replica
                 {
                     curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request 
                 }*/
-                curSeq = Serv.CurSeqNr++; //singlethreded, so multiple requests should be a problem curSeq.
+                curSeq = Serv.CurSeqNr++; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                 var init = Serv.InitializeLog(curSeq);
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
@@ -83,7 +84,12 @@ namespace PBFT.Replica
             await MesBridge
                 .Where(pm => pm.Type == PMessageType.Prepare)
                 .Where(pm => pm.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertpre))
-                .Do(pm => qcertpre.ProofList.Add(pm))
+                //.Do(pm => qcertpre.ProofList.Add(pm))
+                .Scan(qcertpre.ProofList, (prooflist, message) =>
+                {
+                    prooflist.Add(message);
+                    return prooflist;
+                })
                 .Where(pm => qcertpre.ValidateCertificate(FailureNr)) //probably won't work
                 .Next();
             
@@ -104,7 +110,12 @@ namespace PBFT.Replica
             await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.Type == PMessageType.Commit)
                 .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertcom))
-                .Do(pm => qcertcom.ProofList.Add(pm))
+                //.Do(pm => qcertcom.ProofList.Add(pm))
+                .Scan(qcertcom.ProofList, (prooflist, message) =>
+                {
+                    prooflist.Add(message);
+                    return prooflist;
+                })
                 .Where(pm => qcertcom.ValidateCertificate(FailureNr))
                 .Next();
             

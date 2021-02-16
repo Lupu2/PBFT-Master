@@ -9,8 +9,8 @@ namespace PBFT.Helper
 {
     public class JSONServerObj
     {
-        public int ID { get; }
-        public string IP { get; }
+        public int ID { get; set;  }
+        public string IP { get; set; }
 
         public JSONServerObj(int id, string ipaddr)
         {
@@ -25,11 +25,11 @@ namespace PBFT.Helper
     {
         public static async Task<(int, string)> GetServerData(string filepath, int id)
         {
-            var serv = await LoadJSONFile(filepath, id);
+            var serv = await LoadJSONFileServer(filepath, id);
             return (serv.ID, serv.IP);
         }
         
-        public static async Task<JSONServerObj> LoadJSONFile(string filepath, int actualID)
+        public static async Task<JSONServerObj> LoadJSONFileServer(string filepath, int actualID)
         {
             using (StreamReader sr = new StreamReader(filepath))
             {
@@ -39,6 +39,18 @@ namespace PBFT.Helper
                 return serv;
             }
             
+        }
+
+        public static async Task<Dictionary<int,string>> LoadJSONFileContent(string filepath)
+        {
+            using (StreamReader sr = new StreamReader(filepath))
+            {
+                var jsonValue = await sr.ReadToEndAsync();
+                var jsonServers = JsonConvert.DeserializeObject<List<JSONServerObj>>(jsonValue);
+                Dictionary<int, string> servInfo = new Dictionary<int, string>();
+                foreach (var servobj in jsonServers) servInfo[servobj.ID] = servobj.IP;
+                return servInfo;
+            }
         }
     }
     
