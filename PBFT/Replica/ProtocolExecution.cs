@@ -18,10 +18,8 @@ namespace PBFT.Replica
     public class ProtocolExecution
     {
         public Server Serv {get; set;}
-
-        public int NrOfNodes {get; set;}
         
-        public int FailureNr { get; set; }
+        public int FailureNr {get; set;}
         
         private readonly object _sync = new object();
 
@@ -29,10 +27,9 @@ namespace PBFT.Replica
 
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
 
-        public ProtocolExecution(Server server, int nrnodes, int fnodes, Source<PhaseMessage> bridge) 
+        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> bridge) 
         {
             Serv = server;
-            NrOfNodes = nrnodes;
             FailureNr = fnodes;
             MesBridge = bridge;
         }
@@ -56,7 +53,7 @@ namespace PBFT.Replica
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                 qcertpre = new QCertificate(preprepare.SeqNr, preprepare.ViewNr, CertType.Prepared, preprepare); //Log preprepare as Prepare
-                await Serv.Multicast(preprepare.SerializeToBuffer()); //Send async message PrePrepare
+                await Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
             }else{ //Replicas
                 // await incomming PhaseMessages Where = MessageType.PrePrepare
                     var preprepared = await MesBridge
@@ -70,7 +67,7 @@ namespace PBFT.Replica
                     var init = Serv.InitializeLog(curSeq);
                     if (!init) return null;
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
-                    await Serv.Multicast(prepare.SerializeToBuffer());
+                    await Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                     /*catch(TaskCanceledException) //Probably placed so that the rest of the code is not runned after primary is deemed faulty
                     {   
                         Console.WriteLine("Primary deemed faulty start sending new messages");
@@ -106,7 +103,7 @@ namespace PBFT.Replica
             QCertificate qcertcom = new QCertificate(qcertpre.SeqNr, Serv.CurView, CertType.Committed);
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             
-            await Serv.Multicast(commitmes.SerializeToBuffer()); //Send async message Commit
+            await Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
             await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.Type == PMessageType.Commit)
                 .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertcom))
@@ -125,7 +122,7 @@ namespace PBFT.Replica
             //Need to move or insert await for curSeqNr to be the next request to be handled
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
-            await Serv.SendMessage(rep.SerializeToBuffer());
+            await Serv.SendMessage(rep.SerializeToBuffer(), clireq.ClientID, MessageType.Reply);
             return rep;
         }
 

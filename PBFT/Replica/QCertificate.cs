@@ -52,6 +52,21 @@ namespace PBFT.Replica
             ProofList = proof;
         }
         
+        private bool QReached(int fNodes) => ProofList.Count >= 2 * fNodes + 1;
+        
+        private bool CheckForDuplicates()
+        {
+            return ProofList.GroupBy(c => new {c.ServID, c.Signature})
+                .Any(p => p.Count() > 1); //https://stackoverflow.com/questions/16197290/checking-for-duplicates-in-a-list-of-objects-c-sharp/16197491
+            
+        }
+
+        public bool ValidateCertificate(int fNodes) //potentially asynchronous together with QReached
+        {
+            if (!Valid) if (QReached(fNodes) && !CheckForDuplicates()) Valid = true;
+            return Valid;
+        }
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             //throw new System.NotImplementedException();
@@ -70,21 +85,5 @@ namespace PBFT.Replica
                 sd.Get<bool>(nameof(Valid)),
                 sd.Get<CList<PhaseMessage>>(nameof(ProofList))
                 );
-        
-
-        private bool QReached(int fNodes) => ProofList.Count >= 2 * fNodes + 1;
-        
-        private bool CheckForDuplicates()
-        {
-            return ProofList.GroupBy(c => new {c.ServID, c.Signature})
-                            .Any(p => p.Count() > 1); //https://stackoverflow.com/questions/16197290/checking-for-duplicates-in-a-list-of-objects-c-sharp/16197491
-            
-        }
-
-        public bool ValidateCertificate(int fNodes) //potentially asynchronous together with QReached
-        {
-            if (!Valid) if (QReached(fNodes) && !CheckForDuplicates()) Valid = true;
-            return Valid;
-        }
     }
 }

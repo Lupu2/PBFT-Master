@@ -14,7 +14,7 @@ namespace PBFT.Network
         //https://www.youtube.com/watch?v=rrlRydqJbv0&t=244s
         //Template for Conn Object using Source for messages
         private IPEndPoint endpoint;
-        private Socket socket;
+        public Socket socket;
         private bool active;
         private bool serverConnection;
         //private Source<IProtocolMessages> IncomingMessage;

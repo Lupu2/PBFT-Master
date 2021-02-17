@@ -34,7 +34,6 @@ namespace PBFT.Messages
                 TempConn servconn = new TempConn(conn._address, conn._clientSock); //casting it to a server conn
                 if (!serv.ServConnInfo.ContainsKey(id)) //New Server Connections
                 {
-                    
                     serv.ServConnInfo[id] = servconn;
                     serv.ServPubKeyRegister[id] = sesmes.publickey;
                 }
@@ -45,6 +44,7 @@ namespace PBFT.Messages
                         serv.ServConnInfo[id].Dispose();
                         serv.ServConnInfo[id] = servconn;
                         serv.ServPubKeyRegister[id] = sesmes.publickey;
+                        serv.NrOfReplicas++;
                     }
                 }
             }
