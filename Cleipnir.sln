@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PBFT", "PBFT\PBFT.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.Tests.NetworkCommunication", "Cleipnir.Tests.NetworkCommunication\Cleipnir.Tests.NetworkCommunication.csproj", "{64B3E7CE-6C4C-46BF-921F-6E2CE8DC5230}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PBFT.Tests", "PBFT.Tests\PBFT.Tests.csproj", "{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -117,6 +119,10 @@ Global
 		{64B3E7CE-6C4C-46BF-921F-6E2CE8DC5230}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{64B3E7CE-6C4C-46BF-921F-6E2CE8DC5230}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{64B3E7CE-6C4C-46BF-921F-6E2CE8DC5230}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

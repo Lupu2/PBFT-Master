@@ -36,7 +36,6 @@ namespace PBFT.Network
             active = true;
             serverConnection = true;
         }
-        
         //Listener operations
         public async Task Listen()
         {
@@ -54,7 +53,7 @@ namespace PBFT.Network
                     //_ = HandleConnection(cursocket);
                     TempClientConn clientconn = new TempClientConn(cursocket);
                     newConnection(clientconn);
-                }    
+                }
             }
         }
 

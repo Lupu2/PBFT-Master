@@ -113,6 +113,7 @@ namespace PBFT.Messages
                 {
                     foreach (var proof in cert.ProofList)
                     {
+                        Console.WriteLine(proof.Digest.SequenceEqual(Digest));
                         if (proof.Type == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
                     }
                 }

@@ -39,12 +39,11 @@ namespace PBFT.Messages
                 }
                 else
                 {
-                    if (!serv.ServPubKeyRegister[id].Equals(sesmes.publickey)) // Updated Client Connection
+                    if (!serv.ServPubKeyRegister[id].Equals(sesmes.publickey)) // Updated Server Connection
                     {
                         serv.ServConnInfo[id].Dispose();
                         serv.ServConnInfo[id] = servconn;
                         serv.ServPubKeyRegister[id] = sesmes.publickey;
-                        serv.NrOfReplicas++;
                     }
                 }
             }

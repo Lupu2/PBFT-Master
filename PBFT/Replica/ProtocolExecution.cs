@@ -52,6 +52,7 @@ namespace PBFT.Replica
                 var init = Serv.InitializeLog(curSeq);
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
+                preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                 qcertpre = new QCertificate(preprepare.SeqNr, preprepare.ViewNr, CertType.Prepared, preprepare); //Log preprepare as Prepare
                 await Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
             }else{ //Replicas
@@ -59,7 +60,7 @@ namespace PBFT.Replica
                     var preprepared = await MesBridge
                         .Where(pm => pm.Type == PMessageType.PrePrepare)
                         
-                        .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange))
+                        .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange)) //oversight, not the servers pubkey the message id's pubkey!!!
                         .Next();
                     
                     qcertpre = new QCertificate(preprepared.SeqNr, Serv.CurView, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
@@ -67,6 +68,7 @@ namespace PBFT.Replica
                     var init = Serv.InitializeLog(curSeq);
                     if (!init) return null;
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
+                    prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
                     await Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                     /*catch(TaskCanceledException) //Probably placed so that the rest of the code is not runned after primary is deemed faulty
                     {   
@@ -80,7 +82,7 @@ namespace PBFT.Replica
             //await incoming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
             await MesBridge
                 .Where(pm => pm.Type == PMessageType.Prepare)
-                .Where(pm => pm.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertpre))
+                .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
                 //.Do(pm => qcertpre.ProofList.Add(pm))
                 .Scan(qcertpre.ProofList, (prooflist, message) =>
                 {
@@ -106,7 +108,7 @@ namespace PBFT.Replica
             await Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
             await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.Type == PMessageType.Commit)
-                .Where(t => t.Validate(Serv.Pubkey, Serv.CurView, Serv.CurSeqRange, qcertcom))
+                .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                 //.Do(pm => qcertcom.ProofList.Add(pm))
                 .Scan(qcertcom.ProofList, (prooflist, message) =>
                 {
@@ -122,6 +124,7 @@ namespace PBFT.Replica
             //Need to move or insert await for curSeqNr to be the next request to be handled
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
+            rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
             await Serv.SendMessage(rep.SerializeToBuffer(), clireq.ClientID, MessageType.Reply);
             return rep;
         }

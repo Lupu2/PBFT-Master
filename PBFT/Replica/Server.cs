@@ -30,7 +30,7 @@ namespace PBFT.Replica
         
         public Range CurSeqRange { get; set;}
 
-        public int NrOfReplicas {get; set;} //increment each time a server is added
+        public int totalReplicas {get; set;} 
 
         private Engine _scheduler {get; set;}
         
@@ -45,7 +45,7 @@ namespace PBFT.Replica
         public Source<Request> RequestBridge;
 
         public Source<PhaseMessage> ProtocolBridge;
-
+        
         //public Source<IProtocolMessages> IncomingMessages;
         
         //public Source<IProtocolMessages> OutgoingMessages;
@@ -54,19 +54,20 @@ namespace PBFT.Replica
         //Registers/Logs
 
         //int = Serv/ClientID
-        public Dictionary<int, TempConn> ServConnInfo;
+        public Dictionary<int, TempConn> ServConnInfo; //output connections
         public Dictionary<int, TempClientConn> ClientConnInfo;
 
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         public Dictionary<int, bool> ClientActive;
+        public Dictionary<int, Reply> RequestLog;
         
-        public Server(int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge) //Initial constructor
+        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge) //Initial constructor
         {
             ServID = id;
             CurView = curview;
             CurSeqNr = 0;
-            NrOfReplicas = 1;
+            totalReplicas = totalreplicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress,true, HandleNewClientConnection);
             CurPrimary = new ViewPrimary(0,0); //Leader of view 0 = server 0
@@ -78,12 +79,12 @@ namespace PBFT.Replica
             
         }
 
-        public Server(int id, int curview, int seqnr, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
+        public Server(int id, int curview, int seqnr, int totalreplicas ,Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
         {
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            NrOfReplicas = 1;
+            totalReplicas = totalreplicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress, true, HandleNewClientConnection);
             CurPrimary = new ViewPrimary(id,curview); //assume it is the leader
@@ -101,7 +102,7 @@ namespace PBFT.Replica
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            NrOfReplicas = replicas;
+            totalReplicas = replicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress, true, HandleNewClientConnection);
             CurPrimary = lead;
@@ -119,7 +120,7 @@ namespace PBFT.Replica
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            NrOfReplicas = replicas;
+            totalReplicas = replicas;
             //_servConn = new TempConn(ipaddress);
             CurPrimary = lead;
             CurSeqRange = seqRange;
@@ -136,6 +137,42 @@ namespace PBFT.Replica
             
         }*/
 
+        public IProtocolMessages SignMessage(IProtocolMessages mes, MessageType type)
+        {
+            switch (type)
+            {
+                case MessageType.PhaseMessage:
+                    PhaseMessage temppm = (PhaseMessage) mes;
+                    temppm.SignMessage(_prikey);
+                    mes = temppm;
+                    break;
+                case MessageType.Reply:
+                    Reply tempry = (Reply) mes;
+                    tempry.SignMessage(_prikey);
+                    mes = tempry;
+                    break;
+                case MessageType.ViewChange:
+                    ViewChange tempvc = (ViewChange) mes;
+                    tempvc.SignMessage(_prikey);
+                    mes = tempvc;
+                    break;
+                case MessageType.NewView:
+                    NewView tempnv = (NewView) mes;
+                    tempnv.SignMessage(_prikey);
+                    mes = tempnv;
+                    break;
+                case MessageType.Checkpoint:
+                    Checkpoint tempck = (Checkpoint) mes;
+                    tempck.SignMessage(_prikey);
+                    mes = tempck;
+                    break;
+                default:
+                  throw new ArgumentOutOfRangeException();
+            }
+
+            return mes;
+        }
+        
         public void Start() => _ = _servConn.Listen();
         
         public void HandleNewClientConnection(TempClientConn conn)
@@ -183,7 +220,7 @@ namespace PBFT.Replica
                             break;
                         case MessageType.Request:
                             Request reqmes = (Request) mes;
-                            if (ClientConnInfo.ContainsKey(reqmes.ClientID) && !ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
+                            if (ClientConnInfo.ContainsKey(reqmes.ClientID) && ClientPubKeyRegister.ContainsKey(reqmes.ClientID) && !ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
                             break;
                         case MessageType.PhaseMessage:
                             PhaseMessage pesmes = (PhaseMessage) mes;
@@ -238,12 +275,30 @@ namespace PBFT.Replica
         {
             foreach (var (k,ip) in contactList)
             {
-                if (k == ServID || ServConnInfo.ContainsKey(k))
+                if (k != ServID && !ServConnInfo.ContainsKey(k) && ServID>k)
                 {
                     var servConn = new TempConn(ip, false, null);
-                    _ = servConn.Connect();
-                    ServConnInfo[k] = servConn;
-                    NrOfReplicas++;
+                    await servConn.Connect();
+                    //ServConnInfo[k] = servConn;
+                    SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                    await SendMessage(sesmes.SerializeToBuffer(), k, MessageType.SessionMessage);
+                    
+                    //A - Leander system with lower id vs higher id 
+                    //B - Input & Output Unique for server vs sockets unidirectional
+                    //C - Complicated Algorithm
+                }
+            }
+        }
+
+        public async CTask ReEstablishConnections()
+        {
+            foreach (var (k,conn) in ServConnInfo)
+            {
+                if (k != ServID)
+                {
+                    var servConn = new TempConn(conn.socket.RemoteEndPoint.ToString(), false, null);
+                    await servConn.Connect();
+                    //ServConnInfo[k] = servConn;
                     SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
                     await SendMessage(sesmes.SerializeToBuffer(), k, MessageType.SessionMessage);
                 }
@@ -290,7 +345,7 @@ namespace PBFT.Replica
             stateToSerialize.Set("CurSeqRangeLow", CurSeqRange.Start.Value);
             stateToSerialize.Set("CurSeqRangeHigh", CurSeqRange.End.Value);
             stateToSerialize.Set(nameof(ViewPrimary), CurPrimary);
-            stateToSerialize.Set(nameof(NrOfReplicas), NrOfReplicas);
+            stateToSerialize.Set(nameof(totalReplicas), totalReplicas);
             stateToSerialize.Set(nameof(RequestBridge), RequestBridge);
             stateToSerialize.Set(nameof(ProtocolBridge), ProtocolBridge);
             stateToSerialize.Set(nameof(Log), Log);
@@ -305,7 +360,7 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(CurSeqNr)),
                 new Range(sd.Get<int>("CurSeqRangeLow"),sd.Get<int>("CurSeqRangeHigh")),
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
-                sd.Get<int>(nameof(NrOfReplicas)),
+                sd.Get<int>(nameof(totalReplicas)),
                 sd.Get<Source<Request>>(nameof(RequestBridge)),
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
                 sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log))
