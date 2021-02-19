@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -70,7 +71,7 @@ namespace PBFT.Messages
 
         public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
 
-        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp, Signature);
+        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
         
     }
 }

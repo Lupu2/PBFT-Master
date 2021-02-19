@@ -69,8 +69,6 @@ namespace PBFT.Messages
                 {
                     var serareq = this.SerializeToBuffer();
                     hashmes = shaalgo.ComputeHash(serareq);
-                    Console.WriteLine("Hash1");
-                    Console.WriteLine(BitConverter.ToString(hashmes));
                 }
                 rsa.ImportParameters(prikey);
                 RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
