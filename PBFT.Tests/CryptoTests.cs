@@ -35,6 +35,7 @@ namespace PBFT.Tests
             Assert.IsNotNull(pri.DP);
             Assert.IsNotNull(pri.InverseQ);
         }
+        
         [TestMethod]
         public void MessageDigestTest()
         {
@@ -52,6 +53,7 @@ namespace PBFT.Tests
             //Assert.IsTrue(dig1.Equals(testhash));
             Assert.AreEqual(BitConverter.ToString(dig1),BitConverter.ToString(testhash));
         }
+        
         [TestMethod]
         public void VerifySignatureTest()
         {
