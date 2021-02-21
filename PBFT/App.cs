@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
+using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
@@ -57,7 +58,7 @@ namespace PBFT
             }
         }
 
-        public static async CTask RequestHandler(Server serv, ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        public static async Task RequestHandler(Server serv, ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
         {
             while (true)
             {
@@ -65,7 +66,7 @@ namespace PBFT
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]))
                 {
                     Console.WriteLine("Handling client request");
-                    scheduler.Schedule(() =>
+                    _ = scheduler.Schedule(() =>
                     {
                         serv.ChangeClientStatus(req.ClientID);
                         var reply = execute.HandleRequest(req);

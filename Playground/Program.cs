@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using Cleipnir.ObjectDB;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
@@ -16,11 +17,11 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            ReactiveFun.P.Do();
-
+            //ReactiveFun.P.Do();
+            //SocketIPExample.IPHostListExample.GetIpAddressList(Dns.GetHostName());
+            SocketIPExample.asyncserversockettut.P();
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
-            
         }
     }
 

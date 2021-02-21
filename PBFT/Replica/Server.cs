@@ -177,10 +177,10 @@ namespace PBFT.Replica
         
         public void HandleNewClientConnection(TempClientConn conn)
         {
-            _scheduler.Schedule(() =>
-            {
+            //_scheduler.Schedule(() =>
+            //{
                 _ = HandleIncommingMessages(conn);
-            });
+            //});
         }
         
         //Handle incomming messages
