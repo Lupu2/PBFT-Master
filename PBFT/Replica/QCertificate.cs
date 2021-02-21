@@ -7,6 +7,7 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using PBFT.Messages;
 using System.Linq;
+using System.Xml.XPath;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Newtonsoft.Json;
 using PBFT.Helper;
@@ -51,20 +52,66 @@ namespace PBFT.Replica
             Valid = false;
             ProofList = proof;
         }
+
+        private bool QReached(int fNodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * fNodes + 1;
         
-        private bool QReached(int fNodes) => ProofList.Count >= 2 * fNodes + 1;
         
-        private bool CheckForDuplicates()
+        private int AccountForDuplicates()
         {
-            return ProofList.GroupBy(c => new {c.ServID, c.Signature})
-                .Any(p => p.Count() > 1); //https://stackoverflow.com/questions/16197290/checking-for-duplicates-in-a-list-of-objects-c-sharp/16197491
-            
+            //Source: https://stackoverflow.com/questions/53512523/count-of-duplicate-items-in-a-c-sharp-list/53512576
+            if (ProofList.Count < 2) return 0;
+            var count = ProofList
+                .GroupBy(c => new {c.ServID, c.Signature})
+                .Where(c => c.Count() > 1)
+                .Sum(c => c.Count()-1);
+            return count;
         }
 
-        public bool ValidateCertificate(int fNodes) //potentially asynchronous together with QReached
+        //Checks that the Proofs are valid for PhaseMessages
+        private bool ProofsArePMsValid() 
         {
-            if (!Valid) if (QReached(fNodes) && !CheckForDuplicates()) Valid = true;
+            if (ProofList.Count < 1) return false;
+            bool proofvalid = true;
+            foreach (var proof in ProofList)
+            {
+                //Console.WriteLine(proof);
+                if (proof.Digest == null || proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr)
+                {
+                    proofvalid = false;
+                    break;
+                }
+                
+                if (proof.Type == PMessageType.PrePrepare || proof.Type == PMessageType.Prepare)
+                {
+                    if (Type != CertType.Prepared)
+                    {
+                        proofvalid = false;
+                        break;
+                    }
+                }
+                else if (proof.Type == PMessageType.Commit)
+                {
+                    if (Type != CertType.Committed)
+                    {
+                        proofvalid = false;
+                        break;
+                    } 
+                }
+            }
+            return proofvalid;
+        }
+
+        public bool ValidateCertificate(int fNodes)
+        {
+            if (!Valid) 
+                if (QReached(fNodes) && ProofsArePMsValid()) Valid = true;
             return Valid;
+        }
+
+        public void ResetCertificate() //Mostly used for debugging, might be useful if a certificate is deemed corrupted
+        {
+            Valid = false;
+            ProofList = new CList<PhaseMessage>();
         }
         
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)

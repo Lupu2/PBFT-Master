@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Security.Cryptography;
+using Cleipnir.Helpers;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
@@ -122,6 +123,21 @@ namespace PBFT.Messages
         }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, Type);
-        
+
+        public override string ToString() =>
+            $"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {Type} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
+
+        public bool Compare(PhaseMessage pes2)
+        {
+            if (pes2.ServID != ServID) return false;
+            if (pes2.SeqNr != ServID) return false;
+            if (pes2.ViewNr != ViewNr) return false;
+            if (pes2.Type != Type) return false;
+            if (pes2.Digest == null && Digest != null || pes2.Digest != null && Digest == null) return false;
+            if (pes2.Digest != null && Digest != null && !pes2.Digest.SequenceEqual(Digest)) return false;
+            if (pes2.Signature == null && Signature != null || pes2.Signature != null && Signature == null) return false;
+            if (pes2.Signature != null && Signature != null && !pes2.Signature.SequenceEqual(Signature)) return false;
+            return true;
+        }
     }
 }

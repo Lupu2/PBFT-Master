@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
@@ -81,6 +82,16 @@ namespace PBFT.Messages
         public IProtocolMessages CreateCopyTemplate() => new Request(ClientID, Message, Timestamp);
         
         public override string ToString() => $"ID: {ClientID}, Message: {Message}, Time:{Timestamp}, Sign:{Signature}";
+
+        public bool Compare(Request req)
+        {
+            if (req.ClientID != ClientID) return false;
+            if (req.Message != Message) return false;
+            if (!req.Timestamp.Equals(Timestamp)) return false;
+            if (req.Signature == null && Signature != null || req.Signature != null && Signature == null) return false;
+            if (req.Signature != null && Signature != null && !req.Signature.SequenceEqual(Signature)) return false;
+            return true;
+        }
 
     }
 

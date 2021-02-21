@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
@@ -28,6 +29,18 @@ namespace PBFT.Messages
         {
             var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<SessionMessage>(jsonobj);
+        }
+
+        public bool Compare(SessionMessage sesmes)
+        {
+            if (sesmes.devtype != devtype) return false;
+            if (sesmes.DevID != DevID) return false;
+            if (sesmes.publickey.D != null && publickey.Exponent != null && !sesmes.publickey.D.SequenceEqual(publickey.Exponent))
+                return false;
+            if (sesmes.publickey.Modulus != null && publickey.Modulus != null &&
+                !sesmes.publickey.Modulus.SequenceEqual(publickey.Modulus))
+                return false;
+            return true;
         }
     }
 }

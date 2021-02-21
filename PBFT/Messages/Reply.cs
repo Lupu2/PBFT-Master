@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -72,6 +73,19 @@ namespace PBFT.Messages
         public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
 
         public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
+
+        public bool Compare(Reply rep)
+        {
+            if (rep.ServID != ServID) return false;
+            if (rep.SeqNr != SeqNr) return false;
+            if (rep.ViewNr != ViewNr) return false;
+            if (rep.Status != Status) return false;
+            if (!rep.Result.Equals(Result)) return false;
+            if (!rep.Timestamp.Equals(Timestamp)) return false;
+            if (rep.Signature == null && Signature != null || rep.Signature != null && Signature == null) return false;
+            if (rep.Signature != null && Signature != null && !rep.Signature.SequenceEqual(Signature)) return false;
+            return true;
+        }
         
     }
 }

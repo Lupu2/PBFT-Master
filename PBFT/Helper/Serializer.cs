@@ -14,13 +14,13 @@ namespace PBFT.Helper
             switch (type) 
             {
                 case MessageType.SessionMessage:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(0)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(0000)).ToArray();
                     break;
                 case MessageType.Request:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(1)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(0001)).ToArray();
                     break;
                 case MessageType.PhaseMessage:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(2)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(0002)).ToArray();
                     break;
                 case MessageType.Reply:
                     resobj = copyobj.Concat(BitConverter.GetBytes(3)).ToArray();
@@ -31,6 +31,8 @@ namespace PBFT.Helper
                 case MessageType.NewView:
                     resobj = copyobj.Concat(BitConverter.GetBytes(5)).ToArray();
                     break;
+                case MessageType.Checkpoint:
+                //TODO insert serialization for Checkpoint
                 default:
                     throw new ArgumentOutOfRangeException();
             }
