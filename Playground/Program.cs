@@ -1,13 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using Cleipnir.ObjectDB;
-using Cleipnir.ObjectDB.Persistency;
-using Cleipnir.ObjectDB.Persistency.Deserialization;
-using Cleipnir.ObjectDB.Persistency.Serialization;
-using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
-using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
-using Cleipnir.StorageEngine.SimpleFile;
 
 namespace Playground
 {
@@ -15,7 +6,7 @@ namespace Playground
     {
         static void Main(string[] args)
         {
-            SimpleNetwork.P.Do();
+            PersonExample.P.Do();
             
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
