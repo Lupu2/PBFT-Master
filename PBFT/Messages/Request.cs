@@ -54,7 +54,8 @@ namespace PBFT.Messages
         }
 
         public static Request Deserialize(IReadOnlyDictionary<string, object> sd)
-            =>  new Request((int) sd.Get<int>(nameof(ClientID)), (string) 
+            =>  new Request((int) 
+                                 sd.Get<int>(nameof(ClientID)), (string) 
                                  sd.Get<string>(nameof(Message)), (string) 
                                  sd.Get<string>(nameof(Timestamp)), (byte[]) 
                                  Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))

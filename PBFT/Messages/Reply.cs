@@ -1,13 +1,19 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
+using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Newtonsoft.Json;
+using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Reply : IProtocolMessages, SignedMessage
+    public class Reply : IProtocolMessages, SignedMessage, IPersistable
     {  
         public int ServID{get; set;}
         public int SeqNr{get; set;}
@@ -52,7 +58,29 @@ namespace PBFT.Messages
             return JsonConvert.DeserializeObject<Reply>(jsonobj);
         }
 
-        public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
+        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+        {
+            stateToSerialize.Set(nameof(ServID), ServID);
+            stateToSerialize.Set(nameof(SeqNr), SeqNr);
+            stateToSerialize.Set(nameof(ViewNr), ViewNr);
+            stateToSerialize.Set(nameof(Status), Status);
+            stateToSerialize.Set(nameof(Result), Result); 
+            stateToSerialize.Set(nameof(Timestamp), Timestamp);
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
+        }
+
+        private Reply Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new Reply(
+                sd.Get<int>(nameof(ServID)),
+                sd.Get<int>(nameof(SeqNr)),
+                sd.Get<int>(nameof(ViewNr)),
+                sd.Get<bool>(nameof(Status)),
+                sd.Get<string>(nameof(Result)),
+                sd.Get<string>(nameof(Timestamp)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
+            );
+
+            public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
         {
             using (var rsa = RSA.Create())
             {
@@ -71,7 +99,7 @@ namespace PBFT.Messages
         }
 
         public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
-
+        
         public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
 
         public bool Compare(Reply rep)
