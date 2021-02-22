@@ -69,7 +69,7 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
-        private Reply Deserialize(IReadOnlyDictionary<string, object> sd)
+        private static Reply Deserialize(IReadOnlyDictionary<string, object> sd)
             => new Reply(
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(SeqNr)),
