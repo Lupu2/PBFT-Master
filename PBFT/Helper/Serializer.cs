@@ -39,7 +39,7 @@ namespace PBFT.Helper
             return resobj;
         }
 
-        public static string SerializeHash(byte[] hash) => System.Convert.ToBase64String(hash);
+        public static string SerializeHash(byte[] hash) => Convert.ToBase64String(hash);
         
     }
 }

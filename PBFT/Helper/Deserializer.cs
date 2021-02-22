@@ -16,9 +16,9 @@ namespace PBFT.Helper
             //Collect the last 4bytes to get MessageType value
             int formatByte = BitConverter.ToInt32(sermessage.Reverse()
                                                                .Take(4)
-                                                               .ToArray()
                                                                .Reverse()
-                                                               .ToArray());
+                                                               .ToArray()
+            );
             
             byte[] serobj = sermessage.Take(sermessage.Length-4)
                                       .ToArray();

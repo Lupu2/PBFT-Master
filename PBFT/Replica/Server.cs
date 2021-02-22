@@ -30,7 +30,7 @@ namespace PBFT.Replica
         
         public Range CurSeqRange { get; set;}
 
-        public int totalReplicas {get; set;} 
+        public int TotalReplicas {get; set;} 
 
         private Engine _scheduler {get; set;}
         
@@ -59,41 +59,43 @@ namespace PBFT.Replica
 
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
-        public Dictionary<int, bool> ClientActive;
-        public Dictionary<int, Reply> RequestLog;
+        public CDictionary<int, bool> ClientActive;
+        public CDictionary<int, Reply> RequestLog;
         
         public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge) //Initial constructor
         {
             ServID = id;
             CurView = curview;
             CurSeqNr = 0;
-            totalReplicas = totalreplicas;
+            TotalReplicas = totalreplicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress,true, HandleNewClientConnection);
-            CurPrimary = new ViewPrimary(0,0); //Leader of view 0 = server 0
+            CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
             CurSeqRange = new Range(0,checkpointinter);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
-            
+            ClientActive = new CDictionary<int, bool>();
+
         }
 
-        public Server(int id, int curview, int seqnr, int totalreplicas ,Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
+        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
         {
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            totalReplicas = totalreplicas;
+            TotalReplicas = totalreplicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress, true, HandleNewClientConnection);
-            CurPrimary = new ViewPrimary(id,curview); //assume it is the leader
-            if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, seqnr - checkpointinter);
+            CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader
+            if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
+            ClientActive = new CDictionary<int, bool>();
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
@@ -102,7 +104,7 @@ namespace PBFT.Replica
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            totalReplicas = replicas;
+            TotalReplicas = replicas;
             _scheduler = sche;
             _servConn = new TempConn(ipaddress, true, HandleNewClientConnection);
             CurPrimary = lead;
@@ -111,16 +113,17 @@ namespace PBFT.Replica
             ProtocolBridge = pesbridge;
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
+            ClientActive = new CDictionary<int, bool>();
         }
 
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, 
-            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog)
+            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister)
         {
             ServID = id;
             CurView = curview;
             CurSeqNr = seqnr;
-            totalReplicas = replicas;
+            TotalReplicas = replicas;
             //_servConn = new TempConn(ipaddress);
             CurPrimary = lead;
             CurSeqRange = seqRange;
@@ -128,9 +131,20 @@ namespace PBFT.Replica
             ProtocolBridge = pesbridge;
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
+            ClientActive = clientActiveRegister;
         }
 
-        public bool IsPrimary() => (ServID == CurPrimary.ServID && CurView == CurPrimary.ViewNr);
+        public bool IsPrimary()
+        {
+            Start:
+            if (CurView == CurPrimary.ViewNr)
+            {
+                if (ServID == CurPrimary.ServID) return true;
+                return false;
+            }
+            CurPrimary.UpdateView(CurView);
+            goto Start;
+        }
         
         /*public async Conn Listen()
         {   //To be implemented
@@ -184,7 +198,7 @@ namespace PBFT.Replica
         }
         
         //Handle incomming messages
-        public async CTask HandleIncommingMessages(TempClientConn conn)
+        public async Task HandleIncommingMessages(TempClientConn conn)
         {
             /*var clientSocket = await Task.Factory.FromAsync( //source: https://youtu.be/rrlRydqJbv0
                 new Func<AsyncCallback, object, IAsyncResult>(conn._clientSock.BeginAccept),
@@ -242,7 +256,7 @@ namespace PBFT.Replica
             }
         }
         
-        public async CTask Multicast(byte[] sermessage, MessageType type)
+        public async Task Multicast(byte[] sermessage, MessageType type)
         {
             var fullbuffmes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             foreach(var(sid, conn) in ServConnInfo)
@@ -252,7 +266,7 @@ namespace PBFT.Replica
             }
         }
 
-        public async CTask SendMessage(byte[] sermessage, int id, MessageType type)
+        public async Task SendMessage(byte[] sermessage, int id, MessageType type)
         {
             var fullbuffmes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             if (ServConnInfo.ContainsKey(id))
@@ -271,7 +285,7 @@ namespace PBFT.Replica
             }
         }
         
-        public async CTask InitializeConnections(Dictionary<int,string> contactList) //Add Client To Client Dictionaries
+        public async Task InitializeConnections(Dictionary<int,string> contactList) //Add Client To Client Dictionaries
         {
             foreach (var (k,ip) in contactList)
             {
@@ -290,7 +304,7 @@ namespace PBFT.Replica
             }
         }
 
-        public async CTask ReEstablishConnections()
+        public async Task ReEstablishConnections()
         {
             foreach (var (k,conn) in ServConnInfo)
             {
@@ -330,6 +344,8 @@ namespace PBFT.Replica
         
         public void AddCertificate(int seqNr, QCertificate cert) => Log[seqNr].Add(cert);
 
+        public void AddEngine(Engine sche) => _scheduler = sche;
+        
         public void GarbageCollect(int seqNr)
         {
             foreach (var (entrySeqNr, entryLog) in Log)
@@ -345,13 +361,12 @@ namespace PBFT.Replica
             stateToSerialize.Set("CurSeqRangeLow", CurSeqRange.Start.Value);
             stateToSerialize.Set("CurSeqRangeHigh", CurSeqRange.End.Value);
             stateToSerialize.Set(nameof(ViewPrimary), CurPrimary);
-            stateToSerialize.Set(nameof(totalReplicas), totalReplicas);
+            stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
             stateToSerialize.Set(nameof(RequestBridge), RequestBridge);
             stateToSerialize.Set(nameof(ProtocolBridge), ProtocolBridge);
             stateToSerialize.Set(nameof(Log), Log);
+            stateToSerialize.Set(nameof(ClientActive), ClientActive);
         }
-        
-        public void AddEngine(Engine sche) => _scheduler = sche;
         
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
         => new Server(
@@ -360,10 +375,11 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(CurSeqNr)),
                 new Range(sd.Get<int>("CurSeqRangeLow"),sd.Get<int>("CurSeqRangeHigh")),
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
-                sd.Get<int>(nameof(totalReplicas)),
+                sd.Get<int>(nameof(TotalReplicas)),
                 sd.Get<Source<Request>>(nameof(RequestBridge)),
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
-                sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log))
+                sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log)),
+                sd.Get<CDictionary<int, bool>>(nameof(ClientActive))
             );
     }
 }

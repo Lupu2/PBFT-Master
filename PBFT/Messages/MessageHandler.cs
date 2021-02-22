@@ -16,6 +16,7 @@ namespace PBFT.Messages
             {
                 if (!serv.ClientConnInfo.ContainsKey(id)) //New Client Connections
                 {
+                    serv.ClientActive[id] = false;
                     serv.ClientConnInfo[id] = conn;
                     serv.ClientPubKeyRegister[id] = sesmes.publickey;
                 }
