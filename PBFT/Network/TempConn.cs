@@ -44,10 +44,11 @@ namespace PBFT.Network
                 socket.Bind(endpoint);
                 socket.Listen(128); //128 = default backlog value
                 active = true;
+                Console.WriteLine("Started Listening");
                 while (active)
                 {
                     var cursocket = await socket.AcceptAsync();
-                
+                    Console.WriteLine("Found socket");
                     if (!active)
                         return;
                     //_ = HandleConnection(cursocket);
@@ -87,13 +88,12 @@ namespace PBFT.Network
         // }
         
         //Connecting/Sending operations
-        public async Task Connect()
+        public async Task Connect() 
         {
             if (!serverConnection)
             {
                 await socket.ConnectAsync(endpoint);
-                active = true; 
-                
+                active = true;
             }
         }
 

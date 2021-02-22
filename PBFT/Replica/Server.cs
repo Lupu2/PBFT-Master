@@ -77,8 +77,10 @@ namespace PBFT.Replica
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
+            ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServConnInfo = new Dictionary<int, TempConn>();
         }
 
         public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
@@ -97,8 +99,10 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
+            ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServConnInfo = new Dictionary<int, TempConn>();
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
@@ -117,8 +121,10 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
+            ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServConnInfo = new Dictionary<int, TempConn>();
         }
 
         [JsonConstructor]
@@ -232,9 +238,11 @@ namespace PBFT.Replica
                     switch (mesenum)
                     {
                         case MessageType.SessionMessage:
+                            Console.WriteLine("Session Message");
                             SessionMessage sesmes = (SessionMessage) mes;
                             MessageHandler.HandleSessionMessage(sesmes, conn, this);
                             SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                            Console.WriteLine("Returning message");
                             await SendMessage(replysesmes.SerializeToBuffer(), sesmes.DevID, MessageType.SessionMessage);
                             break;
                         case MessageType.Request:
@@ -286,7 +294,7 @@ namespace PBFT.Replica
             }
             else //no info registered for this server
             {
-                Console.WriteLine("No data for the client being sent to");
+                Console.WriteLine("no registered data");
             }
         }
         
