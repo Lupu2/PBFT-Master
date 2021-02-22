@@ -54,7 +54,7 @@ namespace PBFT.Tests.Persistency
             Assert.AreEqual(mes1.ServID,1);
             Assert.AreEqual(mes1.SeqNr,1);
             Assert.AreEqual(mes1.ViewNr,1);
-            Assert.AreEqual(mes1.Type,PMessageType.PrePrepare);
+            Assert.AreEqual(mes1.MessageType,PMessageType.PrePrepare);
             _objectStore.Attach(mes1);
             _objectStore.Persist();
             _objectStore = ObjectStore.Load(_storage, false);
@@ -65,14 +65,15 @@ namespace PBFT.Tests.Persistency
         [TestMethod]
         public void ReplyTest()
         {
-            Reply rep = new Reply(1, 1, 1, true, "Hello World", DateTime.Now.ToString());
+            var now = DateTime.Now;
+            Reply rep = new Reply(1, 1, 1, true, "Hello World", now.ToString());
             rep.SignMessage(_pri);
             Assert.AreEqual(rep.ServID,1);
             Assert.AreEqual(rep.SeqNr,1);
             Assert.AreEqual(rep.ViewNr,1);
             Assert.IsTrue(rep.Status);
             StringAssert.Contains(rep.Result,"Hello World");
-            StringAssert.Contains(rep.Timestamp, DateTime.Now.ToString());
+            StringAssert.Contains(rep.Timestamp, now.ToString());
             _objectStore.Attach(rep);
             _objectStore.Persist();
             _objectStore = ObjectStore.Load(_storage, false);

@@ -58,7 +58,7 @@ namespace PBFT.Replica
             }else{ //Replicas
                 // await incomming PhaseMessages Where = MessageType.PrePrepare
                     var preprepared = await MesBridge
-                        .Where(pm => pm.Type == PMessageType.PrePrepare)
+                        .Where(pm => pm.MessageType == PMessageType.PrePrepare)
                         
                         .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange)) //oversight, not the servers pubkey the message id's pubkey!!!
                         .Next();
@@ -82,7 +82,7 @@ namespace PBFT.Replica
             //Prepare phase
             //await incoming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
             await MesBridge
-                .Where(pm => pm.Type == PMessageType.Prepare)
+                .Where(pm => pm.MessageType == PMessageType.Prepare)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
                 .Scan(qcertpre.ProofList, (prooflist, message) =>
                 {
@@ -107,7 +107,7 @@ namespace PBFT.Replica
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
             await Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
             await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-                .Where(pm => pm.Type == PMessageType.Commit)
+                .Where(pm => pm.MessageType == PMessageType.Commit)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                 .Scan(qcertcom.ProofList, (prooflist, message) =>
                 {
@@ -150,7 +150,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Server is not primary");
                 // await incomming PhaseMessages Where = MessageType.PrePrepare
                     var preprepared = await MesBridge
-                        .Where(pm => pm.Type == PMessageType.PrePrepare)
+                        .Where(pm => pm.MessageType == PMessageType.PrePrepare)
                         
                         .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange)) //oversight, not the servers pubkey the message id's pubkey!!!
                         .Next();
@@ -169,7 +169,7 @@ namespace PBFT.Replica
             //await incoming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
             Console.WriteLine("Waiting for Prepare messages");
             await MesBridge
-                .Where(pm => pm.Type == PMessageType.Prepare)
+                .Where(pm => pm.MessageType == PMessageType.Prepare)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
                 //.Do(pm => qcertpre.ProofList.Add(pm))
                 .Scan(qcertpre.ProofList, (prooflist, message) =>
@@ -190,7 +190,7 @@ namespace PBFT.Replica
             QCertificate qcertcom = new QCertificate(qcertpre.SeqNr, Serv.CurView, CertType.Committed, commitmes);
             Console.WriteLine("Waiting for Commit messages");
             await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-                .Where(pm => pm.Type == PMessageType.Commit)
+                .Where(pm => pm.MessageType == PMessageType.Commit)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                 //.Do(pm => qcertcom.ProofList.Add(pm))
                 .Scan(qcertcom.ProofList, (prooflist, message) =>

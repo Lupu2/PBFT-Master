@@ -81,7 +81,7 @@ namespace PBFT.Replica
                     break;
                 }
                 
-                if (proof.Type == PMessageType.PrePrepare || proof.Type == PMessageType.Prepare)
+                if (proof.MessageType == PMessageType.PrePrepare || proof.MessageType == PMessageType.Prepare)
                 {
                     if (Type != CertType.Prepared)
                     {
@@ -89,7 +89,7 @@ namespace PBFT.Replica
                         break;
                     }
                 }
-                else if (proof.Type == PMessageType.Commit)
+                else if (proof.MessageType == PMessageType.Commit)
                 {
                     if (Type != CertType.Committed)
                     {
