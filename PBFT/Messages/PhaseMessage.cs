@@ -103,10 +103,11 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, QCertificate cert = null)
         {
+            Console.WriteLine("VALIDATING");
             int seqLow = curSeqInterval.Start.Value;
             int seqHigh = curSeqInterval.End.Value;
             var clone = CreateCopyTemplate();
-            if (!Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
+            if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
             if (ViewNr != cviewNr) return false;
             if (SeqNr < seqLow || SeqNr > seqHigh) return false;
             if (cert != null && cert.ProofList.Count > 0)
@@ -118,7 +119,8 @@ namespace PBFT.Messages
                         if (proof.Type == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
                     }
                 }
-                    
+
+            Console.WriteLine("True");
             return true;
         }
 

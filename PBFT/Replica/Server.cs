@@ -77,7 +77,8 @@ namespace PBFT.Replica
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
-
+            ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister = new Dictionary<int, RSAParameters>();
         }
 
         public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
@@ -96,6 +97,8 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
+            ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister = new Dictionary<int, RSAParameters>();
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
@@ -114,6 +117,8 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
+            ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister = new Dictionary<int, RSAParameters>();
         }
 
         [JsonConstructor]

@@ -43,8 +43,8 @@ namespace PBFT.Helper
                 using(SHA256 sha = SHA256.Create())
                 {
                     hashmes = sha.ComputeHash(mesdig);
-                    Console.WriteLine("Hash2");
-                    Console.WriteLine(BitConverter.ToString(hashmes));
+                    //Console.WriteLine("Hash2");
+                    //Console.WriteLine(BitConverter.ToString(hashmes));
                 }
                 rsa.ImportParameters(pubkey);
                 RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter();
