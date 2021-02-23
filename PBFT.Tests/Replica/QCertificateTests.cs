@@ -21,16 +21,16 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(qcertp.SeqNr, 1);
             Assert.AreNotEqual(qcertp.SeqNr, 2);
             Assert.AreEqual(qcertp.ViewNr, 1);
-            Assert.AreEqual(qcertp.Type, CertType.Prepared);
-            Assert.AreNotEqual(qcertp.Type, CertType.Committed);
+            Assert.AreEqual(qcertp.CType, CertType.Prepared);
+            Assert.AreNotEqual(qcertp.CType, CertType.Committed);
             
             //Tests for second certificate
             Assert.IsTrue(qcertc.ProofList.Count == 1);
             Assert.AreEqual(qcertc.SeqNr,2);
             Assert.AreNotEqual(qcertc.SeqNr,1);
             Assert.AreEqual(qcertc.ViewNr, 2);
-            Assert.AreEqual(qcertc.Type, CertType.Committed);
-            Assert.AreNotEqual(qcertc.Type, CertType.Prepared);
+            Assert.AreEqual(qcertc.CType, CertType.Committed);
+            Assert.AreNotEqual(qcertc.CType, CertType.Prepared);
             Assert.AreEqual(qcertc.ProofList[0], pc);
         }
         

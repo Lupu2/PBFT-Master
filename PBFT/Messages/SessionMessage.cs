@@ -8,14 +8,14 @@ namespace PBFT.Messages
     
     public class SessionMessage : IProtocolMessages
     {
-        public DeviceType devtype {get; set;}
-        public RSAParameters publickey{get; set;}
+        public DeviceType Devtype {get; set;}
+        public RSAParameters Publickey{get; set;}
         public int DevID {get; set;}
 
         public SessionMessage(DeviceType type, RSAParameters pubkey, int devid) 
         {
-            devtype = type;
-            publickey = pubkey;
+            Devtype = type;
+            Publickey = pubkey;
             DevID = devid;
         }
 
@@ -33,12 +33,12 @@ namespace PBFT.Messages
 
         public bool Compare(SessionMessage sesmes)
         {
-            if (sesmes.devtype != devtype) return false;
+            if (sesmes.Devtype != Devtype) return false;
             if (sesmes.DevID != DevID) return false;
-            if (sesmes.publickey.D != null && publickey.Exponent != null && !sesmes.publickey.D.SequenceEqual(publickey.Exponent))
+            if (sesmes.Publickey.D != null && Publickey.Exponent != null && !sesmes.Publickey.D.SequenceEqual(Publickey.Exponent))
                 return false;
-            if (sesmes.publickey.Modulus != null && publickey.Modulus != null &&
-                !sesmes.publickey.Modulus.SequenceEqual(publickey.Modulus))
+            if (sesmes.Publickey.Modulus != null && Publickey.Modulus != null &&
+                !sesmes.Publickey.Modulus.SequenceEqual(Publickey.Modulus))
                 return false;
             return true;
         }

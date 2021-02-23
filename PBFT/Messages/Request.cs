@@ -19,6 +19,13 @@ namespace PBFT.Messages
         public string Timestamp{get; set;}
         public byte[] Signature{get; set;}
         //Potentially add a t value that increments after each signature in order to avoid replay attacks...
+        public Request(int id, string op)
+        {
+            ClientID = id;
+            Message = op;
+            Timestamp = DateTime.Now.ToString();
+        }
+        
         public Request(int id, string op, string time)
         {
             ClientID = id;

@@ -9,6 +9,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Helper;
 using PBFT.Replica;
 
@@ -27,7 +28,7 @@ namespace PBFT.Messages
         
         public byte[] Signature{get; set;}
 
-        public PMessageType MessageType{get; set;}
+        public PMessageType PhaseType{get; set;}
 
         public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase)
         {
@@ -35,7 +36,7 @@ namespace PBFT.Messages
             SeqNr = seq;
             ViewNr = view;
             Digest = dig;
-            MessageType = phase;
+            PhaseType = phase;
         }
 
         [JsonConstructor]
@@ -45,7 +46,7 @@ namespace PBFT.Messages
             SeqNr = seq;
             ViewNr = view;
             Digest = dig;
-            MessageType = phase;
+            PhaseType = phase;
             Signature = sign;
         }
 
@@ -67,7 +68,7 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
             stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
-            stateToSerialize.Set(nameof(MessageType), (int)MessageType);
+            stateToSerialize.Set(nameof(PhaseType), (int)PhaseType);
             stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
@@ -78,7 +79,7 @@ namespace PBFT.Messages
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
-                Enums.ToEnumPMessageType(sd.Get<int>(nameof(MessageType))),
+                Enums.ToEnumPMessageType(sd.Get<int>(nameof(PhaseType))),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
                 );
         }
@@ -111,12 +112,12 @@ namespace PBFT.Messages
             if (ViewNr != cviewNr) return false;
             if (SeqNr < seqLow || SeqNr > seqHigh) return false;
             if (cert != null && cert.ProofList.Count > 0)
-                if (MessageType == PMessageType.PrePrepare) //check if already exist a stored prepare with seqnr = to this message
+                if (PhaseType == PMessageType.PrePrepare) //check if already exist a stored prepare with seqnr = to this message
                 {
                     foreach (var proof in cert.ProofList)
                     {
                         Console.WriteLine(proof.Digest.SequenceEqual(Digest));
-                        if (proof.MessageType == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
+                        if (proof.PhaseType == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
                     }
                 }
 
@@ -124,17 +125,17 @@ namespace PBFT.Messages
             return true;
         }
 
-        public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, MessageType);
+        public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, PhaseType);
 
         public override string ToString() =>
-            $"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {MessageType} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
+            $"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
 
         public bool Compare(PhaseMessage pes2)
         {
             if (pes2.ServID != ServID) return false;
-            if (pes2.SeqNr != ServID) return false;
+            if (pes2.SeqNr != SeqNr) return false;
             if (pes2.ViewNr != ViewNr) return false;
-            if (pes2.MessageType != MessageType) return false;
+            if (pes2.PhaseType != PhaseType) return false;
             if (pes2.Digest == null && Digest != null || pes2.Digest != null && Digest == null) return false;
             if (pes2.Digest != null && Digest != null && !pes2.Digest.SequenceEqual(Digest)) return false;
             if (pes2.Signature == null && Signature != null || pes2.Signature != null && Signature == null) return false;

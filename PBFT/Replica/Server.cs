@@ -60,7 +60,7 @@ namespace PBFT.Replica
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         public CDictionary<int, bool> ClientActive;
-        public CDictionary<int, Reply> RequestLog;
+        public CDictionary<int, Reply> ReplyLog;
         
         public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge) //Initial constructor
         {
@@ -77,6 +77,7 @@ namespace PBFT.Replica
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
+            ReplyLog = new CDictionary<int, Reply>();
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -99,6 +100,7 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
+            ReplyLog = new CDictionary<int, Reply>();
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -121,6 +123,7 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
+            ReplyLog = new CDictionary<int, Reply>();
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -129,7 +132,8 @@ namespace PBFT.Replica
 
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, 
-            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister)
+            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, 
+            CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog)
         {
             ServID = id;
             CurView = curview;
@@ -143,6 +147,7 @@ namespace PBFT.Replica
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = clientActiveRegister;
+            ReplyLog = replog;
         }
 
         public bool IsPrimary()
@@ -373,12 +378,13 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(CurSeqNr), CurSeqNr);
             stateToSerialize.Set("CurSeqRangeLow", CurSeqRange.Start.Value);
             stateToSerialize.Set("CurSeqRangeHigh", CurSeqRange.End.Value);
-            stateToSerialize.Set(nameof(ViewPrimary), CurPrimary);
+            stateToSerialize.Set(nameof(CurPrimary), CurPrimary);
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
             stateToSerialize.Set(nameof(RequestBridge), RequestBridge);
             stateToSerialize.Set(nameof(ProtocolBridge), ProtocolBridge);
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
+            stateToSerialize.Set(nameof(ReplyLog), ReplyLog);
         }
         
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -392,7 +398,8 @@ namespace PBFT.Replica
                 sd.Get<Source<Request>>(nameof(RequestBridge)),
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
                 sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log)),
-                sd.Get<CDictionary<int, bool>>(nameof(ClientActive))
-            );
+                sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
+                sd.Get<CDictionary<int,Reply>>(nameof(ReplyLog))
+                );
     }
 }

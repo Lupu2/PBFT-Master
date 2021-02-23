@@ -10,7 +10,7 @@ namespace PBFT.Messages
         public static void HandleSessionMessage(SessionMessage sesmes, TempClientConn conn, Server serv)
         {
             int id = sesmes.DevID;
-            DeviceType devtype = sesmes.devtype;
+            DeviceType devtype = sesmes.Devtype;
                         
             if (devtype == DeviceType.Client)
             {
@@ -18,15 +18,15 @@ namespace PBFT.Messages
                 {
                     serv.ClientActive[id] = false;
                     serv.ClientConnInfo[id] = conn;
-                    serv.ClientPubKeyRegister[id] = sesmes.publickey;
+                    serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                 }
                 else
                 {
-                    if (!serv.ClientPubKeyRegister[id].Equals(sesmes.publickey)) // Updated Client Connection
+                    if (!serv.ClientPubKeyRegister[id].Equals(sesmes.Publickey)) // Updated Client Connection
                     {
                         serv.ClientConnInfo[id].Dispose();
                         serv.ClientConnInfo[id] = conn;
-                        serv.ClientPubKeyRegister[id] = sesmes.publickey;
+                        serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                     }
                 }
             }
@@ -36,15 +36,15 @@ namespace PBFT.Messages
                 if (!serv.ServConnInfo.ContainsKey(id)) //New Server Connections
                 {
                     serv.ServConnInfo[id] = servconn;
-                    serv.ServPubKeyRegister[id] = sesmes.publickey;
+                    serv.ServPubKeyRegister[id] = sesmes.Publickey;
                 }
                 else
                 {
-                    if (!serv.ServPubKeyRegister[id].Equals(sesmes.publickey)) // Updated Server Connection
+                    if (!serv.ServPubKeyRegister[id].Equals(sesmes.Publickey)) // Updated Server Connection
                     {
                         serv.ServConnInfo[id].Dispose();
                         serv.ServConnInfo[id] = servconn;
-                        serv.ServPubKeyRegister[id] = sesmes.publickey;
+                        serv.ServPubKeyRegister[id] = sesmes.Publickey;
                     }
                 }
             }

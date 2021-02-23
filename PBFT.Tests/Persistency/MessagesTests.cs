@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using Cleipnir.ObjectDB;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -49,17 +50,54 @@ namespace PBFT.Tests.Persistency
         public void PhaseMessageTest()
         {
             Request re12 = new Request(1, "Hello George", DateTime.Now.ToString());
-            PhaseMessage mes1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(re12), PMessageType.PrePrepare);
+            var dig = Crypto.CreateDigest(re12);
+            PhaseMessage mes1 = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
+            PhaseMessage mes2 = new PhaseMessage(2, 1, 1, dig, PMessageType.Prepare);
+            PhaseMessage mes3 = new PhaseMessage(3, 1, 1, dig, PMessageType.Commit);
             mes1.SignMessage(_pri);
+            mes2.SignMessage(_pri);
+            mes3.SignMessage(_pri);
+            
             Assert.AreEqual(mes1.ServID,1);
             Assert.AreEqual(mes1.SeqNr,1);
             Assert.AreEqual(mes1.ViewNr,1);
-            Assert.AreEqual(mes1.MessageType,PMessageType.PrePrepare);
+            Assert.AreEqual(mes1.PhaseType,PMessageType.PrePrepare);
+            Assert.AreEqual(mes2.ServID,2);
+            Assert.AreEqual(mes2.SeqNr,1);
+            Assert.AreEqual(mes2.ViewNr,1);
+            Assert.AreEqual(mes2.PhaseType,PMessageType.Prepare);
+            Assert.AreEqual(mes3.ServID,3);
+            Assert.AreEqual(mes3.SeqNr,1);
+            Assert.AreEqual(mes3.ViewNr,1);
+            Assert.AreEqual(mes3.PhaseType,PMessageType.Commit);
+
             _objectStore.Attach(mes1);
+            _objectStore.Attach(mes2);
+            _objectStore.Attach(mes3);
             _objectStore.Persist();
             _objectStore = ObjectStore.Load(_storage, false);
-            PhaseMessage copy1 = _objectStore.Resolve<PhaseMessage>();
-            Assert.IsTrue(mes1.Compare(copy1));
+            var copies = _objectStore.ResolveAll<PhaseMessage>();
+            foreach (var copy in copies)
+            {
+                switch (copy.ServID)
+                {
+                    case 1:
+                        Assert.IsTrue(copy.Compare(mes1));
+                        Assert.IsFalse(copy.Compare(mes2));
+                        Assert.IsFalse(copy.Compare(mes3));
+                        break;
+                    case 2:
+                        Assert.IsFalse(copy.Compare(mes1));
+                        Assert.IsTrue(copy.Compare(mes2));
+                        Assert.IsFalse(copy.Compare(mes3));
+                        break;
+                    case 3:
+                        Assert.IsFalse(copy.Compare(mes1));
+                        Assert.IsFalse(copy.Compare(mes2));
+                        Assert.IsTrue(copy.Compare(mes3));
+                        break;
+                }
+            }
         }
 
         [TestMethod]

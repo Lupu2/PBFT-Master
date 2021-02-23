@@ -18,37 +18,37 @@ namespace PBFT.Replica
  
     public class QCertificate : IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
-        public CertType Type {get; set;}
+        public CertType CType {get; set;}
         public int SeqNr;
         public int ViewNr;
         private bool Valid{get; set;}
 
         public CList<PhaseMessage> ProofList {get; set;}
-        public QCertificate(int seq, int vnr, CertType type)
+        public QCertificate(int seq, int vnr, CertType cType)
         {
                 SeqNr = seq;
                 ViewNr = vnr;
-                Type = type;
+                CType = cType;
                 Valid = false;
                 ProofList = new CList<PhaseMessage>();
         }
 
-        public QCertificate(int seq, int vnr, CertType type, PhaseMessage firstrecord)
+        public QCertificate(int seq, int vnr, CertType cType, PhaseMessage firstrecord)
         {
             SeqNr = seq;
             ViewNr = vnr;
-            Type = type;
+            CType = cType;
             Valid = false;
             ProofList = new CList<PhaseMessage>();
             ProofList.Add(firstrecord);
         }
         
         [JsonConstructor]
-        public QCertificate(int seq, int vnr, CertType type, bool val, CList<PhaseMessage> proof)
+        public QCertificate(int seq, int vnr, CertType cType, bool val, CList<PhaseMessage> proof)
         {
             SeqNr = seq;
             ViewNr = vnr;
-            Type = type;
+            CType = cType;
             Valid = false;
             ProofList = proof;
         }
@@ -81,17 +81,17 @@ namespace PBFT.Replica
                     break;
                 }
                 
-                if (proof.MessageType == PMessageType.PrePrepare || proof.MessageType == PMessageType.Prepare)
+                if (proof.PhaseType == PMessageType.PrePrepare || proof.PhaseType == PMessageType.Prepare)
                 {
-                    if (Type != CertType.Prepared)
+                    if (CType != CertType.Prepared)
                     {
                         proofvalid = false;
                         break;
                     }
                 }
-                else if (proof.MessageType == PMessageType.Commit)
+                else if (proof.PhaseType == PMessageType.Commit)
                 {
-                    if (Type != CertType.Committed)
+                    if (CType != CertType.Committed)
                     {
                         proofvalid = false;
                         break;
@@ -119,7 +119,7 @@ namespace PBFT.Replica
             //throw new System.NotImplementedException();
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
-            stateToSerialize.Set(nameof(Type), (int)Type);
+            stateToSerialize.Set(nameof(CType), (int)CType);
             stateToSerialize.Set(nameof(Valid), Valid);
             stateToSerialize.Set(nameof(ProofList), ProofList);
         }
@@ -128,7 +128,7 @@ namespace PBFT.Replica
             => new QCertificate(
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
-                Enums.ToEnumCertType(sd.Get<int>(nameof(Type))),
+                Enums.ToEnumCertType(sd.Get<int>(nameof(CType))),
                 sd.Get<bool>(nameof(Valid)),
                 sd.Get<CList<PhaseMessage>>(nameof(ProofList))
                 );
