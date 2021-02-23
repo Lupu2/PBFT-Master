@@ -1,4 +1,5 @@
 ﻿using System;
+<<<<<<< HEAD
 using System.Collections.Generic;
 using System.Net;
 using Cleipnir.ObjectDB;
@@ -10,6 +11,8 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.StorageEngine.SimpleFile;
+=======
+>>>>>>> a1b03f82acdea7a83d4db277f9dc09338df26149
 
 namespace Playground
 {
@@ -20,7 +23,8 @@ namespace Playground
             //ReactiveFun.P.Do();
             //SocketIPExample.IPHostListExample.GetIpAddressList(Dns.GetHostName());
             //SocketIPExample.asyncserversockettut.P();
-            SimpleNetwork.P.Do();
+            //SimpleNetwork.P.Do();
+            PersonExample.P.Do();
             
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();

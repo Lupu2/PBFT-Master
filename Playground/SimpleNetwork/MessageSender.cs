@@ -34,6 +34,7 @@ namespace Playground.SimpleNetwork
                 {
                     Console.WriteLine(e);
                     Thread.Sleep(3000);
+                    _socket.Dispose();
                     _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
                 }
             }
