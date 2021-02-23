@@ -3,6 +3,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
 using Cleipnir.StorageEngine.SimpleFile;
@@ -33,7 +34,7 @@ namespace PBFT.Tests.Persistency
         public void ServerPersistencyInfoTest()
         {
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(),
-                new Source<PhaseMessage>());
+                new Source<PhaseMessage>(), new CDictionary<int, string>());
             /*
             Server Info saved:
                 ServID

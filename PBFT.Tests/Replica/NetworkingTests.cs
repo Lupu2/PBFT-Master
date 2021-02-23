@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Xml.Schema;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -21,7 +22,7 @@ namespace PBFT.Tests.Replica
         public void SimpleListenerTest()
         {
             var serv = new Server(1, 1, 1, 4, null, 20, "127.0.0.1:9001", new Source<Request>(),
-                new Source<PhaseMessage>());
+                new Source<PhaseMessage>(), new CDictionary<int, string>());
             serv.Start();
             new Thread(Sender) {IsBackground = true}.Start();
             Thread.Sleep(3000); //wait long enough for the server do its job, its stuck since it can't send back any messages

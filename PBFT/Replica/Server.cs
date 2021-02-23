@@ -61,8 +61,9 @@ namespace PBFT.Replica
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         public CDictionary<int, bool> ClientActive;
         public CDictionary<int, Reply> ReplyLog;
+        public CDictionary<int, string> ServerContactList;
         
-        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge) //Initial constructor
+        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList) //Initial constructor
         {
             ServID = id;
             CurView = curview;
@@ -78,13 +79,16 @@ namespace PBFT.Replica
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
+            ServerContactList = contactList;
+            
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServConnInfo = new Dictionary<int, TempConn>();
+           
         }
 
-        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge)
+        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -101,6 +105,8 @@ namespace PBFT.Replica
             Log = new CDictionary<int, CList<QCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
+            ServerContactList = contactList;
+            
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -108,7 +114,7 @@ namespace PBFT.Replica
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
-            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog)
+            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -124,6 +130,8 @@ namespace PBFT.Replica
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
+            ServerContactList = contactList;
+            
             ClientConnInfo = new Dictionary<int, TempClientConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -133,7 +141,7 @@ namespace PBFT.Replica
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, 
             Source<Request> reqbridge, Source<PhaseMessage> pesbridge, 
-            CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog)
+            CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -148,6 +156,13 @@ namespace PBFT.Replica
             Log = oldlog;
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
+            ServerContactList = contactList;
+            
+            //Initialize non-persistent storage
+            ClientConnInfo = new Dictionary<int, TempClientConn>();
+            ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServConnInfo = new Dictionary<int, TempConn>();
         }
 
         public bool IsPrimary()
@@ -303,9 +318,9 @@ namespace PBFT.Replica
             }
         }
         
-        public async Task InitializeConnections(Dictionary<int,string> contactList) //Add Client To Client Dictionaries
+        public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
-            foreach (var (k,ip) in contactList)
+            foreach (var (k,ip) in ServerContactList)
             {
                 if (k != ServID && !ServConnInfo.ContainsKey(k) && ServID>k)
                 {
@@ -385,6 +400,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
             stateToSerialize.Set(nameof(ReplyLog), ReplyLog);
+            stateToSerialize.Set(nameof(ServerContactList), ServerContactList);
         }
         
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -399,7 +415,8 @@ namespace PBFT.Replica
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
                 sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
-                sd.Get<CDictionary<int,Reply>>(nameof(ReplyLog))
+                sd.Get<CDictionary<int,Reply>>(nameof(ReplyLog)),
+                sd.Get<CDictionary<int,string>>(nameof(ServerContactList))
                 );
     }
 }

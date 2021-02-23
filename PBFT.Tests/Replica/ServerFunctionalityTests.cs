@@ -1,5 +1,6 @@
 using System;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -13,7 +14,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ChangeClientTest()
         {
-            Server testserv = new Server(1,1,4,null,50,"127.0.0.1:9001", new Source<Request>(),new Source<PhaseMessage>());
+            Server testserv = new Server(1,1,4,null,50,"127.0.0.1:9001", new Source<Request>(),new Source<PhaseMessage>(), new CDictionary<int, string>());
             testserv.ClientActive[1] = false;
             testserv.ClientActive[2] = false;
             Assert.IsFalse(testserv.ClientActive[1]);

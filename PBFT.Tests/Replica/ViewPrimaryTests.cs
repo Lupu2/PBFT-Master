@@ -1,5 +1,6 @@
 using System;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -33,7 +34,7 @@ namespace PBFT.Tests.Replica
         public void ServerPrimaryTest()
         {
             //TODO update when new view functionality has been added to server
-            Server testserv = new Server(0,0,4,null,50,"127.0.0.1:9000", new Source<Request>(),new Source<PhaseMessage>());
+            Server testserv = new Server(0,0,4,null,50,"127.0.0.1:9000", new Source<Request>(),new Source<PhaseMessage>(), new CDictionary<int, string>());
             Assert.AreEqual(testserv.CurPrimary.ServID,0);
             Assert.AreEqual(testserv.CurView,0);
             Assert.IsTrue(testserv.IsPrimary());

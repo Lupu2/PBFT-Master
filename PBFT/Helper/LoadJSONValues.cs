@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Linq;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Newtonsoft.Json;
 
 namespace PBFT.Helper
@@ -41,13 +42,13 @@ namespace PBFT.Helper
             
         }
 
-        public static async Task<Dictionary<int,string>> LoadJSONFileContent(string filepath)
+        public static async Task<CDictionary<int,string>> LoadJSONFileContent(string filepath)
         {
             using (StreamReader sr = new StreamReader(filepath))
             {
                 var jsonValue = await sr.ReadToEndAsync();
                 var jsonServers = JsonConvert.DeserializeObject<List<JSONServerObj>>(jsonValue);
-                Dictionary<int, string> servInfo = new Dictionary<int, string>();
+                CDictionary<int, string> servInfo = new CDictionary<int, string>();
                 foreach (var servobj in jsonServers) servInfo[servobj.ID] = servobj.IP;
                 return servInfo;
             }

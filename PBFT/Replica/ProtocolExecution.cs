@@ -7,15 +7,17 @@ using Cleipnir.Rx;
 using PBFT.Helper;
 using PBFT.Messages;
 using System;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
+using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.Rx.ExecutionEngine;
 
 namespace PBFT.Replica
 {
-    public class ProtocolExecution
+    public class ProtocolExecution : IPersistable
     {
         public Server Serv {get; set;}
         
@@ -48,7 +50,7 @@ namespace PBFT.Replica
                 {
                     curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request 
                 }*/
-                curSeq = Serv.CurSeqNr++; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
+                curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                 var init = Serv.InitializeLog(curSeq);
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
@@ -214,7 +216,21 @@ namespace PBFT.Replica
 
         public async CTask HandlePrimaryChange()
         {
-            
+               
         }
+
+        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+        {
+            stateToSerialize.Set(nameof(Serv), Serv);
+            stateToSerialize.Set(nameof(FailureNr), FailureNr);
+            stateToSerialize.Set(nameof(MesBridge), MesBridge);
+        }
+
+        public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new ProtocolExecution(
+                sd.Get<Server>(nameof(Serv)),
+                sd.Get<int>(nameof(FailureNr)),
+                sd.Get<Source<PhaseMessage>>(nameof(MesBridge))
+                );
     }
 }

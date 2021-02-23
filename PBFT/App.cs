@@ -40,17 +40,17 @@ namespace PBFT
                 {
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                        protSource); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
+                        protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
                 }
                 else
                 {
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                        protSource); //TODO update with that collected in the storageEngine
+                        protSource, serversInfo); //TODO update with that collected in the storageEngine
                     //load server data
                 }
                 server.Start();
-                _ = server.InitializeConnections(serversInfo);
+                _ = server.InitializeConnections();
                 //Server serv = new Server(id, 0, scheduler, 10);
                 //HandleRequest(serv, protexec, reqSource, protSource)
                 ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource);

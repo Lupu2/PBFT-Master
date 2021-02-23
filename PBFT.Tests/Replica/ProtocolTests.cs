@@ -23,7 +23,7 @@ namespace PBFT.Tests
             var (_prikey, pubkey) = Crypto.InitializeKeyPairs();
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
-            Server testserv = new Server(0,0,4,null,20,"127.0.0.1:9000", reqbridge,pesbridge);
+            Server testserv = new Server(0,0,4,null,20,"127.0.0.1:9000", reqbridge,pesbridge, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge);
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
@@ -37,7 +37,7 @@ namespace PBFT.Tests
             var (_prikey, pubkey) = Crypto.InitializeKeyPairs();
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
-            Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000", reqbridge,pesbridge);
+            Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000", reqbridge,pesbridge, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
