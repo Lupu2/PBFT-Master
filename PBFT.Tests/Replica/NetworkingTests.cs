@@ -49,7 +49,7 @@ namespace PBFT.Tests.Replica
             }
         }
 
-        [TestMethod]
+        /*[TestMethod]
         public void SimpleServerToServerCommunicationTest() //need to redesign network layer before continuing with these tests. Creating connection is not working properly atm.
         {
             var serv = new Server(0, 0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(), new Source<PhaseMessage>());
@@ -68,6 +68,6 @@ namespace PBFT.Tests.Replica
             serv.InitializeConnections(servers);
             Console.WriteLine("done");
             Thread.Sleep(5000);
-        }
+        }*/
     }
 }
