@@ -88,16 +88,7 @@ namespace PBFT.Network
         // }
         
         //Connecting/Sending operations
-        public async Task Connect() 
-        {
-            if (!serverConnection)
-            {
-                await socket.ConnectAsync(endpoint);
-                active = true;
-                
-            }
-        }
-
+        
         public void Dispose()
         {
             socket.Dispose();

@@ -5,7 +5,9 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Schema;
+using Cleipnir.Helpers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
@@ -50,25 +52,68 @@ namespace PBFT.Tests.Replica
             }
         }
 
-        /*[TestMethod]
+        [TestMethod]
         public void SimpleServerToServerCommunicationTest() //need to redesign network layer before continuing with these tests. Creating connection is not working properly atm.
         {
-            var serv = new Server(0, 0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(), new Source<PhaseMessage>());
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(), new Source<PhaseMessage>(), new CDictionary<int, string>());
+            serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
-            new Thread(OtherServer) {IsBackground = true}.Start();
-            Thread.Sleep(10000); //wait long enough for the server do its job, its stuck since it can't send back any messages
+            new Thread(()=> OtherServer(serv.Pubkey)) {IsBackground = true}.Start();
+            Thread.Sleep(5000); //wait long enough for the server do its job, its stuck since it can't send back any messages
             Assert.IsTrue(serv.ServPubKeyRegister.ContainsKey(1));
         }
 
-        public void OtherServer()
+        public void OtherServer(RSAParameters otherpubkey)
         {
-            var serv = new Server(1, 0, 0, 4, null, 20, "127.0.0.1:9001", new Source<Request>(), new Source<PhaseMessage>());
+            CDictionary<int, string> servers = new CDictionary<int, string>();
+            servers[0] = "127.0.0.1:9000";
+            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", new Source<Request>(), new Source<PhaseMessage>(), servers);
             serv.Start();
-            Dictionary<int, string> servers = new Dictionary<int, string>();
-            servers.Add(0,"127.0.0.1:9000");
-            serv.InitializeConnections(servers);
-            Console.WriteLine("done");
-            Thread.Sleep(5000);
+            serv.InitializeConnections();
+            Thread.Sleep(2500);
+            Assert.IsTrue(serv.ServPubKeyRegister.ContainsKey(0));
+            Assert.IsTrue(serv.ServPubKeyRegister[0].Exponent.SequenceEqual(otherpubkey.Exponent));
+            Assert.IsTrue(serv.ServPubKeyRegister[0].Modulus.SequenceEqual(otherpubkey.Modulus));
+        }
+
+        /*[TestMethod]
+        public void SimpleServerConnectionPhaseMessageTest()
+        {
+            var mesSource = new Source<PhaseMessage>();
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(), mesSource, new CDictionary<int, string>());
+            serv.ServerContactList[0] = "127.0.0.1:9000";
+            serv.Start();
+            new Thread(OtherServerPhase) {IsBackground = true}.Start();
+            Thread.Sleep(3000); //wait long enough for the server do its job, its stuck since it can't send back any messages
+            Assert.IsTrue(serv.ServPubKeyRegister.ContainsKey(1));
+            var pesmes = ListenForMessage(mesSource).Result;
+            Console.WriteLine("Got PhaseMessage");
+            Console.WriteLine(pesmes);
+            Assert.AreEqual(pesmes.ServID,1);
+            Assert.AreEqual(pesmes.SeqNr,0);
+            Assert.AreEqual(pesmes.ViewNr,0);
+            Assert.AreEqual(pesmes.Digest,null);
+        }
+
+        public async Task<PhaseMessage> ListenForMessage(Source<PhaseMessage> messource)
+        {
+            var phmes = await messource.Next();
+            return phmes;
+        }
+
+        public void OtherServerPhase()
+        {
+            CDictionary<int, string> servers = new CDictionary<int, string>();
+            servers[0] = "127.0.0.1:9000";
+            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", new Source<Request>(), new Source<PhaseMessage>(), servers);
+            serv.Start();
+            serv.InitializeConnections();
+            Thread.Sleep(3000);
+            Assert.IsTrue(serv.ServPubKeyRegister.ContainsKey(0));
+            PhaseMessage pmes = new PhaseMessage(serv.ServID, 0, 0, null, PMessageType.PrePrepare);
+            serv.SendMessage(pmes.SerializeToBuffer(), serv.ServConnInfo[0].Socket, MessageType.PhaseMessage);
+            //Console.WriteLine("PhaseMessage Sent");
+            //Thread.Sleep(8000);
         }*/
     }
 }

@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System;
+using System.Linq;
+using System.Text;
 using PBFT.Messages;
 
 namespace PBFT.Helper
@@ -22,6 +24,12 @@ namespace PBFT.Helper
             RSA rsa = RSA.Create();
             var prikey = rsa.ExportParameters(true);
             var pubkey = rsa.ExportParameters(false);
+            byte[] test = prikey.D;
+            //testing conversion
+            string test4 = Convert.ToBase64String(test);
+            byte[] test5 = Convert.FromBase64String(test4);
+            Console.WriteLine(test.SequenceEqual(test5));
+            
             return(prikey, pubkey);
         }
 
@@ -50,7 +58,7 @@ namespace PBFT.Helper
                 RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter();
                 RSADeformatter.SetHashAlgorithm(hashpro);
                 RSADeformatter.SetKey(rsa);
-                return RSADeformatter.VerifySignature(hashmes, signature);  
+                return RSADeformatter.VerifySignature(hashmes, signature);
             }    
         }
     }

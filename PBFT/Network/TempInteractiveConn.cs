@@ -23,7 +23,7 @@ namespace PBFT.Network
 
         public TempInteractiveConn(string ipAddress)
         {
-            _ipAddress = Address.ToString();
+            _ipAddress = ipAddress;
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
             Address = IPEndPoint.Parse(ipAddress);
             _active = false;

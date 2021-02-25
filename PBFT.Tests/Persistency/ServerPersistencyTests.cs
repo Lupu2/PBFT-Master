@@ -49,6 +49,7 @@ namespace PBFT.Tests.Persistency
                 Log
                 ClientActive
              */
+            serv.ServerContactList[0] = "127.0.0.1:9000";
             var rep = new Reply(1, 1, 1, false, "error", DateTime.Now.ToString());
             rep.SignMessage(_prikey);
             serv.ReplyLog.Set(1, rep);

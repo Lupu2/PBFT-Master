@@ -21,7 +21,7 @@ namespace PBFT.Replica
         public CertType CType {get; set;}
         public int SeqNr;
         public int ViewNr;
-        private bool Valid{get; set;}
+        private bool Valid{get; set; }
 
         public CList<PhaseMessage> ProofList {get; set;}
         public QCertificate(int seq, int vnr, CertType cType)
@@ -107,6 +107,8 @@ namespace PBFT.Replica
                 if (QReached(fNodes) && ProofsArePMsValid()) Valid = true;
             return Valid;
         }
+
+        public bool IsValid => Valid;
 
         public void ResetCertificate() //Mostly used for debugging, might be useful if a certificate is deemed corrupted
         {

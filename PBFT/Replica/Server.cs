@@ -79,7 +79,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = totalreplicas;
-            CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader
+            CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader, no it doesnt...
             if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             RequestBridge = reqbridge;
@@ -145,7 +145,7 @@ namespace PBFT.Replica
             ServerContactList = contactList;
             
             //Initialize non-persistent storage
-            //_servListener = new TempConn(ServerContactList[ServID], true, HandleNewClientConnection); //crashes Cleipnir do to ip address not being fully saved yet
+            _servListener = new TempConn(ServerContactList[ServID], true, HandleNewClientConnection);
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -231,16 +231,22 @@ namespace PBFT.Replica
                         .ToArray();
                     var (mestype, mes) = Deserializer.ChooseDeserialize(bytemes);
                     var mesenum = Enums.ToEnumMessageType(mestype);
+                    Console.WriteLine("Type");
+                    Console.WriteLine(mesenum);
                     bool registered = false;
                     switch (mesenum)
                     {
                         case MessageType.SessionMessage:
-                            Console.WriteLine("Session Message");
                             SessionMessage sesmes = (SessionMessage) mes;
-                            MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                            SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                            Console.WriteLine("Returning message");
-                            await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket, MessageType.SessionMessage);
+                            if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected)
+                            {
+                                Console.WriteLine("New Session Message");
+                                MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                                await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                    MessageType.SessionMessage);
+                                Console.WriteLine("Returning message");
+                            }
                             break;
                         case MessageType.Request:
                             Request reqmes = (Request) mes;
@@ -256,11 +262,17 @@ namespace PBFT.Replica
                             }
                             break;
                         case MessageType.PhaseMessage:
+                            Console.WriteLine("PhaseMessage");
                             PhaseMessage pesmes = (PhaseMessage) mes;
                             if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID)
-                            ) ProtocolBridge.Emit(pesmes);
+                            )
+                            {
+                                Console.WriteLine("Emitting");
+                                ProtocolBridge.Emit(pesmes);
+                            }
                             else //Rules broken, terminate connection
                             {
+                                Console.WriteLine("Rules broken");
                                 conn.Dispose();
                                 return;
                             }
@@ -293,7 +305,9 @@ namespace PBFT.Replica
 
         public async Task SendMessage(byte[] sermessage, Socket sock, MessageType type)
         {
+            //Console.WriteLine(type);
             var fullbuffmes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
+            //Console.WriteLine("identifier?");
             /*if (ServConnInfo.ContainsKey(id))
             {
                 var conn = ServConnInfo[id];
@@ -304,6 +318,8 @@ namespace PBFT.Replica
                 var conn = ClientConnInfo[id];
                 await conn.Socket.SendAsync(fullbuffmes, SocketFlags.None);
             }*/
+            //Console.WriteLine("Hello Mom");
+            //Console.WriteLine("Sending message");
             await sock.SendAsync(fullbuffmes, SocketFlags.None);
             /*else //no info registered for this server
             {
@@ -313,13 +329,16 @@ namespace PBFT.Replica
         
         public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
+            Console.WriteLine(ServerContactList.Count);
             foreach (var (k,ip) in ServerContactList)
             {
-                if (k != ServID && !ServConnInfo.ContainsKey(k) && ServID>k)
+                if (k != ServID && ServID>k)
                 {
                     //var servConn = new TempConn(ip, false, null);
+                    Console.WriteLine("Initialize connection");
                     var servConn = new TempInteractiveConn(ip); 
                     await servConn.Connect();
+                    Console.WriteLine("Connection established");
                     //ServConnInfo[k] = servConn;
                     SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
                     await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);

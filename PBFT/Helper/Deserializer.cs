@@ -22,8 +22,8 @@ namespace PBFT.Helper
             
             byte[] serobj = sermessage.Take(sermessage.Length-4)
                                       .ToArray();
-            Console.WriteLine(formatByte);
-            Console.WriteLine(BitConverter.ToString(serobj));
+            //Console.WriteLine(formatByte);
+            //Console.WriteLine(BitConverter.ToString(serobj));
             switch (formatByte) 
             {
                 case (int) MessageType.SessionMessage:

@@ -127,8 +127,14 @@ namespace PBFT.Messages
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, PhaseType);
 
-        public override string ToString() =>
-            $"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
+        public override string ToString()
+        {
+            if (Digest != null)
+                return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
+            return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {null}\n Signature: {Signature}";  
+                     
+        }
+
 
         public bool Compare(PhaseMessage pes2)
         {
