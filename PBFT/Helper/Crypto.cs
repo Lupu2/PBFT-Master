@@ -35,7 +35,7 @@ namespace PBFT.Helper
         }
 
         public static bool VerifySignature(byte[] signature, byte[] mesdig, RSAParameters pubkey, string hashpro="SHA256")
-        {
+        { //https://docs.microsoft.com/en-us/dotnet/standard/security/cryptographic-signatures
             if (signature == null) return false;
             using(RSA rsa = RSA.Create())
             {

@@ -126,7 +126,7 @@ namespace PBFT.Replica
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
             rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
-            await Serv.SendMessage(rep.SerializeToBuffer(), clireq.ClientID, MessageType.Reply);
+            await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
             return rep;
         }
 
@@ -211,6 +211,7 @@ namespace PBFT.Replica
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
             rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
+            //await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
             return rep;
         }
 

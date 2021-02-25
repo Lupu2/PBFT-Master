@@ -19,8 +19,8 @@ namespace PBFT.Network
         private bool serverConnection;
         //private Source<IProtocolMessages> IncomingMessage;
         //private Source<IProtocolMessages> OutgoingMessage;
-        private Action<TempClientConn> newConnection;
-        public TempConn(string ipAddress, bool serverConn, Action<TempClientConn> newConnCallback)
+        private Action<TempInteractiveConn> newConnection;
+        public TempConn(string ipAddress, bool serverConn, Action<TempInteractiveConn> newConnCallback)
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
             endpoint = IPEndPoint.Parse(ipAddress);
@@ -52,7 +52,7 @@ namespace PBFT.Network
                     if (!active)
                         return;
                     //_ = HandleConnection(cursocket);
-                    TempClientConn clientconn = new TempClientConn(cursocket);
+                    TempInteractiveConn clientconn = new TempInteractiveConn(cursocket);
                     newConnection(clientconn);
                 }
             }
@@ -94,6 +94,7 @@ namespace PBFT.Network
             {
                 await socket.ConnectAsync(endpoint);
                 active = true;
+                
             }
         }
 

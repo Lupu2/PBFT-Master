@@ -41,7 +41,7 @@ namespace PBFT.Tests
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
-            var reply = PerformTestFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
+            var reply = PerformTestFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
         

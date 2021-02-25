@@ -7,7 +7,7 @@ namespace PBFT.Messages
 {
     public static class MessageHandler
     {
-        public static void HandleSessionMessage(SessionMessage sesmes, TempClientConn conn, Server serv)
+        public static void HandleSessionMessage(SessionMessage sesmes, TempInteractiveConn conn, Server serv)
         {
             int id = sesmes.DevID;
             DeviceType devtype = sesmes.Devtype;
@@ -32,10 +32,10 @@ namespace PBFT.Messages
             }
             else
             {
-                TempConn servconn = new TempConn(conn._address, conn._clientSock); //casting it to a server conn
                 if (!serv.ServConnInfo.ContainsKey(id)) //New Server Connections
                 {
-                    serv.ServConnInfo[id] = servconn;
+                    //serv.ServConnInfo[id] = servconn;
+                    serv.ServConnInfo[id] = conn;
                     serv.ServPubKeyRegister[id] = sesmes.Publickey;
                 }
                 else
@@ -43,7 +43,7 @@ namespace PBFT.Messages
                     if (!serv.ServPubKeyRegister[id].Equals(sesmes.Publickey)) // Updated Server Connection
                     {
                         serv.ServConnInfo[id].Dispose();
-                        serv.ServConnInfo[id] = servconn;
+                        serv.ServConnInfo[id] = conn;
                         serv.ServPubKeyRegister[id] = sesmes.Publickey;
                     }
                 }
