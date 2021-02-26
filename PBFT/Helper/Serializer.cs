@@ -11,8 +11,8 @@ namespace PBFT.Helper
         {
             byte[] copyobj = sermes.ToArray();
             byte[] resobj;
-            Console.WriteLine("ADDTYPEIDENTIFIER");
-            Console.WriteLine(type);
+            //Console.WriteLine("ADDTYPEIDENTIFIER");
+            //Console.WriteLine(type);
             switch (type) 
             {
                 case MessageType.SessionMessage:

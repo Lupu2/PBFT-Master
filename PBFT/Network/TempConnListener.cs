@@ -9,52 +9,47 @@ using PBFT.Messages;
 
 namespace PBFT.Network
 {
-    public class TempConn
+    public class TempConnListener
     {
         //https://www.youtube.com/watch?v=rrlRydqJbv0&t=244s
         //Template for Conn Object using Source for messages
         private IPEndPoint endpoint;
         public Socket socket;
         private bool active;
-        private bool serverConnection;
         //private Source<IProtocolMessages> IncomingMessage;
         //private Source<IProtocolMessages> OutgoingMessage;
         private Action<TempInteractiveConn> newConnection;
-        public TempConn(string ipAddress, bool serverConn, Action<TempInteractiveConn> newConnCallback)
+        public TempConnListener(string ipAddress, Action<TempInteractiveConn> newConnCallback)
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
             endpoint = IPEndPoint.Parse(ipAddress);
-            serverConnection = serverConn;
             newConnection = newConnCallback;
             active = false;
         }
 
-        public TempConn(IPEndPoint end, Socket sock)
+        public TempConnListener(IPEndPoint end, Socket sock)
         {
             socket = sock;
             endpoint = end;
             active = true;
-            serverConnection = true;
         }
+        
         //Listener operations
         public async Task Listen()
         {
-            if (serverConnection)
+            socket.Bind(endpoint);
+            socket.Listen(128); //128 = default backlog value
+            active = true;
+            Console.WriteLine("Started Listening");
+            while (active)
             {
-                socket.Bind(endpoint);
-                socket.Listen(128); //128 = default backlog value
-                active = true;
-                Console.WriteLine("Started Listening");
-                while (active)
-                {
-                    var cursocket = await socket.AcceptAsync();
-                    Console.WriteLine("Found socket");
-                    if (!active)
-                        return;
-                    //_ = HandleConnection(cursocket);
-                    TempInteractiveConn clientconn = new TempInteractiveConn(cursocket);
-                    newConnection(clientconn);
-                }
+                var cursocket = await socket.AcceptAsync();
+                Console.WriteLine("Found socket");
+                if (!active)
+                    return;
+                //_ = HandleConnection(cursocket);
+                TempInteractiveConn clientconn = new TempInteractiveConn(cursocket);
+                newConnection(clientconn);
             }
         }
 

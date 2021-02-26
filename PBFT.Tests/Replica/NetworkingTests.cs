@@ -14,6 +14,7 @@ using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
+using PBFT.Network;
 using PBFT.Replica;
 namespace PBFT.Tests.Replica
 {
@@ -115,5 +116,68 @@ namespace PBFT.Tests.Replica
             //Console.WriteLine("PhaseMessage Sent");
             //Thread.Sleep(8000);
         }*/
+
+       /* [TestMethod]
+        public void SimpleClientRequestTest()
+        {
+            var reqSource = new Source<Request>();
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000",  reqSource, new Source<PhaseMessage>(), new CDictionary<int, string>());
+            serv.ServerContactList[0] = "127.0.0.1:9000";
+            serv.Start();
+            new Thread(PseudoClient) {IsBackground = true}.Start();
+            //Thread.Sleep(3000); //wait long enough for the server do its job, its stuck since it can't send back any messages
+            //Assert.IsTrue(serv.ClientPubKeyRegister.ContainsKey(1));
+            var pesmes = ListenForMessage(reqSource).Result;
+            Console.WriteLine("Got PhaseMessage");
+            Console.WriteLine(pesmes);
+            Assert.AreEqual(pesmes.ClientID, 1);
+            StringAssert.Contains(pesmes.Message, "Hello Everybody!");
+        }
+        
+        public async Task<Request> ListenForMessage(Source<Request> reqsource)
+        {
+            var phmes = await reqsource.Next();
+            return phmes;
+        }
+        
+        public void PseudoClient()
+        {
+            var _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                while (!_socket.Connected)
+                    _socket.Connect("127.0.0.1", 9000);
+                var (_pri, pub) = Crypto.InitializeKeyPairs();
+                var ses = new SessionMessage(DeviceType.Client, pub, 1);
+                var msg = ses.SerializeToBuffer();
+                msg = Serializer.AddTypeIdentifierToBytes(msg, MessageType.SessionMessage);
+                _socket.Send(msg);
+                var buffer = new byte[1024];
+                var msgLength = _socket.Receive(buffer, SocketFlags.None);
+                var bytemes = buffer
+                    .ToList()
+                    .Take(msgLength)
+                    .ToArray();
+                var (_, mes) = Deserializer.ChooseDeserialize(bytemes);
+                SessionMessage sesmes = (SessionMessage) mes;
+                Console.WriteLine("CLIENT RECEIVED SESSION MESSAGE");
+                Assert.AreEqual(sesmes.DevID, 0);
+                Request req = new Request(1, "Hello Everybody!");
+                req.SignMessage(_pri);
+                var reqbuff = Serializer.AddTypeIdentifierToBytes(req.SerializeToBuffer(), MessageType.Request);
+                _socket.Send(reqbuff);
+                Console.WriteLine("CLIENT SENT REQUEST");
+                //Thread.Sleep(5000);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Exeception");
+                Console.WriteLine(e);
+                Thread.Sleep(3000);
+                _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
+            }
+        }*/
+            
+        
     }
 }

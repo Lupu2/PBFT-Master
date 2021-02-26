@@ -1,4 +1,5 @@
 
+using System;
 using PBFT.Helper;
 using PBFT.Network;
 using PBFT.Replica;
@@ -11,11 +12,12 @@ namespace PBFT.Messages
         {
             int id = sesmes.DevID;
             DeviceType devtype = sesmes.Devtype;
-                        
+            Console.WriteLine("Handle session message");
             if (devtype == DeviceType.Client)
             {
                 if (!serv.ClientConnInfo.ContainsKey(id)) //New Client Connections
                 {
+                    Console.WriteLine("Adding client");
                     serv.ClientActive[id] = false;
                     serv.ClientConnInfo[id] = conn;
                     serv.ClientPubKeyRegister[id] = sesmes.Publickey;

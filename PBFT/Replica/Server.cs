@@ -40,7 +40,7 @@ namespace PBFT.Replica
         
         //NON-Persitent
         private Engine _scheduler {get; set;}
-        private TempConn _servListener { get; set; }
+        private TempConnListener _servListener { get; set; }
         private RSAParameters _prikey{get; set;}
         public RSAParameters Pubkey{get; set;}
         public Dictionary<int, TempInteractiveConn> ClientConnInfo;
@@ -65,7 +65,7 @@ namespace PBFT.Replica
             ServerContactList = contactList;
             
             _scheduler = sche;
-            _servListener = new TempConn(ipaddress,true, HandleNewClientConnection);
+            _servListener = new TempConnListener(ipaddress,HandleNewClientConnection);
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
@@ -91,7 +91,7 @@ namespace PBFT.Replica
             ServerContactList = contactList;
             
             _scheduler = sche;
-            _servListener = new TempConn(ipaddress, true, HandleNewClientConnection);
+            _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
             (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -116,7 +116,7 @@ namespace PBFT.Replica
             ServerContactList = contactList;
             
             _scheduler = sche;
-            _servListener = new TempConn(ipaddress, true, HandleNewClientConnection);
+            _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
@@ -145,7 +145,7 @@ namespace PBFT.Replica
             ServerContactList = contactList;
             
             //Initialize non-persistent storage
-            _servListener = new TempConn(ServerContactList[ServID], true, HandleNewClientConnection);
+            _servListener = new TempConnListener(ServerContactList[ServID], HandleNewClientConnection);
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -224,6 +224,7 @@ namespace PBFT.Replica
                 try
                 {
                     var bytesread = await conn.Socket.ReceiveAsync(buffer, SocketFlags.None);
+                    Console.WriteLine("Received a Message");
                     if (bytesread == 0 || bytesread == -1) return;
                     var bytemes = buffer
                         .ToList()
@@ -249,6 +250,7 @@ namespace PBFT.Replica
                             }
                             break;
                         case MessageType.Request:
+                            Console.WriteLine("New Request Message");
                             Request reqmes = (Request) mes;
                             if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
                                 ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
