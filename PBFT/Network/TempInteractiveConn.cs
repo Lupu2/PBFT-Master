@@ -12,7 +12,7 @@ namespace PBFT.Network
         public IPEndPoint Address { get; }
         public Socket Socket { get; }
 
-        private bool _active = true;
+        private bool _active = false;
 
         public TempInteractiveConn(Socket sock)
         {
@@ -31,7 +31,7 @@ namespace PBFT.Network
         
         public async Task Connect() 
         {
-            await Socket.ConnectAsync(Address);
+            while (!Socket.Connected) await Socket.ConnectAsync(Address);
             _active = true;
         }
 

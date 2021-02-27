@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection.Metadata;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
@@ -23,14 +25,27 @@ namespace PBFT
             
             if (args.Length > 0) //add arguments by editing configuration program arguments or by adding parameters behind executable directly
             {
-                var test = LoadJSONValues.GetServerData("serverInfo.json", int.Parse(args[0])).Result;
-                var id = test.Item1;
-                var ipaddr = test.Item2;
+                Console.WriteLine("arguments:");
+                foreach (var arg in args) Console.WriteLine(arg);
+                
+                //Format id=id test=true/false
+                Console.WriteLine(args[0].Split("id=")[1]);
+                int paramid = Int32.Parse(args[0].Split("id=")[1]);
+                bool testparam = Boolean.Parse(args[1].Split("test=")[1]);
+                (int, string) servInfo;
+                CDictionary<int, string> serversInfo;
+                Console.WriteLine(paramid);
+                Console.WriteLine(testparam);
+                if (testparam) servInfo = LoadJSONValues.GetServerData("testServerInfo.json",paramid).Result;
+                else servInfo = LoadJSONValues.GetServerData("serverInfo.json",paramid).Result;
+
+                var id = servInfo.Item1;
+                var ipaddr = servInfo.Item2;
                 Console.WriteLine("Result");
                 Console.WriteLine(id);
                 Console.WriteLine(ipaddr);
-                var serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
-                Console.WriteLine(serversInfo[0]);
+                if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
+                else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
                 var con = File.Exists("./PBFTStorage.txt");
                 Engine scheduler;
                 Server server;
@@ -39,22 +54,26 @@ namespace PBFT
                 if (!con)
                 {
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                        protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource,
+                        serversInfo);
+                    //protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
                 }
                 else
                 {
+                    //load persistent data
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
                         protSource, serversInfo); //TODO update with that collected in the storageEngine
-                    //load server data
+                    
                 }
                 server.Start();
+                Thread.Sleep(1000);
                 _ = server.InitializeConnections();
                 //Server serv = new Server(id, 0, scheduler, 10);
                 //HandleRequest(serv, protexec, reqSource, protSource)
                 ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource);
                 _ = RequestHandler(server, protexec, reqSource, scheduler);
+                Console.ReadLine();
             }
         }
 

@@ -41,6 +41,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cleipnir.Tests.NetworkCommu
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PBFT.Tests", "PBFT.Tests\PBFT.Tests.csproj", "{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PBFTClient", "PBFTClient\PBFTClient.csproj", "{5B445308-D123-4F5A-B0A6-4A95A0B1DB67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -123,6 +125,10 @@ Global
 		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D64796CD-D3BB-4CF6-A4CC-DEFCB1FD3BEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5B445308-D123-4F5A-B0A6-4A95A0B1DB67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5B445308-D123-4F5A-B0A6-4A95A0B1DB67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5B445308-D123-4F5A-B0A6-4A95A0B1DB67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5B445308-D123-4F5A-B0A6-4A95A0B1DB67}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

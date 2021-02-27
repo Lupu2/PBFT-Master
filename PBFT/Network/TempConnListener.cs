@@ -37,7 +37,9 @@ namespace PBFT.Network
         //Listener operations
         public async Task Listen()
         {
+            Console.WriteLine("Calling binding");
             socket.Bind(endpoint);
+            Console.WriteLine("Finished binding blade");
             socket.Listen(128); //128 = default backlog value
             active = true;
             Console.WriteLine("Started Listening");
@@ -47,7 +49,6 @@ namespace PBFT.Network
                 Console.WriteLine("Found socket");
                 if (!active)
                     return;
-                //_ = HandleConnection(cursocket);
                 TempInteractiveConn clientconn = new TempInteractiveConn(cursocket);
                 newConnection(clientconn);
             }

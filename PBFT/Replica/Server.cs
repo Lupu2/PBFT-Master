@@ -204,8 +204,12 @@ namespace PBFT.Replica
 
             return mes;
         }
-        
-        public void Start() => _ = _servListener.Listen();
+
+        public void Start()
+        {
+            Console.WriteLine("Server starting");
+            _ = _servListener.Listen();  
+        } 
         
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
@@ -218,11 +222,12 @@ namespace PBFT.Replica
         //Handle incomming messages
         public async Task HandleIncommingMessages(TempInteractiveConn conn)
         {
-            var buffer = new byte[1024];
+            //var buffer = new byte[1024];
             while (true)
             {
                 try
                 {
+                   /* Console.WriteLine(ServPubKeyRegister.Count);
                     var bytesread = await conn.Socket.ReceiveAsync(buffer, SocketFlags.None);
                     Console.WriteLine("Received a Message");
                     if (bytesread == 0 || bytesread == -1) return;
@@ -231,66 +236,68 @@ namespace PBFT.Replica
                         .Take(bytesread)
                         .ToArray();
                     var (mestype, mes) = Deserializer.ChooseDeserialize(bytemes);
-                    var mesenum = Enums.ToEnumMessageType(mestype);
-                    Console.WriteLine("Type");
-                    Console.WriteLine(mesenum);
-                    bool registered = false;
-                    switch (mesenum)
-                    {
-                        case MessageType.SessionMessage:
-                            SessionMessage sesmes = (SessionMessage) mes;
-                            if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected)
-                            {
-                                Console.WriteLine("New Session Message");
-                                MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                                SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                                await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                    MessageType.SessionMessage);
-                                Console.WriteLine("Returning message");
-                            }
-                            break;
-                        case MessageType.Request:
-                            Console.WriteLine("New Request Message");
-                            Request reqmes = (Request) mes;
-                            if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
-                                ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
-                            {
-                                if (!ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
-                            }
-                            else //Rules broken, terminate connection
-                            {
-                                conn.Dispose();
-                                return;
-                            }
-                            break;
-                        case MessageType.PhaseMessage:
-                            Console.WriteLine("PhaseMessage");
-                            PhaseMessage pesmes = (PhaseMessage) mes;
-                            if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID)
-                            )
-                            {
-                                Console.WriteLine("Emitting");
-                                ProtocolBridge.Emit(pesmes);
-                            }
-                            else //Rules broken, terminate connection
-                            {
-                                Console.WriteLine("Rules broken");
-                                conn.Dispose();
-                                return;
-                            }
-                            break;
-                        case MessageType.ViewChange:
-                            break;
-                        case MessageType.NewView:
-                            break;
-                        default:
-                            Console.WriteLine("Unrecognizable Message");
-                            break;
-                    }
+                    */
+                   var (mestype, mes) = await NetworkFunctionality.Receive(conn.Socket);
+                   Console.WriteLine(ServPubKeyRegister.Count);
+                   var mesenum = Enums.ToEnumMessageType(mestype); 
+                   Console.WriteLine("Type");
+                   Console.WriteLine(mesenum);
+                   switch (mesenum)
+                   {
+                       case MessageType.SessionMessage:
+                           SessionMessage sesmes = (SessionMessage) mes;
+                           if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected)
+                           {
+                               Console.WriteLine("New Session Message");
+                               MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                               SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID); 
+                               await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                   MessageType.SessionMessage);
+                               Console.WriteLine("Returning message");
+                           }
+                           break;
+                       case MessageType.Request:
+                           Console.WriteLine("New Request Message");
+                           Request reqmes = (Request) mes;
+                           if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
+                               ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
+                           {
+                               if (!ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
+                           }
+                           else //Rules broken, terminate connection
+                           {
+                               conn.Dispose();
+                               return;
+                           }
+                           break;
+                       case MessageType.PhaseMessage: 
+                           Console.WriteLine("PhaseMessage");
+                           PhaseMessage pesmes = (PhaseMessage) mes;
+                           if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID))
+                           {
+                               Console.WriteLine("Emitting");
+                               ProtocolBridge.Emit(pesmes);
+                           }
+                           else //Rules broken, terminate connection
+                           {
+                               Console.WriteLine("Rules broken");
+                               conn.Dispose();
+                               return;
+                           }
+                           break;
+                       case MessageType.ViewChange:
+                           break; 
+                       case MessageType.NewView:
+                           break;
+                       default: 
+                           Console.WriteLine("Unrecognizable Message");
+                           break;
+                   }
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
+                    return;
                 }
             }
         }
@@ -337,7 +344,7 @@ namespace PBFT.Replica
                 if (k != ServID && ServID>k)
                 {
                     //var servConn = new TempConn(ip, false, null);
-                    Console.WriteLine("Initialize connection");
+                    Console.WriteLine($"Initialize connection on {ip}");
                     var servConn = new TempInteractiveConn(ip); 
                     await servConn.Connect();
                     Console.WriteLine("Connection established");
@@ -350,6 +357,9 @@ namespace PBFT.Replica
                     //C - Complicated Algorithm
                 }
             }
+
+            Console.WriteLine("PubkeyRegister");
+            Console.WriteLine(ServPubKeyRegister.Count);
         }
 
         /*public async Task ReEstablishConnections()

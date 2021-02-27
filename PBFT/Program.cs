@@ -23,7 +23,7 @@ namespace PBFT
             //Initialize Server/Client
 
             //DEBUG/Testing
-            Console.WriteLine("PBFT Testing");
+            /*Console.WriteLine("PBFT Testing");
             Request cliRequest = new Request(1, "Hello PBFT", DateTime.Now.ToString());
             Console.WriteLine(cliRequest.Timestamp);
             byte[] bufferrequest = Crypto.CreateDigest(cliRequest);
@@ -50,7 +50,7 @@ namespace PBFT
              byte[] sermes = cliRequest2.CreateCopyTemplate().SerializeToBuffer();
              sermes = Deserializer.DeserializeHash((Serializer.SerializeHash(sermes))); //testing serialize/deserialize for byte[] array for Cleipnir
              Console.WriteLine(cliRequest2.ToString());
-             Console.WriteLine(Crypto.VerifySignature(sign, sermes, pubkey));
+             Console.WriteLine(Crypto.VerifySignature(sign, sermes, pubkey));*/
              
              App.Run(args);
              
