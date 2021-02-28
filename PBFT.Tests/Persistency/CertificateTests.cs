@@ -6,7 +6,7 @@ using Cleipnir.StorageEngine.InMemory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Replica;
+using PBFT.Certificates;
 
 namespace PBFT.Tests.Persistency
 {
@@ -29,8 +29,8 @@ namespace PBFT.Tests.Persistency
         [TestMethod]
         public void QCertificateTest()
         {
-            QCertificate qcert1 = new QCertificate(1, 1, CertType.Prepared);
-            QCertificate qcert2 = new QCertificate(2, 2, CertType.Committed);
+            ProtocolCertificate qcert1 = new ProtocolCertificate(1, 1, CertType.Prepared);
+            ProtocolCertificate qcert2 = new ProtocolCertificate(2, 2, CertType.Committed);
             Request req1 = new Request(1, "test1", DateTime.Now.ToString());
             Request req2 = new Request(2, "test2", DateTime.Now.ToString());
             PhaseMessage pm1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(req1), PMessageType.Commit);
@@ -53,7 +53,7 @@ namespace PBFT.Tests.Persistency
             _objectStore.Attach(qcert2);
             _objectStore.Persist();
             _objectStore = ObjectStore.Load(_storage, false);
-            var certificates = _objectStore.ResolveAll<QCertificate>();
+            var certificates = _objectStore.ResolveAll<ProtocolCertificate>();
             foreach (var copycert in certificates)
             {
                 if (copycert.CType == CertType.Prepared)

@@ -20,7 +20,8 @@ namespace PBFT.Messages
                     Console.WriteLine("Adding client");
                     serv.ClientActive[id] = false;
                     serv.ClientConnInfo[id] = conn;
-                    serv.ClientPubKeyRegister[id] = sesmes.Publickey;
+                    serv.AddPubKeyClientRegister(id, sesmes.Publickey);
+                    //serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                 }
                 else
                 {
@@ -28,7 +29,8 @@ namespace PBFT.Messages
                     {
                         serv.ClientConnInfo[id].Dispose();
                         serv.ClientConnInfo[id] = conn;
-                        serv.ClientPubKeyRegister[id] = sesmes.Publickey;
+                        serv.AddPubKeyClientRegister(id, sesmes.Publickey);
+                        //serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                     }
                 }
             }
@@ -36,9 +38,11 @@ namespace PBFT.Messages
             {
                 if (!serv.ServConnInfo.ContainsKey(id)) //New Server Connections
                 {
+                    Console.WriteLine("Adding server");
                     //serv.ServConnInfo[id] = servconn;
                     serv.ServConnInfo[id] = conn;
-                    serv.ServPubKeyRegister[id] = sesmes.Publickey;
+                    //serv.ServPubKeyRegister[id] = sesmes.Publickey;
+                    serv.AddPubKeyServerRegister(id, sesmes.Publickey);
                 }
                 else
                 {
@@ -46,7 +50,8 @@ namespace PBFT.Messages
                     {
                         serv.ServConnInfo[id].Dispose();
                         serv.ServConnInfo[id] = conn;
-                        serv.ServPubKeyRegister[id] = sesmes.Publickey;
+                        //serv.ServPubKeyRegister[id] = sesmes.Publickey;
+                        serv.AddPubKeyServerRegister(id, sesmes.Publickey);
                     }
                 }
             }

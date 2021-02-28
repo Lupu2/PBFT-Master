@@ -16,6 +16,8 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.StorageEngine.InMemory;
+using PBFT.Certificates;
 using PBFT.Network;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -31,7 +33,7 @@ namespace PBFT.Replica
         public int CurSeqNr {get; set;}
         public Range CurSeqRange { get; set;}
         public int TotalReplicas {get; set;}
-        private CDictionary<int, CList<QCertificate>> Log;
+        private CDictionary<int, CList<ProtocolCertificate>> Log;
         public Source<Request> RequestBridge;
         public Source<PhaseMessage> ProtocolBridge;
         public CDictionary<int, bool> ClientActive;
@@ -47,7 +49,8 @@ namespace PBFT.Replica
         public Dictionary<int, TempInteractiveConn> ServConnInfo;
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
-       
+        private readonly object _sync = new object();
+        private bool rebooted;
         
         public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList) //Initial constructor
         {
@@ -59,7 +62,7 @@ namespace PBFT.Replica
             CurSeqRange = new Range(0,checkpointinter);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
-            Log = new CDictionary<int, CList<QCertificate>>();
+            Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
@@ -71,6 +74,7 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            rebooted = false;
         }
 
         public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList)
@@ -85,7 +89,7 @@ namespace PBFT.Replica
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
-            Log = new CDictionary<int, CList<QCertificate>>();
+            Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
@@ -97,10 +101,11 @@ namespace PBFT.Replica
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
+            rebooted = false;
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
-            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int,string> contactList)
+            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -122,12 +127,13 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            rebooted = false;
         }
 
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, 
             Source<Request> reqbridge, Source<PhaseMessage> pesbridge, 
-            CDictionary<int, CList<QCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList)
+            CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -150,6 +156,7 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            rebooted = true;
         }
 
         public bool IsPrimary()
@@ -164,11 +171,6 @@ namespace PBFT.Replica
             goto Start;
         }
         
-        /*public async Conn Listen()
-        {   //To be implemented
-            
-        }*/
-
         public IProtocolMessages SignMessage(IProtocolMessages mes, MessageType type)
         {
             switch (type)
@@ -222,31 +224,20 @@ namespace PBFT.Replica
         //Handle incomming messages
         public async Task HandleIncommingMessages(TempInteractiveConn conn)
         {
-            //var buffer = new byte[1024];
             while (true)
             {
                 try
                 {
-                   /* Console.WriteLine(ServPubKeyRegister.Count);
-                    var bytesread = await conn.Socket.ReceiveAsync(buffer, SocketFlags.None);
-                    Console.WriteLine("Received a Message");
-                    if (bytesread == 0 || bytesread == -1) return;
-                    var bytemes = buffer
-                        .ToList()
-                        .Take(bytesread)
-                        .ToArray();
-                    var (mestype, mes) = Deserializer.ChooseDeserialize(bytemes);
-                    */
-                   var (mestype, mes) = await NetworkFunctionality.Receive(conn.Socket);
-                   Console.WriteLine(ServPubKeyRegister.Count);
+                    var (mestype, mes) = await NetworkFunctionality.Receive(conn.Socket);
+                   //Console.WriteLine(ServPubKeyRegister.Count);
                    var mesenum = Enums.ToEnumMessageType(mestype); 
-                   Console.WriteLine("Type");
-                   Console.WriteLine(mesenum);
+                   //Console.WriteLine("Type");
+                   //Console.WriteLine(mesenum);
                    switch (mesenum)
                    {
                        case MessageType.SessionMessage:
                            SessionMessage sesmes = (SessionMessage) mes;
-                           if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected)
+                           if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected) //TODO change if condition so that clients with the same id is also excepted but still filter out duplicate session messages so that you don't inf send/receive Session Messages.
                            {
                                Console.WriteLine("New Session Message");
                                MessageHandler.HandleSessionMessage(sesmes, conn, this);
@@ -266,13 +257,15 @@ namespace PBFT.Replica
                            }
                            else //Rules broken, terminate connection
                            {
+                               Console.WriteLine("Connection terminated, rules were broken");
                                conn.Dispose();
                                return;
                            }
                            break;
                        case MessageType.PhaseMessage: 
-                           Console.WriteLine("PhaseMessage");
+                           Console.WriteLine("New PhaseMessage Message");
                            PhaseMessage pesmes = (PhaseMessage) mes;
+                           Console.WriteLine(mes);
                            if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID))
                            {
                                Console.WriteLine("Emitting");
@@ -280,7 +273,7 @@ namespace PBFT.Replica
                            }
                            else //Rules broken, terminate connection
                            {
-                               Console.WriteLine("Rules broken");
+                               Console.WriteLine("Connection terminated, rules were broken");
                                conn.Dispose();
                                return;
                            }
@@ -296,6 +289,7 @@ namespace PBFT.Replica
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine("Error In Handle Incomming Messages");
                     Console.WriteLine(e.Message);
                     return;
                 }
@@ -338,37 +332,57 @@ namespace PBFT.Replica
         
         public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
-            Console.WriteLine(ServerContactList.Count);
-            foreach (var (k,ip) in ServerContactList)
+            if (rebooted) //Rebooting
             {
-                if (k != ServID && ServID>k)
+                foreach (var (k, ip) in ServerContactList)
                 {
-                    //var servConn = new TempConn(ip, false, null);
-                    Console.WriteLine($"Initialize connection on {ip}");
-                    var servConn = new TempInteractiveConn(ip); 
-                    await servConn.Connect();
-                    Console.WriteLine("Connection established");
-                    //ServConnInfo[k] = servConn;
-                    SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                    await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
-                    _= HandleIncommingMessages(servConn);
-                    //A - Leander system with lower id vs higher id 
-                    //B - Input & Output Unique for server vs sockets unidirectional
-                    //C - Complicated Algorithm
+                    if (k != ServID)
+                    {
+                        Console.WriteLine($"Initialize connection on {ip}");
+                        var servConn = new TempInteractiveConn(ip); 
+                        await servConn.Connect();
+                        Console.WriteLine("Connection established");
+                        //ServConnInfo[k] = servConn;
+                        SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                        await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
+                        _= HandleIncommingMessages(servConn);
+                    }
                 }
             }
+            else //Starting
+            {
+                foreach (var (k,ip) in ServerContactList)
+                {
+                    if (k != ServID && ServID>k)
+                    {
+                        //var servConn = new TempConn(ip, false, null);
+                        Console.WriteLine($"Initialize connection on {ip}");
+                        var servConn = new TempInteractiveConn(ip); 
+                        await servConn.Connect();
+                        Console.WriteLine("Connection established");
+                        //ServConnInfo[k] = servConn;
+                        SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                        await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
+                        _= HandleIncommingMessages(servConn);
+                        //A - Leander system with lower id vs higher id 
+                        //B - Input & Output Unique for server vs sockets unidirectional
+                        //C - Complicated Algorithm
+                    }
+                }
+            }
+            
 
             Console.WriteLine("PubkeyRegister");
             Console.WriteLine(ServPubKeyRegister.Count);
         }
-
+        
         /*public async Task ReEstablishConnections()
         {
             foreach (var (k,conn) in ServConnInfo)
             {
                 if (k != ServID)
                 {
-                    var servConn = new TempConn(conn.Socket.RemoteEndPoint.ToString(), false, null);
+                    var servConn = new TempInteractiveConn(conn.Socket.RemoteEndPoint.ToString(), false, null);
                     await servConn.Connect();
                     //ServConnInfo[k] = servConn;
                     SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
@@ -376,6 +390,8 @@ namespace PBFT.Replica
                 }
             }
         }*/
+        
+        
         
         /*public async CTask InitializeSession(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
         {
@@ -386,33 +402,44 @@ namespace PBFT.Replica
         public void ChangeClientStatus(int cid)
         {
             //Assuming Client Already added during client initialization
+            
             if (ClientActive[cid]) ClientActive[cid] = false;
             else ClientActive[cid] = true;
+        }
+
+        public void AddPubKeyClientRegister(int id, RSAParameters key)
+        {
+            lock (_sync)
+                ClientPubKeyRegister[id] = key;
+        }
+
+        public void AddPubKeyServerRegister(int id, RSAParameters key)
+        {
+            lock (_sync)
+                ServPubKeyRegister[id] = key;
         }
         
         //Log functions
         public bool InitializeLog(int seqNr)
         {
-            if (!Log.ContainsKey(seqNr)) Log[seqNr] = new CList<QCertificate>();
+            if (!Log.ContainsKey(seqNr)) Log[seqNr] = new CList<ProtocolCertificate>();
             else return false;
             return true;
         }
         
-        public CList<QCertificate> GetCertInfo(int seqNr) => Log[seqNr];
+        //public void AddCertificate(int seqNr, ProtocolCertificate cert) => Log[seqNr].Add(cert);
 
-        public TempInteractiveConn GetClientConnInfo(int clientID)
+        public void AddCertificate(int seqNr, ProtocolCertificate cert)
         {
-            //Set lock if necessary
-            return ClientConnInfo[clientID];
+            Console.WriteLine("Certificate saved!");
+            Log[seqNr].Add(cert);
         }
         
-        public void AddCertificate(int seqNr, QCertificate cert) => Log[seqNr].Add(cert);
-
         public void AddEngine(Engine sche) => _scheduler = sche;
         
         public void GarbageCollect(int seqNr)
         {
-            foreach (var (entrySeqNr, entryLog) in Log)
+            foreach (var (entrySeqNr, _) in Log)
                 if (entrySeqNr < seqNr) 
                     Log.Remove(entrySeqNr);
         }
@@ -444,7 +471,7 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(TotalReplicas)),
                 sd.Get<Source<Request>>(nameof(RequestBridge)),
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
-                sd.Get<CDictionary<int, CList<QCertificate>>>(nameof(Log)),
+                sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
                 sd.Get<CDictionary<int,Reply>>(nameof(ReplyLog)),
                 sd.Get<CDictionary<int,string>>(nameof(ServerContactList))

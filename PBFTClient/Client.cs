@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Network;
@@ -24,19 +25,20 @@ namespace PBFT.Client
 
         public Request CurReq { get; set; }
         
-        public Dictionary<int, string> FinishedRequest;
+        public Dictionary<Request, ReplyCertificate> FinishedRequest;
         
         public Dictionary<int, ServerInfo> ServerInformation;
 
         public Source<Reply> ReplySource;
         
-        
+        public int FNumber { get; set; }
+
         public Client(int id)
         {
             ClientID = id;
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
 
-            FinishedRequest = new Dictionary<int, string>();
+            FinishedRequest = new Dictionary<Request, ReplyCertificate>();
             ServerInformation = new Dictionary<int, ServerInfo>();
             ReplySource = new Source<Reply>();
         }
@@ -48,6 +50,29 @@ namespace PBFT.Client
             {
                 var servInfo = new ServerInfo(servdata.Key, servdata.Value);
                 ServerInformation[servdata.Key] = servInfo;
+            }
+        }
+
+        public void SetFNumber()
+        {
+            int nrservers = ServerInformation.Count;
+            switch (nrservers)
+            {
+                case 4:
+                    FNumber = 1;
+                    break;
+                    
+                case 7:
+                    FNumber = 2;
+                    break;
+                case 10:
+                    FNumber = 3;
+                    break;
+                default:
+                    throw new IndexOutOfRangeException($"Server number {nrservers} not manageable!");
+            }
+            {
+                
             }
         }
 
@@ -127,6 +152,17 @@ namespace PBFT.Client
             }
         }
 
+        private async Task SendSessionMessage(SessionMessage ses)
+        {
+            
+            foreach (var (id, servinfo) in ServerInformation)
+            {
+                Console.WriteLine(id);
+                byte[] sesbuff = Serializer.AddTypeIdentifierToBytes(ses.SerializeToBuffer(), MessageType.SessionMessage);
+                await servinfo.Socket.SendAsync(sesbuff, SocketFlags.None);
+            }
+        }
+        
         private async Task SendRequest(Request req)
         {
             foreach (var (id,servinfo) in ServerInformation)
@@ -136,6 +172,11 @@ namespace PBFT.Client
             }
         }
 
+        public void StartCommunication()
+        {
+            InitializeConnections().RunSynchronously();
+        }
+        
         public async Task InitializeConnections()
         {
             foreach (var (id,info) in ServerInformation)
@@ -144,14 +185,16 @@ namespace PBFT.Client
                 var endpoint = IPEndPoint.Parse(info.IPAddress);
                 while (!sock.Connected) await sock.ConnectAsync(endpoint);
                 info.Socket = sock;
-                info.active = true;
+                info.Active = true;
                 _ = ListenForResponse(sock, id);
             }
+            SessionMessage climes = new SessionMessage(DeviceType.Client, Pubkey, ClientID);
+            await SendSessionMessage(climes);
+            
         }
         
         public async Task ListenForResponse(Socket sock, int id)
         {
-            var buffer = new byte[1024];
             while (true)
             {
                 try
@@ -176,8 +219,9 @@ namespace PBFT.Client
                 }
                 catch (Exception e)
                 {
+                    Console.WriteLine("ERROR");
                     Console.WriteLine(e.Message);
-                    ServerInformation[id].active = false;
+                    ServerInformation[id].Active = false;
                     return;
                 }
             }
@@ -185,9 +229,21 @@ namespace PBFT.Client
 
         public async Task<bool> ValidateRequest(Request req)
         {
-            var replies = await ReplySource
-                                .Where(rep => rep.Timestamp == req.Timestamp)
-                                .Next();
+            var repCert = new ReplyCertificate(req);
+            
+            //Set timeout for validateRequest and return false if it occurs
+            await ReplySource
+                .Where(rep => rep.Timestamp == req.Timestamp)
+                .Scan(repCert.ProofList, (prooflist, message) =>
+                {
+                    prooflist.Add(message);
+                    return prooflist;
+                })
+                .Where(_ => repCert.ValidateCertificate(FNumber))
+                .Next();
+            Console.WriteLine("Received appropriate number of replies");
+            Console.WriteLine(repCert.ProofList[0].Result);
+            FinishedRequest[req] = repCert;
             return true;
         }
     }

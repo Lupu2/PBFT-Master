@@ -1,0 +1,75 @@
+using System.Collections.Concurrent;
+using System.Dynamic;
+using System.Linq;
+using System.Net.Sockets;
+using Cleipnir.ObjectDB.PersistentDataStructures;
+using PBFT.Messages;
+
+namespace PBFT.Certificates
+{
+    public class ReplyCertificate :IQCertificate
+    {
+        public Request RequestOrg {get; set;}
+        
+        private bool Valid{get; set;}
+
+        public CList<Reply> ProofList {get; set;}
+
+        public ReplyCertificate(Request req)
+        {
+            RequestOrg = req;
+            Valid = false;
+            ProofList = new CList<Reply>();
+        }
+
+        public bool IsValid() => Valid;
+        
+        public bool QReached(int fNodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * fNodes + 1;
+        
+        private int AccountForDuplicates()
+        {
+            if (ProofList.Count < 2) return 0;
+            var count = ProofList
+                .GroupBy(c => new {c.ServID, c.Signature})
+                .Where(c => c.Count() > 1)
+                .Sum(c => c.Count()-1);
+            return count;
+        }
+        
+        public bool ProofsAreValid()
+        {
+            if (ProofList.Count < 1) return false;
+            bool proofvalid = true;
+            string curres = ProofList[0].Result;
+            bool curstatus = ProofList[0].Status;
+            foreach (var proof in ProofList)
+            {
+                if (proof.Timestamp != RequestOrg.Timestamp)
+                {
+                    proofvalid = false;
+                    break;
+                }
+                
+                if (proof.Signature == null || proof.Result.Equals("") || proof.Result == null || !curres.Equals(proof.Result) || curstatus == proof.Status)
+                {
+                    proofvalid = false;
+                    break;
+                }
+            }
+            return proofvalid;
+        }
+
+        public bool ValidateCertificate(int fNodes)
+        {
+            if (!Valid) 
+                if (QReached(fNodes) && ProofsAreValid()) Valid = true;
+            return Valid;
+        }
+
+        public void ResetCertificate()
+        {
+            Valid = false;
+            ProofList = new CList<Reply>();
+        }
+    }
+}

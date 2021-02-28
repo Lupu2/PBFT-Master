@@ -11,7 +11,7 @@ using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Helper;
-using PBFT.Replica;
+using PBFT.Certificates;
 
 
 namespace PBFT.Messages
@@ -102,7 +102,7 @@ namespace PBFT.Messages
             }
         }
 
-        public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, QCertificate cert = null)
+        public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, ProtocolCertificate cert = null)
         {
             Console.WriteLine("VALIDATING");
             int seqLow = curSeqInterval.Start.Value;

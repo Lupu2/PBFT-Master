@@ -15,7 +15,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\PBFT\PBFT.csproj" />
-      <ProjectReference Include="..\PBFTClient.csproj" />
+      <ProjectReference Include="..\PBFTClient\PBFTClient.csproj" />
     </ItemGroup>
 
 </Project>

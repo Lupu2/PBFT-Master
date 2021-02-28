@@ -85,13 +85,14 @@ namespace PBFT
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]))
                 {
                     Console.WriteLine("Handling client request");
-                    _ = scheduler.Schedule(() =>
+                    //await scheduler.Schedule(() => execute.HandleRequest(req));
+                    serv.ChangeClientStatus(req.ClientID);
+                    await scheduler.Schedule(() =>
                     {
                         serv.ChangeClientStatus(req.ClientID);
                         var reply = execute.HandleRequest(req);
-                        Console.WriteLine(reply);
-                        serv.ChangeClientStatus(req.ClientID);
-                    });    
+                    });
+                    serv.ChangeClientStatus(req.ClientID);
                 }
                 
             }

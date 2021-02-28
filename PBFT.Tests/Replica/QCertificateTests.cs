@@ -1,9 +1,8 @@
 using System;
-using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Replica;
+using PBFT.Certificates;
 
 namespace PBFT.Tests.Replica
 {
@@ -13,9 +12,9 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ConstructorTests()
         {
-            QCertificate qcertp = new QCertificate(1, 1, CertType.Prepared);
+            ProtocolCertificate qcertp = new ProtocolCertificate(1, 1, CertType.Prepared);
             PhaseMessage pc = new PhaseMessage(1, 2, 1, null, PMessageType.Commit);
-            QCertificate qcertc = new QCertificate(2, 2, CertType.Committed, pc);
+            ProtocolCertificate qcertc = new ProtocolCertificate(2, 2, CertType.Committed, pc);
             //Tests for first certificate
             Assert.IsTrue(qcertp.ProofList.Count == 0);
             Assert.AreEqual(qcertp.SeqNr, 1);
@@ -41,7 +40,7 @@ namespace PBFT.Tests.Replica
             Request req = new Request(1, "Hello World", DateTime.Now.ToString());
             req.SignMessage(pri);
             byte[] dig = req.SerializeToBuffer();
-            QCertificate cert1 = new QCertificate(1, 1, CertType.Prepared); ;
+            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, CertType.Prepared); ;
             Assert.IsFalse(cert1.ValidateCertificate(1));
             //Correct Certification test
             PhaseMessage p1 = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
@@ -59,7 +58,7 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(cert1.ValidateCertificate(1));
             
             //Not valid Certification tests
-            QCertificate cert2 = new QCertificate(2, 2, CertType.Committed);
+            ProtocolCertificate cert2 = new ProtocolCertificate(2, 2, CertType.Committed);
             PhaseMessage p21 = new PhaseMessage(1, 2, 2, null, PMessageType.Commit);
             PhaseMessage p22 = new PhaseMessage(2, 2, 2, dig, PMessageType.Commit); //correct
             p22.SignMessage(pri);

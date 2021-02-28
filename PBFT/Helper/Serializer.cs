@@ -11,8 +11,7 @@ namespace PBFT.Helper
         {
             byte[] copyobj = sermes.ToArray();
             byte[] resobj;
-            //Console.WriteLine("ADDTYPEIDENTIFIER");
-            //Console.WriteLine(type);
+            
             switch (type) 
             {
                 case MessageType.SessionMessage:
@@ -22,7 +21,6 @@ namespace PBFT.Helper
                     resobj = copyobj.Concat(BitConverter.GetBytes(0001)).ToArray();
                     break;
                 case MessageType.PhaseMessage:
-                    Console.WriteLine("PHASES");
                     resobj = copyobj.Concat(BitConverter.GetBytes(0002)).ToArray();
                     break;
                 case MessageType.Reply:

@@ -10,13 +10,14 @@ using System.Linq;
 using System.Xml.XPath;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Newtonsoft.Json;
+using PBFT.Certificates;
 using PBFT.Helper;
 
-namespace PBFT.Replica
+namespace PBFT.Certificates
 {
  
  
-    public class QCertificate : IPersistable
+    public class ProtocolCertificate : IQCertificate, IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
         public CertType CType {get; set;}
         public int SeqNr;
@@ -24,7 +25,7 @@ namespace PBFT.Replica
         private bool Valid{get; set; }
 
         public CList<PhaseMessage> ProofList {get; set;}
-        public QCertificate(int seq, int vnr, CertType cType)
+        public ProtocolCertificate(int seq, int vnr, CertType cType)
         {
                 SeqNr = seq;
                 ViewNr = vnr;
@@ -33,7 +34,7 @@ namespace PBFT.Replica
                 ProofList = new CList<PhaseMessage>();
         }
 
-        public QCertificate(int seq, int vnr, CertType cType, PhaseMessage firstrecord)
+        public ProtocolCertificate(int seq, int vnr, CertType cType, PhaseMessage firstrecord)
         {
             SeqNr = seq;
             ViewNr = vnr;
@@ -44,7 +45,7 @@ namespace PBFT.Replica
         }
         
         [JsonConstructor]
-        public QCertificate(int seq, int vnr, CertType cType, bool val, CList<PhaseMessage> proof)
+        public ProtocolCertificate(int seq, int vnr, CertType cType, bool val, CList<PhaseMessage> proof)
         {
             SeqNr = seq;
             ViewNr = vnr;
@@ -53,7 +54,7 @@ namespace PBFT.Replica
             ProofList = proof;
         }
 
-        private bool QReached(int fNodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * fNodes + 1;
+        public bool QReached(int fNodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * fNodes + 1;
         
         
         private int AccountForDuplicates()
@@ -68,10 +69,11 @@ namespace PBFT.Replica
         }
 
         //Checks that the Proofs are valid for PhaseMessages
-        private bool ProofsArePMsValid() 
+        public bool ProofsAreValid() 
         {
             if (ProofList.Count < 1) return false;
             bool proofvalid = true;
+         
             foreach (var proof in ProofList)
             {
                 //Console.WriteLine(proof);
@@ -100,11 +102,12 @@ namespace PBFT.Replica
             }
             return proofvalid;
         }
-
+        
         public bool ValidateCertificate(int fNodes)
         {
             if (!Valid) 
-                if (QReached(fNodes) && ProofsArePMsValid()) Valid = true;
+                if (QReached(fNodes) && ProofsAreValid()) Valid = true;
+                else Console.WriteLine("Certificate is not valid!");
             return Valid;
         }
 
@@ -126,8 +129,8 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(ProofList), ProofList);
         }
         
-        private static QCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new QCertificate(
+        private static ProtocolCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new ProtocolCertificate(
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 Enums.ToEnumCertType(sd.Get<int>(nameof(CType))),
