@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Linq;
+using System.Text;
 
 namespace PBFT.Helper
 {
@@ -15,13 +16,13 @@ namespace PBFT.Helper
             switch (type) 
             {
                 case MessageType.SessionMessage:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(0000)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(0)).ToArray();
                     break;
                 case MessageType.Request:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(0001)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(1)).ToArray();
                     break;
                 case MessageType.PhaseMessage:
-                    resobj = copyobj.Concat(BitConverter.GetBytes(0002)).ToArray();
+                    resobj = copyobj.Concat(BitConverter.GetBytes(2)).ToArray();
                     break;
                 case MessageType.Reply:
                     resobj = copyobj.Concat(BitConverter.GetBytes(3)).ToArray();

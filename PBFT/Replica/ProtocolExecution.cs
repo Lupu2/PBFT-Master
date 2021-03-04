@@ -202,7 +202,6 @@ namespace PBFT.Replica
                     return prooflist;
                 })
                 .Where(_ => qcertcom.ValidateCertificate(FailureNr))
-                
                 .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                 .Next();
             Console.WriteLine("Waiting for Prepare messages");
@@ -225,9 +224,10 @@ namespace PBFT.Replica
             //Commit:
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
-            qcertcom.ProofList.Add(commitmes);
-            await committed;
+            //qcertcom.ProofList.Add(commitmes);
+            Serv.EmitPhaseMessageLocally(commitmes);
             Console.WriteLine("Waiting for Commit messages");
+            await committed;
             /*await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.PhaseType == PMessageType.Commit)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))

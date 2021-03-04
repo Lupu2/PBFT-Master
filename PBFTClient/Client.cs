@@ -139,6 +139,7 @@ namespace PBFT.Client
             Req:
             await SendRequest(req);
             bool val = await ValidateRequest(req);
+            Console.WriteLine("Finished await");
             if (val) return;
             goto Req;
         }
@@ -158,25 +159,27 @@ namespace PBFT.Client
             foreach (var (id, servinfo) in ServerInformation)
             {
                 Console.WriteLine(id);
-                byte[] sesbuff = Serializer.AddTypeIdentifierToBytes(ses.SerializeToBuffer(), MessageType.SessionMessage);
+                byte[] sesbuff = NetworkFunctionality.AddEndDelimiter(
+                    Serializer.AddTypeIdentifierToBytes(
+                        ses.SerializeToBuffer(), MessageType.SessionMessage)
+                    );
+                
                 await servinfo.Socket.SendAsync(sesbuff, SocketFlags.None);
             }
         }
-        
+
         private async Task SendRequest(Request req)
         {
-            foreach (var (id,servinfo) in ServerInformation)
+            foreach (var (id, servinfo) in ServerInformation)
             {
-                byte[] reqbuff = Serializer.AddTypeIdentifierToBytes(req.SerializeToBuffer(), MessageType.Request);
+                byte[] reqbuff = NetworkFunctionality.AddEndDelimiter(
+                    Serializer.AddTypeIdentifierToBytes(
+                        req.SerializeToBuffer(), MessageType.Request)
+                    );
                 await servinfo.Socket.SendAsync(reqbuff, SocketFlags.None);
             }
         }
 
-        public void StartCommunication()
-        {
-            InitializeConnections().RunSynchronously();
-        }
-        
         public async Task InitializeConnections()
         {
             foreach (var (id,info) in ServerInformation)
@@ -199,22 +202,27 @@ namespace PBFT.Client
             {
                 try
                 {
-                    var (mestype, mes) = await NetworkFunctionality.Receive(sock);
-                    var mesenum = Enums.ToEnumMessageType(mestype);
-                    switch (mesenum)
+                    var (mestypeList, mesList) = await NetworkFunctionality.Receive(sock);
+                    int nrofmes = mestypeList.Count;
+                    for (int i = 0; i < nrofmes; i++)
                     {
-                        case MessageType.SessionMessage:
-                            var sesmes = (SessionMessage) mes;
-                            ServerInformation[sesmes.DevID].AddPubKeyInfo(sesmes.Publickey);
-                            break;
-                        case MessageType.Reply:
-                            var replymes = (Reply) mes;
-                            //ServerInformation[replymes.ServID].AddReply(replymes);
-                            ReplySource.Emit(replymes);
-                            break;
-                        default:
-                            Console.WriteLine("Unrecognized message!");
-                            break;
+                        var mesenum = Enums.ToEnumMessageType(mestypeList[i]);
+                        var mes = mesList[i];
+                        switch (mesenum)
+                        {
+                            case MessageType.SessionMessage:
+                                var sesmes = (SessionMessage) mes;
+                                ServerInformation[sesmes.DevID].AddPubKeyInfo(sesmes.Publickey);
+                                break;
+                            case MessageType.Reply:
+                                var replymes = (Reply) mes;
+                                //ServerInformation[replymes.ServID].AddReply(replymes);
+                                ReplySource.Emit(replymes);
+                                break;
+                            default:
+                                Console.WriteLine("Unrecognized message!");
+                                break;
+                        }    
                     }
                 }
                 catch (Exception e)

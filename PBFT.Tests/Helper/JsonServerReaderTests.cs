@@ -28,7 +28,7 @@ namespace PBFT.Tests
             var ipaddr = serverdata.Item2;
             Console.WriteLine(id);
             Console.WriteLine(ipaddr);
-            StringAssert.Contains(ipaddr, "localhost:9000");
+            StringAssert.Contains(ipaddr, "127.0.0.1:9000");
             Assert.AreEqual(id,0);
         }
 
@@ -37,7 +37,7 @@ namespace PBFT.Tests
         {
             var filecontent = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
             int i = 0;
-            string baseIP = "localhost:900";
+            string baseIP = "127.0.0.1:900";
             foreach (var (id,ip) in filecontent)
             {
                 Assert.AreEqual(id, i);

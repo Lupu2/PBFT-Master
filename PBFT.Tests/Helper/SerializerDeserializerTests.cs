@@ -45,6 +45,7 @@ namespace PBFT.Tests.Helper
             var pmes = new PhaseMessage(1, 1, 1, digest, PMessageType.PrePrepare);
             byte[] serpmes = pmes.SerializeToBuffer();
             byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.PhaseMessage);
+            Console.WriteLine(BitConverter.ToString(readybuff));
             Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
             var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
             Assert.IsTrue(mestype == 2);

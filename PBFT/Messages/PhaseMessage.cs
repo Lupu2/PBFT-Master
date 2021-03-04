@@ -59,6 +59,9 @@ namespace PBFT.Messages
         public static PhaseMessage DeSerializeToObject(byte[] buffer)
         {
             string jsonobj = Encoding.ASCII.GetString(buffer);
+            Console.WriteLine("JSON OBJECT:");
+            //Console.WriteLine(BitConverter.ToString(buffer));
+            Console.WriteLine(jsonobj);
             return JsonConvert.DeserializeObject<PhaseMessage>(jsonobj);
         }
 

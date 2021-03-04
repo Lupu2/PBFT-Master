@@ -105,6 +105,7 @@ namespace PBFT.Certificates
         
         public bool ValidateCertificate(int fNodes)
         {
+            //foreach (var proof in ProofList) Console.WriteLine(proof);
             if (!Valid) 
                 if (QReached(fNodes) && ProofsAreValid()) Valid = true;
                 else Console.WriteLine("Certificate is not valid!");

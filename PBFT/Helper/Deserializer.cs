@@ -14,6 +14,7 @@ namespace PBFT.Helper
                 throw new IndexOutOfRangeException("INVALID INPUT ARGUMENT");
             }
             //Collect the last 4bytes to get MessageType value
+            
             int formatByte = BitConverter.ToInt32(sermessage.Reverse()
                                                                .Take(4)
                                                                .Reverse()
@@ -22,6 +23,7 @@ namespace PBFT.Helper
             
             byte[] serobj = sermessage.Take(sermessage.Length-4)
                                       .ToArray();
+            //Console.WriteLine(BitConverter.ToString(sermessage));
             //Console.WriteLine(formatByte);
             //Console.WriteLine(BitConverter.ToString(serobj));
             switch (formatByte) 
@@ -41,6 +43,7 @@ namespace PBFT.Helper
                 case (int) MessageType.Checkpoint:
                     //TODO insert deserialization for Checkpoint
                 default:
+                    Console.WriteLine("Hello Puppy");
                     throw new ArgumentOutOfRangeException(); 
             }
         }

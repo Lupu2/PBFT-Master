@@ -7,6 +7,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency;
@@ -228,63 +229,83 @@ namespace PBFT.Replica
             {
                 try
                 {
-                    var (mestype, mes) = await NetworkFunctionality.Receive(conn.Socket);
+                    var (mestypeList, mesList) = await NetworkFunctionality.Receive(conn.Socket);
                    //Console.WriteLine(ServPubKeyRegister.Count);
-                   var mesenum = Enums.ToEnumMessageType(mestype); 
-                   //Console.WriteLine("Type");
-                   //Console.WriteLine(mesenum);
-                   switch (mesenum)
+                   int nrofInMess = mestypeList.Count;
+                   for (int i = 0; i < nrofInMess; i++)
                    {
-                       case MessageType.SessionMessage:
-                           SessionMessage sesmes = (SessionMessage) mes;
-                           if (!ServConnInfo.ContainsKey(sesmes.DevID) || !ServConnInfo[sesmes.DevID].Socket.Connected) //TODO change if condition so that clients with the same id is also excepted but still filter out duplicate session messages so that you don't inf send/receive Session Messages.
-                           {
-                               Console.WriteLine("New Session Message");
-                               MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                               SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID); 
-                               await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                   MessageType.SessionMessage);
-                               Console.WriteLine("Returning message");
-                           }
-                           break;
-                       case MessageType.Request:
-                           Console.WriteLine("New Request Message");
-                           Request reqmes = (Request) mes;
-                           if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
-                               ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
-                           {
-                               if (!ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
-                           }
-                           else //Rules broken, terminate connection
-                           {
-                               Console.WriteLine("Connection terminated, rules were broken");
-                               conn.Dispose();
-                               return;
-                           }
-                           break;
-                       case MessageType.PhaseMessage: 
-                           Console.WriteLine("New PhaseMessage Message");
-                           PhaseMessage pesmes = (PhaseMessage) mes;
-                           Console.WriteLine(mes);
-                           if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID))
-                           {
-                               Console.WriteLine("Emitting");
-                               ProtocolBridge.Emit(pesmes);
-                           }
-                           else //Rules broken, terminate connection
-                           {
-                               Console.WriteLine("Connection terminated, rules were broken");
-                               conn.Dispose();
-                               return;
-                           }
-                           break;
-                       case MessageType.ViewChange:
-                           break; 
-                       case MessageType.NewView:
-                           break;
-                       default: 
-                           Console.WriteLine("Unrecognizable Message");
-                           break;
+                       var mes = mesList[i];
+                       var mesenum = Enums.ToEnumMessageType(mestypeList[i]); 
+                       //Console.WriteLine("Type");
+                       //Console.WriteLine(mesenum);
+                       switch (mesenum)
+                       {
+                           case MessageType.SessionMessage:
+                               SessionMessage sesmes = (SessionMessage) mes;
+                               DeviceType devtype = sesmes.Devtype;
+                               if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) ||
+                                                                    !ClientConnInfo[sesmes.DevID].Socket.Connected))
+                               {
+                                   Console.WriteLine("New Session Message");
+                                   MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                   SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                                   await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                       MessageType.SessionMessage);
+                                   Console.WriteLine("Returning message");
+                               }
+                               else if (devtype == DeviceType.Server && (!ServConnInfo.ContainsKey(sesmes.DevID) ||
+                                                                         !ServConnInfo[sesmes.DevID].Socket.Connected))
+                               {
+                                   Console.WriteLine("New Session Message");
+                                   MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                   SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                                   await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                       MessageType.SessionMessage);
+                                   Console.WriteLine("Returning message");
+                               }
+
+                               break;
+                           case MessageType.Request:
+                               Console.WriteLine("New Request Message");
+                               Request reqmes = (Request) mes;
+                               if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
+                                   ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
+                               {
+                                   if (!ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
+                               }
+                               else //Rules broken, terminate connection
+                               {
+                                   Console.WriteLine("Connection terminated, rules were broken");
+                                   conn.Dispose();
+                                   return;
+                               }
+
+                               break;
+                           case MessageType.PhaseMessage:
+                               Console.WriteLine("New PhaseMessage Message");
+                               PhaseMessage pesmes = (PhaseMessage) mes;
+                               Console.WriteLine(mes);
+                               if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID))
+                               {
+                                   Console.WriteLine("Emitting");
+                                   ProtocolBridge.Emit(pesmes);
+                               }
+                               else //Rules broken, terminate connection
+                               {
+                                   Console.WriteLine("Connection terminated, rules were broken");
+                                   conn.Dispose();
+                                   return;
+                               }
+
+                               break;
+                           case MessageType.ViewChange:
+                               break;
+                           case MessageType.NewView:
+                               break;
+                           default:
+                               Console.WriteLine("Unrecognizable Message");
+                               break;
+                       }
                    }
                 }
                 catch (Exception e)
@@ -298,7 +319,8 @@ namespace PBFT.Replica
         
         public async Task Multicast(byte[] sermessage, MessageType type)
         {
-            var fullbuffmes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
+            var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
+            var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             foreach(var(sid, conn) in ServConnInfo)
             {
                 if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
@@ -308,8 +330,9 @@ namespace PBFT.Replica
 
         public async Task SendMessage(byte[] sermessage, Socket sock, MessageType type)
         {
-            //Console.WriteLine(type);
-            var fullbuffmes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
+            Console.WriteLine($"Sending: {type} message");
+            var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
+            var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             //Console.WriteLine("identifier?");
             /*if (ServConnInfo.ContainsKey(id))
             {
@@ -329,7 +352,14 @@ namespace PBFT.Replica
                 Console.WriteLine("no registered data");
             }*/
         }
-        
+
+        public void EmitPhaseMessageLocally(PhaseMessage mes)
+        {
+            Console.WriteLine("Emitting Locally!");
+            Console.WriteLine(mes);
+            ProtocolBridge.Emit(mes);
+        }
+
         public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
             if (rebooted) //Rebooting

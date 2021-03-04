@@ -94,7 +94,7 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(pesmes.SeqNr,0);
             Assert.AreEqual(pesmes.ViewNr,0);
             Assert.AreEqual(pesmes.Digest,null);
-        }
+        }*/
 
         public async Task<PhaseMessage> ListenForMessage(Source<PhaseMessage> messource)
         {
@@ -115,9 +115,9 @@ namespace PBFT.Tests.Replica
             serv.SendMessage(pmes.SerializeToBuffer(), serv.ServConnInfo[0].Socket, MessageType.PhaseMessage);
             //Console.WriteLine("PhaseMessage Sent");
             //Thread.Sleep(8000);
-        }*/
+        }
 
-       /* [TestMethod]
+        /*[TestMethod]
         public void SimpleClientRequestTest()
         {
             var reqSource = new Source<Request>();
@@ -132,7 +132,7 @@ namespace PBFT.Tests.Replica
             Console.WriteLine(pesmes);
             Assert.AreEqual(pesmes.ClientID, 1);
             StringAssert.Contains(pesmes.Message, "Hello Everybody!");
-        }
+        }*/
         
         public async Task<Request> ListenForMessage(Source<Request> reqsource)
         {
@@ -176,7 +176,7 @@ namespace PBFT.Tests.Replica
                 Thread.Sleep(3000);
                 _socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
             }
-        }*/
+        }
             
         
     }

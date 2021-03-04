@@ -48,7 +48,6 @@ namespace PBFT.Messages
                 {
                     if (!serv.ServPubKeyRegister[id].Equals(sesmes.Publickey)) // Updated Server Connection
                     {
-                        serv.ServConnInfo[id].Dispose();
                         serv.ServConnInfo[id] = conn;
                         //serv.ServPubKeyRegister[id] = sesmes.Publickey;
                         serv.AddPubKeyServerRegister(id, sesmes.Publickey);
