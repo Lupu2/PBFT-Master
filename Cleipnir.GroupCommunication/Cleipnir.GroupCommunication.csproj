@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <RootNamespace>Cleipnir.GroupNetworkCommunication</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Cleipnir.Rx.ExecutionEngine\Cleipnir.Rx.ExecutionEngine.csproj" />
+      <ProjectReference Include="..\Cleipnir.Rx\Cleipnir.Rx\Cleipnir.Rx.csproj" />
+      <ProjectReference Include="..\Cleipnir.Scheduler\Cleipnir.Scheduler\Cleipnir.ExecutionEngine.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="2.0.35" />
+    <PackageReference Include="MySql.Data" Version="8.0.23" />
+    <PackageReference Include="MySQLConnector" Version="1.2.1" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cleipnir.ExecutionEngine.Providers\Cleipnir.ExecutionEngine.Providers.csproj" />
+    <ProjectReference Include="..\Cleipnir.ObjectDB\Cleipnir.ObjectDB.csproj" />
+    <ProjectReference Include="..\Cleipnir.Rx.ExecutionEngine\Cleipnir.Rx.ExecutionEngine.csproj" />
+    <ProjectReference Include="..\Cleipnir.Rx\Cleipnir.Rx\Cleipnir.Rx.csproj" />
+    <ProjectReference Include="..\Cleipnir.Scheduler\Cleipnir.Scheduler\Cleipnir.ExecutionEngine.csproj" />
+    <ProjectReference Include="..\Cleipnir.StorageEngine.InMemory\Cleipnir.StorageEngine.InMemory.csproj" />
+    <ProjectReference Include="..\Cleipnir.StorageEngine.SimpleFile\Cleipnir.StorageEngine.SimpleFile.csproj" />
+    <ProjectReference Include="..\Cleipnir.StorageEngine.SqlServer\Cleipnir.StorageEngine.SqlServer.csproj" />
+  </ItemGroup>
+
+</Project>
