@@ -16,7 +16,7 @@ namespace PBFT.Tests
         {
             Console.WriteLine(Directory.GetCurrentDirectory());
             if (!Directory.GetCurrentDirectory()
-                .Equals(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\Cleipnir\PBFT"))
+                .Equals(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\NewRepository\PBFT-Master\PBFT"))
                 Directory.SetCurrentDirectory("../../../../PBFT");
         }
         

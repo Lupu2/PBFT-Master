@@ -43,6 +43,7 @@ namespace PBFT.Tests.Replica
                 var ses = new SessionMessage(DeviceType.Client, new RSAParameters(), 1);
                 var msg = ses.SerializeToBuffer();
                 msg = Serializer.AddTypeIdentifierToBytes(msg, MessageType.SessionMessage);
+                msg = NetworkFunctionality.AddEndDelimiter(msg);
                 _socket.Send(msg);
             }
             catch (Exception e)
