@@ -35,10 +35,10 @@ namespace PBFT.Network
                     if (idx != 0)
                     {
                         bytesegment = bytesegment
-                            .Skip(idx)
+                            .Skip(idx+1)
                             .ToArray();
                     }
-                    var messegment = bytesegment.Take(mesobjects.Length).ToArray();
+                    var messegment = bytesegment.Take(mesjson.Length).ToArray();
                     var (type, mes) = Deserializer.ChooseDeserialize(messegment);
                     types.Add(type);
                     incommingMessages.Add(mes);

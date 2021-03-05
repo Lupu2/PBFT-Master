@@ -1,12 +1,7 @@
 using System;
-using System.Security.Cryptography;
-using System.Xml.Schema;
-using Cleipnir.ExecutionEngine;
-using Cleipnir.ObjectDB.Persistency.Serialization.Helpers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using Cleipnir.StorageEngine.InMemory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
