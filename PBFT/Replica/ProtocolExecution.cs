@@ -90,6 +90,7 @@ namespace PBFT.Replica
                 })
                 .Where(pm => qcertpre.ValidateCertificate(FailureNr)) //probably won't work
                 .Next();
+            
             var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                 .Where(pm => pm.PhaseType == PMessageType.Commit)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))

@@ -75,6 +75,7 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister[ServID] = Pubkey;
             rebooted = false;
         }
 
@@ -101,6 +102,7 @@ namespace PBFT.Replica
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister[ServID] = Pubkey;
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             rebooted = false;
         }
@@ -128,6 +130,7 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister[ServID] = Pubkey;
             rebooted = false;
         }
 
@@ -157,6 +160,7 @@ namespace PBFT.Replica
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
+            ServPubKeyRegister[ServID] = Pubkey;
             rebooted = true;
         }
 
@@ -253,7 +257,7 @@ namespace PBFT.Replica
                                        MessageType.SessionMessage);
                                    Console.WriteLine("Returning message");
                                }
-                               else if (devtype == DeviceType.Server && (!ServConnInfo.ContainsKey(sesmes.DevID) ||
+                               else if (devtype == DeviceType.Server && sesmes.DevID != ServID && (!ServConnInfo.ContainsKey(sesmes.DevID) ||
                                                                          !ServConnInfo[sesmes.DevID].Socket.Connected))
                                {
                                    Console.WriteLine("New Session Message");
@@ -311,7 +315,7 @@ namespace PBFT.Replica
                 catch (Exception e)
                 {
                     Console.WriteLine("Error In Handle Incomming Messages");
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine(e);
                     return;
                 }
             }
@@ -356,7 +360,7 @@ namespace PBFT.Replica
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Locally!");
-            Console.WriteLine(mes);
+            //Console.WriteLine(mes);
             ProtocolBridge.Emit(mes);
         }
 

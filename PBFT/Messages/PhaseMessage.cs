@@ -108,10 +108,14 @@ namespace PBFT.Messages
         public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, ProtocolCertificate cert = null)
         {
             Console.WriteLine("VALIDATING");
+            Console.WriteLine(ServID);
+            Console.WriteLine(this.ToString());
             int seqLow = curSeqInterval.Start.Value;
             int seqHigh = curSeqInterval.End.Value;
             var clone = CreateCopyTemplate();
+            Console.WriteLine("Verify signature");
             if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
+            Console.WriteLine("Passed signature");
             if (ViewNr != cviewNr) return false;
             if (SeqNr < seqLow || SeqNr > seqHigh) return false;
             if (cert != null && cert.ProofList.Count > 0)

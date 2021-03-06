@@ -86,13 +86,19 @@ namespace PBFT
                 {
                     Console.WriteLine("Handling client request");
                     //await scheduler.Schedule(() => execute.HandleRequest(req));
-                    serv.ChangeClientStatus(req.ClientID);
+                    //serv.ChangeClientStatus(req.ClientID);
                     await scheduler.Schedule(() =>
                     {
                         serv.ChangeClientStatus(req.ClientID);
-                        var reply = execute.HandleRequest(req);
+                        var reply = execute.HandleRequest(req)
+                            .GetAwaiter();
+                        reply.OnCompleted(() =>
+                        {
+                            serv.ChangeClientStatus(req.ClientID);
+                            Console.WriteLine("It worked!");
+                        });
                     });
-                    serv.ChangeClientStatus(req.ClientID);
+                    //serv.ChangeClientStatus(req.ClientID);
                 }
                 
             }

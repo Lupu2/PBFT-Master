@@ -4,6 +4,7 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 namespace PBFT.Tests.Replica
@@ -35,6 +36,14 @@ namespace PBFT.Tests.Replica
             testserv.ChangeClientStatus(2);
             Assert.IsTrue(testserv.ClientActive[1]);
             Assert.IsTrue(testserv.ClientActive[2]);
+        }
+
+        [TestMethod]
+        public void ServerSigningPhaseMessageTest()
+        {
+            //var (_prikey, pubkey) = Crypto.InitializeKeyPairs();
+            var server = new Server(0,0,4,null,20,"127.0.0.1:9000", null, null, new CDictionary<int, string>());
+            
         }
     }
 }
