@@ -70,12 +70,6 @@ namespace PBFT.Replica
                 prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
                 qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
                 await Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
-                    /*catch(TaskCanceledException) //Probably placed so that the rest of the code is not runned after primary is deemed faulty
-                    {   
-                        Console.WriteLine("Primary deemed faulty start sending new messages");
-                        //ViewChange vc = new ViewChange(Serv.ServID, Serv.CurView);
-                        //await Serv.Multicast(vc.SerializeToBuffer());
-                    }*/
             }
             
             //Prepare phase
@@ -108,7 +102,8 @@ namespace PBFT.Replica
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
             await Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
-            qcertcom.ProofList.Add(commitmes);
+            //qcertcom.ProofList.Add(commitmes);
+            Serv.EmitPhaseMessageLocally(commitmes);
             await committed;
             
             //validate
@@ -205,18 +200,8 @@ namespace PBFT.Replica
                 .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                 .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                 .Next();
+            
             Console.WriteLine("Waiting for Prepare messages");
-            /*await MesBridge
-                .Where(pm => pm.PhaseType == PMessageType.Prepare)
-                .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
-                //.Do(pm => qcertpre.ProofList.Add(pm))
-                .Scan(qcertpre.ProofList, (prooflist, message) =>
-                {
-                    prooflist.Add(message);
-                    return prooflist;
-                })
-                .Where(pm => qcertpre.ValidateCertificate(FailureNr)) //probably won't work
-                .Next();*/
             await prepared;
             Serv.AddCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
             Console.WriteLine("Prepare phase finished");
@@ -225,21 +210,9 @@ namespace PBFT.Replica
             //Commit:
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
-            //qcertcom.ProofList.Add(commitmes);
             Serv.EmitPhaseMessageLocally(commitmes);
             Console.WriteLine("Waiting for Commit messages");
             await committed;
-            /*await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-                .Where(pm => pm.PhaseType == PMessageType.Commit)
-                .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
-                //.Do(pm => qcertcom.ProofList.Add(pm))
-                .Scan(qcertcom.ProofList, (prooflist, message) =>
-                {
-                    prooflist.Add(message);
-                    return prooflist;
-                })
-                .Where(pm => qcertcom.ValidateCertificate(FailureNr))
-                .Next();*/
             
             //Reply
             //Save the 2 Certificates

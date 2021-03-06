@@ -107,9 +107,9 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, ProtocolCertificate cert = null)
         {
-            Console.WriteLine("VALIDATING");
-            Console.WriteLine(ServID);
-            Console.WriteLine(this.ToString());
+            //Console.WriteLine("VALIDATING");
+            //Console.WriteLine(ServID);
+            //Console.WriteLine(this.ToString());
             int seqLow = curSeqInterval.Start.Value;
             int seqHigh = curSeqInterval.End.Value;
             var clone = CreateCopyTemplate();

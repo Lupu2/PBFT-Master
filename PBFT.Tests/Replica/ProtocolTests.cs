@@ -16,14 +16,13 @@ namespace PBFT.Tests
         [TestMethod]
         public void ProtocolExecutionPrimaryNoPersistencyTest()
         {
-            var (_prikey, _y) = Crypto.InitializeKeyPairs();
+            var (_prikey, _) = Crypto.InitializeKeyPairs();
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Server testserv = new Server(0,0,4,null,20,"127.0.0.1:9000", reqbridge,pesbridge, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge);
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
-            testserv.ServPubKeyRegister[0] = testserv.Pubkey;
             var reply = PerformTestFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
@@ -31,14 +30,13 @@ namespace PBFT.Tests
         [TestMethod]
         public void ProtocolExecutionNoPrimaryNoPersistencyTest()
         {
-            var (_prikey, pubkey) = Crypto.InitializeKeyPairs();
+            var (_prikey, _) = Crypto.InitializeKeyPairs();
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000", reqbridge, pesbridge, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
-            testserv.ServPubKeyRegister[1] = testserv.Pubkey;
             var reply = PerformTestFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
@@ -87,7 +85,6 @@ namespace PBFT.Tests
             ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge);
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
-            testserv.ServPubKeyRegister[0] = testserv.Pubkey;
             var reply = PerformTestWrongOrderFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
@@ -102,7 +99,6 @@ namespace PBFT.Tests
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
-            testserv.ServPubKeyRegister[1] = testserv.Pubkey;
             var reply = PerformTestWrongOrderFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }

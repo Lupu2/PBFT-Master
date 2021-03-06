@@ -1,4 +1,5 @@
 using System;
+using System.Dynamic;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
@@ -41,9 +42,28 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ServerSigningPhaseMessageTest()
         {
-            //var (_prikey, pubkey) = Crypto.InitializeKeyPairs();
+            var (_prikey, _) = Crypto.InitializeKeyPairs();
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", null, null, new CDictionary<int, string>());
-            
+            var req = new Request(1, "op");
+            var digest = Crypto.CreateDigest(req);
+            req.SignMessage(_prikey);
+            var phasemes = new PhaseMessage(0, 1, 1, digest, PMessageType.Prepare);
+            Assert.IsFalse(Crypto.VerifySignature(phasemes.Signature,phasemes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+            phasemes = (PhaseMessage) server.SignMessage(phasemes, MessageType.PhaseMessage);
+            Assert.IsTrue(Crypto.VerifySignature(phasemes.Signature, phasemes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
+
+        [TestMethod]
+        public void ServerSigningReplyTest()
+        {
+            var server = new Server(0,0,4,null,20,"127.0.0.1:9000", null, null, new CDictionary<int, string>());
+           
+            var replymes = new Reply(server.ServID, 1, server.CurView, true, "Result", DateTime.Now.ToString());
+            Assert.IsFalse(Crypto.VerifySignature(replymes.Signature,replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+            replymes = (Reply) server.SignMessage(replymes, MessageType.Reply);
+            Assert.IsTrue(Crypto.VerifySignature(replymes.Signature, replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+        }
+        
+        //TODO Write additional ServerSigning test methods once the other messages types are implemented
     }
 }
