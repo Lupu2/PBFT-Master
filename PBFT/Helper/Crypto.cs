@@ -44,6 +44,7 @@ namespace PBFT.Helper
 
         public static bool VerifySignature(byte[] signature, byte[] mesdig, RSAParameters pubkey, string hashpro="SHA256")
         { //https://docs.microsoft.com/en-us/dotnet/standard/security/cryptographic-signatures
+            Console.WriteLine("Verifying Signature");
             if (signature == null) return false;
             using(RSA rsa = RSA.Create())
             {
@@ -58,7 +59,10 @@ namespace PBFT.Helper
                 RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter();
                 RSADeformatter.SetHashAlgorithm(hashpro);
                 RSADeformatter.SetKey(rsa);
-                return RSADeformatter.VerifySignature(hashmes, signature);
+                var sign = RSADeformatter.VerifySignature(hashmes, signature);
+                Console.WriteLine("Verify signature result: " + sign);
+                return sign;
+                //return RSADeformatter.VerifySignature(hashmes, signature);
             }    
         }
     }

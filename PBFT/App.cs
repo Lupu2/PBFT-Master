@@ -36,8 +36,8 @@ namespace PBFT
                 CDictionary<int, string> serversInfo;
                 Console.WriteLine(paramid);
                 Console.WriteLine(testparam);
-                if (testparam) servInfo = LoadJSONValues.GetServerData("testServerInfo.json",paramid).Result;
-                else servInfo = LoadJSONValues.GetServerData("serverInfo.json",paramid).Result;
+                if (testparam) servInfo = LoadJSONValues.GetServerData("testServerInfo.json",paramid).GetAwaiter().GetResult();
+                else servInfo = LoadJSONValues.GetServerData("serverInfo.json",paramid).GetAwaiter().GetResult();
 
                 var id = servInfo.Item1;
                 var ipaddr = servInfo.Item2;
@@ -68,15 +68,23 @@ namespace PBFT
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                _ = server.InitializeConnections();
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource);
+                server.InitializeConnections()
+                    .GetAwaiter()
+                    .OnCompleted(() => StartRequestHandler(server, protexec, reqSource, scheduler));
                 //Server serv = new Server(id, 0, scheduler, 10);
                 //HandleRequest(serv, protexec, reqSource, protSource)
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource);
-                _ = RequestHandler(server, protexec, reqSource, scheduler);
+                
+                //_ = RequestHandler(server, protexec, reqSource, scheduler);
                 Console.ReadLine();
             }
         }
 
+        public static void StartRequestHandler(Server serv, ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        {
+            _ = RequestHandler(serv, execute, requestMessage, scheduler);
+        }
+        
         public static async Task RequestHandler(Server serv, ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
         {
             while (true)

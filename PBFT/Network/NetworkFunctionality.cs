@@ -13,7 +13,9 @@ namespace PBFT.Network
     {
         public static async Task<(List<int> mestype, List<IProtocolMessages> mes)> Receive(Socket conn)
         {
-            var buffer = new byte[1024];
+            try
+            {
+                var buffer = new byte[1024];
             var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
             List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
             List<int> types = new List<int>();
@@ -56,8 +58,15 @@ namespace PBFT.Network
                 types.Add(mestype);
                 incommingMessages.Add(mes);
             }
-            
+            Console.WriteLine("finished reveived mes");
             return (types, incommingMessages);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error In Receive");
+                Console.WriteLine(e);
+                throw;
+            }
         }
         
         public static byte[] AddEndDelimiter(byte[] orghash)

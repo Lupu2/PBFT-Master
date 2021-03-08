@@ -208,7 +208,6 @@ namespace PBFT.Replica
                 default:
                   throw new ArgumentOutOfRangeException();
             }
-
             return mes;
         }
 
@@ -240,8 +239,8 @@ namespace PBFT.Replica
                    {
                        var mes = mesList[i];
                        var mesenum = Enums.ToEnumMessageType(mestypeList[i]); 
-                       //Console.WriteLine("Type");
-                       //Console.WriteLine(mesenum);
+                       Console.WriteLine("Type");
+                       Console.WriteLine(mesenum);
                        switch (mesenum)
                        {
                            case MessageType.SessionMessage:
@@ -323,6 +322,7 @@ namespace PBFT.Replica
         
         public async Task Multicast(byte[] sermessage, MessageType type)
         {
+            Console.WriteLine("Multicasting: " + type);
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             foreach(var(sid, conn) in ServConnInfo)
@@ -404,10 +404,6 @@ namespace PBFT.Replica
                     }
                 }
             }
-            
-
-            Console.WriteLine("PubkeyRegister");
-            Console.WriteLine(ServPubKeyRegister.Count);
         }
         
         /*public async Task ReEstablishConnections()

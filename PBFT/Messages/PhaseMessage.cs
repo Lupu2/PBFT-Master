@@ -59,9 +59,9 @@ namespace PBFT.Messages
         public static PhaseMessage DeSerializeToObject(byte[] buffer)
         {
             string jsonobj = Encoding.ASCII.GetString(buffer);
-            Console.WriteLine("JSON OBJECT:");
+            //Console.WriteLine("JSON OBJECT:");
             //Console.WriteLine(BitConverter.ToString(buffer));
-            Console.WriteLine(jsonobj);
+            //Console.WriteLine(jsonobj);
             return JsonConvert.DeserializeObject<PhaseMessage>(jsonobj);
         }
 
@@ -107,29 +107,38 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, ProtocolCertificate cert = null)
         {
-            //Console.WriteLine("VALIDATING");
-            //Console.WriteLine(ServID);
-            //Console.WriteLine(this.ToString());
-            int seqLow = curSeqInterval.Start.Value;
-            int seqHigh = curSeqInterval.End.Value;
-            var clone = CreateCopyTemplate();
-            Console.WriteLine("Verify signature");
-            if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey)) return false;
-            Console.WriteLine("Passed signature");
-            if (ViewNr != cviewNr) return false;
-            if (SeqNr < seqLow || SeqNr > seqHigh) return false;
-            if (cert != null && cert.ProofList.Count > 0)
-                if (PhaseType == PMessageType.PrePrepare) //check if already exist a stored prepare with seqnr = to this message
-                {
-                    foreach (var proof in cert.ProofList)
+            //try
+            //{
+                Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
+                int seqLow = curSeqInterval.Start.Value;
+                int seqHigh = curSeqInterval.End.Value;
+                var clone = CreateCopyTemplate();
+                if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
+                    return false;
+                if (ViewNr != cviewNr) return false;
+                if (SeqNr < seqLow || SeqNr > seqHigh) return false;
+                if (cert != null && cert.ProofList.Count > 0)
+                    if (PhaseType == PMessageType.PrePrepare
+                    ) //check if already exist a stored prepare with seqnr = to this message
                     {
-                        Console.WriteLine(proof.Digest.SequenceEqual(Digest));
-                        if (proof.PhaseType == PMessageType.PrePrepare && proof.SeqNr == SeqNr && !proof.Digest.SequenceEqual(Digest)) return false; //should usually be the first entry in the list
+                        foreach (var proof in cert.ProofList)
+                        {
+                            Console.WriteLine(proof.Digest.SequenceEqual(Digest));
+                            if (proof.PhaseType == PMessageType.PrePrepare && proof.SeqNr == SeqNr &&
+                                !proof.Digest.SequenceEqual(Digest))
+                                return false; //should usually be the first entry in the list
+                        }
                     }
-                }
-
-            Console.WriteLine("True");
-            return true;
+                Console.WriteLine($"PhaseMes Validation {ServID},{PhaseType} True");
+                return true;
+            //}
+            //catch (Exception e)
+            //{
+                //Console.WriteLine("Error in Validate (PhaseMessage)");
+                //Console.WriteLine(e);
+                //throw;
+            //}
+            
         }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, PhaseType);

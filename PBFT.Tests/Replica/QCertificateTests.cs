@@ -12,9 +12,10 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ConstructorTests()
         {
-            ProtocolCertificate qcertp = new ProtocolCertificate(1, 1, CertType.Prepared);
+            Request req = new Request(1, "hello world");
+            ProtocolCertificate qcertp = new ProtocolCertificate(1, 1, req, CertType.Prepared);
             PhaseMessage pc = new PhaseMessage(1, 2, 1, null, PMessageType.Commit);
-            ProtocolCertificate qcertc = new ProtocolCertificate(2, 2, CertType.Committed, pc);
+            ProtocolCertificate qcertc = new ProtocolCertificate(2, 2, req, CertType.Committed, pc);
             //Tests for first certificate
             Assert.IsTrue(qcertp.ProofList.Count == 0);
             Assert.AreEqual(qcertp.SeqNr, 1);
@@ -36,20 +37,20 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ValidateCertificateTest()
         {
-            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri, _) = Crypto.InitializeKeyPairs();
             Request req = new Request(1, "Hello World", DateTime.Now.ToString());
             req.SignMessage(pri);
             byte[] dig = req.SerializeToBuffer();
-            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, CertType.Prepared); ;
+            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, req, CertType.Prepared); ;
             Assert.IsFalse(cert1.ValidateCertificate(1));
             //Correct Certification test
             PhaseMessage p1 = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
             p1.SignMessage(pri);
-            PhaseMessage p2 = new PhaseMessage(2, 1, 1, dig, PMessageType.PrePrepare);
+            PhaseMessage p2 = new PhaseMessage(2, 1, 1, dig, PMessageType.Prepare);
             p2.SignMessage(pri);
-            PhaseMessage p3 = new PhaseMessage(3, 1, 1, dig, PMessageType.PrePrepare);
+            PhaseMessage p3 = new PhaseMessage(3, 1, 1, dig, PMessageType.Prepare);
             p3.SignMessage(pri);
-            PhaseMessage p4 = new PhaseMessage(4, 1, 1, dig, PMessageType.PrePrepare);
+            PhaseMessage p4 = new PhaseMessage(4, 1, 1, dig, PMessageType.Prepare);
             p4.SignMessage(pri);
             cert1.ProofList.Add(p1);
             cert1.ProofList.Add(p2);
@@ -58,7 +59,7 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(cert1.ValidateCertificate(1));
             
             //Not valid Certification tests
-            ProtocolCertificate cert2 = new ProtocolCertificate(2, 2, CertType.Committed);
+            ProtocolCertificate cert2 = new ProtocolCertificate(2, 2, req, CertType.Committed);
             PhaseMessage p21 = new PhaseMessage(1, 2, 2, null, PMessageType.Commit);
             PhaseMessage p22 = new PhaseMessage(2, 2, 2, dig, PMessageType.Commit); //correct
             p22.SignMessage(pri);
