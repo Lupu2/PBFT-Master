@@ -64,28 +64,6 @@ namespace PBFT.Messages
             //Console.WriteLine(jsonobj);
             return JsonConvert.DeserializeObject<PhaseMessage>(jsonobj);
         }
-
-        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
-        {
-            stateToSerialize.Set(nameof(ServID), ServID);
-            stateToSerialize.Set(nameof(SeqNr), SeqNr);
-            stateToSerialize.Set(nameof(ViewNr), ViewNr);
-            stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
-            stateToSerialize.Set(nameof(PhaseType), (int)PhaseType);
-            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
-        }
-
-        private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
-        {
-            return new PhaseMessage(
-                sd.Get<int>(nameof(ServID)),
-                sd.Get<int>(nameof(SeqNr)),
-                sd.Get<int>(nameof(ViewNr)),
-                Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
-                Enums.ToEnumPMessageType(sd.Get<int>(nameof(PhaseType))),
-                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
-                );
-        }
         
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
@@ -161,6 +139,28 @@ namespace PBFT.Messages
             if (pes2.Signature == null && Signature != null || pes2.Signature != null && Signature == null) return false;
             if (pes2.Signature != null && Signature != null && !pes2.Signature.SequenceEqual(Signature)) return false;
             return true;
+        }
+        
+        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+        {
+            stateToSerialize.Set(nameof(ServID), ServID);
+            stateToSerialize.Set(nameof(SeqNr), SeqNr);
+            stateToSerialize.Set(nameof(ViewNr), ViewNr);
+            stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
+            stateToSerialize.Set(nameof(PhaseType), (int)PhaseType);
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
+        }
+
+        private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
+        {
+            return new PhaseMessage(
+                sd.Get<int>(nameof(ServID)),
+                sd.Get<int>(nameof(SeqNr)),
+                sd.Get<int>(nameof(ViewNr)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
+                Enums.ToEnumPMessageType(sd.Get<int>(nameof(PhaseType))),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
+            );
         }
     }
 }

@@ -45,7 +45,6 @@ namespace PBFT.Tests.Helper
             var pmes = new PhaseMessage(1, 1, 1, digest, PMessageType.PrePrepare);
             byte[] serpmes = pmes.SerializeToBuffer();
             byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.PhaseMessage);
-            Console.WriteLine(BitConverter.ToString(readybuff));
             Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
             var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
             Assert.IsTrue(mestype == 2);
@@ -83,7 +82,14 @@ namespace PBFT.Tests.Helper
         [TestMethod]
         public void SerializeDeserializeCheckpoint()
         {
-            //TODO Write test after finishing code for Checkpoint
+            var checkmes = new Checkpoint(1, 10, null);
+            byte[] serpmes = checkmes.SerializeToBuffer();
+            byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.Checkpoint);
+            Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
+            var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
+            Assert.IsTrue(mestype == 6);
+            Checkpoint checkde = (Checkpoint) demes;
+            Assert.IsTrue(checkmes.Compare(checkde));
         }
         
         [TestMethod]

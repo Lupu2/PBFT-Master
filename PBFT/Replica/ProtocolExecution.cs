@@ -105,7 +105,7 @@ namespace PBFT.Replica
             
             Console.WriteLine("Waiting for prepares");
             await prepared;
-            Serv.AddCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
+            Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
             
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
@@ -138,7 +138,7 @@ namespace PBFT.Replica
             //Reply
             //Save the 2 Certificates
             Console.WriteLine(qcertcom);
-            Serv.AddCertificate(qcertcom.SeqNr, qcertcom);
+            Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
             //Need to move or insert await for curSeqNr to be the next request to be handled
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
@@ -237,7 +237,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Waiting for Prepare messages");
                 //await prepared.Where(_ => qcertpre.ValidateCertificate(FailureNr)).Next();
                 await prepared;
-                Serv.AddCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
+                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 Console.WriteLine("Prepare phase finished");
 
                 //Commit phase
@@ -251,7 +251,7 @@ namespace PBFT.Replica
 
                 //Reply
                 //Save the 2 Certificates
-                Serv.AddCertificate(qcertcom.SeqNr, qcertcom);
+                Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 Console.WriteLine("Commit phase finished");
                 //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");

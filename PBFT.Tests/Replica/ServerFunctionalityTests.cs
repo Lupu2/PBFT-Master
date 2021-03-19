@@ -65,5 +65,27 @@ namespace PBFT.Tests.Replica
         }
         
         //TODO Write additional ServerSigning test methods once the other messages types are implemented
+        [TestMethod]
+        public void ServerSigningViewChangeTest()
+        {
+            
+        }
+
+        [TestMethod]
+        public void ServerSigningNewViewTest()
+        {
+            
+        }
+        
+        [TestMethod]
+        public void ServerSigningCheckpointTest()
+        {
+            var server = new Server(0,0,4,null,20,"127.0.0.1:9000", null, null, new CDictionary<int, string>());
+           
+            var checkmes = new Checkpoint(server.ServID, 20, null); //TODO change to actual digest once the make digest function is finished
+            Assert.IsFalse(Crypto.VerifySignature(checkmes.Signature,checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+            checkmes = (Checkpoint) server.SignMessage(checkmes, MessageType.Checkpoint);
+            Assert.IsTrue(Crypto.VerifySignature(checkmes.Signature, checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+        }
     }
 }

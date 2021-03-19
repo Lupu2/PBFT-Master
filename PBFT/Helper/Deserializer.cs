@@ -41,9 +41,9 @@ namespace PBFT.Helper
                 case (int) MessageType.NewView:
                     return (formatByte, NewView.DeSerializeToObject(serobj));
                 case (int) MessageType.Checkpoint:
-                    //TODO insert deserialization for Checkpoint
+                    return (formatByte, Checkpoint.DeSerializeToObject(serobj));
                 default:
-                    Console.WriteLine("Hello Puppy");
+                    Console.WriteLine("Illegal format for deserializer");
                     throw new ArgumentOutOfRangeException(); 
             }
         }

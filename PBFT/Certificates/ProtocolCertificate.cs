@@ -94,7 +94,6 @@ namespace PBFT.Certificates
          
             foreach (var proof in ProofList)
             {
-                //Console.WriteLine(proof);
                 if (proof.Digest == null || proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr)
                 {
                     proofvalid = false;

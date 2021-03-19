@@ -89,6 +89,7 @@ namespace PBFT
         {
             while (true)
             {
+                //TODO redesign to operate based on seqNr instead of req!
                 var req = await requestMessage.Next();
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]))
                 {
@@ -104,14 +105,11 @@ namespace PBFT
                         {
                             serv.ChangeClientStatus(req.ClientID);
                             Console.WriteLine("It worked!");
+                            if (serv.CurSeqNr % serv.CheckpointConstant == 0) serv.CreateCheckpoint(serv.CurSeqNr);
                         });
                         
                     });
-                    int seqHigh = serv.CurSeqRange.End.Value;
-                    if (serv.CurSeqNr >= seqHigh)
-                    {
-                        await serv.Checkpointing();
-                    }
+                    
                     //serv.ChangeClientStatus(req.ClientID);
                 }
                 

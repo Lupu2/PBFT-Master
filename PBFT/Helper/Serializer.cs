@@ -34,7 +34,8 @@ namespace PBFT.Helper
                     resobj = copyobj.Concat(BitConverter.GetBytes(5)).ToArray();
                     break;
                 case MessageType.Checkpoint:
-                //TODO insert serialization for Checkpoint
+                    resobj = copyobj.Concat(BitConverter.GetBytes(6)).ToArray();
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }

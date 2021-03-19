@@ -34,16 +34,21 @@ namespace PBFT.Replica
         public ViewPrimary CurPrimary {get; set;}
         public int CurSeqNr {get; set;}
         public Range CurSeqRange { get; set;}
+        
+        public int CheckpointConstant { get; set; }
         public int TotalReplicas {get; set;}
-        private CDictionary<int, CList<ProtocolCertificate>> Log;
+        public CheckpointCertificate StableCheckpoints;
         public Source<Request> RequestBridge;
         public Source<PhaseMessage> ProtocolBridge;
+        public Source<CheckpointCertificate> CheckpointBridge;
+        private CDictionary<int, CList<ProtocolCertificate>> Log;
         public CDictionary<int, bool> ClientActive;
         public CDictionary<int, Reply> ReplyLog;
         public CDictionary<int, string> ServerContactList;
         public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
         
-        
+
+        public CDictionary<int, CheckpointCertificate> CheckpointLog;
         //NON-Persitent
         private Engine _scheduler {get; set;}
         private TempConnListener _servListener { get; set; }
@@ -62,8 +67,9 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = 0;
             TotalReplicas = totalreplicas;
+            CheckpointConstant = checkpointinter;
             CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
-            CurSeqRange = new Range(0,checkpointinter);
+            CurSeqRange = new Range(0,2*checkpointinter);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
@@ -90,6 +96,7 @@ namespace PBFT.Replica
             CurSeqNr = seqnr;
             TotalReplicas = totalreplicas;
             CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader, no it doesnt...
+            CheckpointConstant = checkpointinter;
             if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             RequestBridge = reqbridge;
@@ -100,6 +107,8 @@ namespace PBFT.Replica
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            StableCheckpoints = null;
+            CheckpointLog = new CDictionary<int, CheckpointCertificate>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
@@ -120,6 +129,7 @@ namespace PBFT.Replica
             CurSeqNr = seqnr;
             TotalReplicas = replicas;
             CurPrimary = lead;
+            CheckpointConstant = seqRange.End.Value / 2;
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
@@ -128,6 +138,8 @@ namespace PBFT.Replica
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            StableCheckpoints = null;
+            CheckpointLog = new CDictionary<int, CheckpointCertificate>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
@@ -141,9 +153,10 @@ namespace PBFT.Replica
         }
 
         [JsonConstructor]
-        public Server(int id, int curview, int seqnr, Range seqRange, ViewPrimary lead, int replicas, 
-            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, 
-            CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList)
+        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas, 
+            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, 
+            CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList, 
+            CheckpointCertificate stablecheck, CDictionary<int,CheckpointCertificate> checkpoints)
         {
             ServID = id;
             CurView = curview;
@@ -151,6 +164,7 @@ namespace PBFT.Replica
             TotalReplicas = replicas;
             //_servConn = new TempConn(ipaddress);
             CurPrimary = lead;
+            CheckpointConstant = checkpointint;
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
@@ -159,7 +173,9 @@ namespace PBFT.Replica
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>(); //possibly change this to get stored view messages?
+            StableCheckpoints = stablecheck;
+            CheckpointLog = checkpoints;
             
             //Initialize non-persistent storage
             _servListener = new TempConnListener(ServerContactList[ServID], HandleNewClientConnection);
@@ -221,7 +237,8 @@ namespace PBFT.Replica
         public void Start()
         {
             Console.WriteLine("Server starting");
-            _ = _servListener.Listen();  
+            _ = _servListener.Listen();
+            _ = ListenForStableCheckpoint();
         } 
         
         public void HandleNewClientConnection(TempInteractiveConn conn)
@@ -314,6 +331,18 @@ namespace PBFT.Replica
                                break;
                            case MessageType.NewView:
                                break;
+                           case MessageType.Checkpoint:
+                               Checkpoint check = (Checkpoint) mes;
+                               if (CheckpointLog.ContainsKey(check.StableSeqNr) && StableCheckpoints.LastSeqNr != check.StableSeqNr)
+                                   CheckpointLog[check.StableSeqNr].AppendProof(check, ServPubKeyRegister[check.ServID], Quorum.CalculateFailureLimit(TotalReplicas));
+                               else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
+                               {
+                                   CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr, check.StateDigest);
+                                   cert.AppendProof(check, ServPubKeyRegister[check.ServID], Quorum.CalculateFailureLimit(TotalReplicas));
+                                   CheckpointLog[check.StableSeqNr] = cert;
+                                   CreateCheckpoint(check.StableSeqNr);
+                               }
+                               break;
                            default:
                                Console.WriteLine("Unrecognizable Message");
                                break;
@@ -368,11 +397,11 @@ namespace PBFT.Replica
 
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
-            Console.WriteLine("Emitting Locally!");
+            Console.WriteLine("Emitting Phase Locally!");
             //Console.WriteLine(mes);
             ProtocolBridge.Emit(mes);
         }
-
+        
         public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
             if (rebooted) //Rebooting
@@ -407,9 +436,6 @@ namespace PBFT.Replica
                         SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
                         await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
                         _= HandleIncommingMessages(servConn);
-                        //A - Leander system with lower id vs higher id 
-                        //B - Input & Output Unique for server vs sockets unidirectional
-                        //C - Complicated Algorithm
                     }
                 }
             }
@@ -439,7 +465,6 @@ namespace PBFT.Replica
         public void ChangeClientStatus(int cid)
         {
             //Assuming Client Already added during client initialization
-            
             if (ClientActive[cid]) ClientActive[cid] = false;
             else ClientActive[cid] = true;
         }
@@ -467,7 +492,7 @@ namespace PBFT.Replica
         
         //public void AddCertificate(int seqNr, ProtocolCertificate cert) => Log[seqNr].Add(cert);
 
-        public void AddCertificate(int seqNr, ProtocolCertificate cert)
+        public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Certificate saved!");
             lock (_sync)
@@ -476,13 +501,37 @@ namespace PBFT.Replica
             }
         }
 
-        public async CTask Checkpointing()
+        public async Task ListenForStableCheckpoint()
         {
-            //send checkpoint message
-            //wait for the checkpoint certificate to be ready
-            //collect the information in log and create a hash value for checkpoint
-            //update seqence number range and current seqnr
-            //GarbageCollect(lowest sequence number in range - 1)
+            Console.WriteLine("Listen for stable checkpoints");
+            while (true)
+            {
+                var stablecheck = await CheckpointBridge.Next();
+                StableCheckpoints = stablecheck;
+                GarbageCollect(StableCheckpoints.LastSeqNr);
+            }
+        }
+        
+        private byte[] MakeStateDigest(int N)
+        { //TODO finish makestatedigest and have it make a digest of the log state up to N
+            byte[] digest = new byte[]{1};
+            return digest;
+        }
+        
+        public void CreateCheckpoint(int limseqNr)
+        {
+            if (StableCheckpoints == null || StableCheckpoints.LastSeqNr < limseqNr)
+            {
+                var statedig = MakeStateDigest(limseqNr);
+                CheckpointCertificate checkcert;
+                if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
+                else checkcert = new CheckpointCertificate(limseqNr, statedig);
+                var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
+                checkpointmes.SignMessage(_prikey);
+                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).RunSynchronously();
+                //Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter().GetResult();
+                checkcert.AppendProof(checkpointmes,Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));    
+            }
         }
         
         public void AddEngine(Engine sche) => _scheduler = sche;
@@ -490,7 +539,7 @@ namespace PBFT.Replica
         private void GarbageCollect(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
-                if (entrySeqNr < seqNr) 
+                if (entrySeqNr <= seqNr) 
                     Log.Remove(entrySeqNr);
         }
         
@@ -509,6 +558,8 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
             stateToSerialize.Set(nameof(ReplyLog), ReplyLog);
             stateToSerialize.Set(nameof(ServerContactList), ServerContactList);
+            stateToSerialize.Set(nameof(StableCheckpoints), StableCheckpoints);
+            stateToSerialize.Set(nameof(CheckpointLog), CheckpointLog);
         }
         
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -516,6 +567,7 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(CurView)),
                 sd.Get<int>(nameof(CurSeqNr)),
+                sd.Get<int>(nameof(CheckpointConstant)),
                 new Range(sd.Get<int>("CurSeqRangeLow"),sd.Get<int>("CurSeqRangeHigh")),
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
@@ -523,8 +575,10 @@ namespace PBFT.Replica
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
                 sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
-                sd.Get<CDictionary<int,Reply>>(nameof(ReplyLog)),
-                sd.Get<CDictionary<int,string>>(nameof(ServerContactList))
-                );
+                sd.Get<CDictionary<int, Reply>>(nameof(ReplyLog)),
+                sd.Get<CDictionary<int, string>>(nameof(ServerContactList)),
+                sd.Get<CheckpointCertificate>(nameof(StableCheckpoints)),
+                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
+        );
     }
 }
