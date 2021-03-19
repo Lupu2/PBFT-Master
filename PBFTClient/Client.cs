@@ -81,7 +81,8 @@ namespace PBFT.Client
             while (true)
             {
                 string op = CreateOperation();
-                _ = RunCommand(op);
+                RunCommand(op).GetAwaiter().OnCompleted(() => Console.WriteLine("RUN COMMAND FINISHED"));
+                
             }
         }
         
@@ -240,7 +241,8 @@ namespace PBFT.Client
             var repCert = new ReplyCertificate(req);
             
             //Set timeout for validateRequest and return false if it occurs
-            await ReplySource
+            Console.WriteLine("Validating");
+                await ReplySource
                 .Where(rep => rep.Timestamp == req.Timestamp)
                 .Scan(repCert.ProofList, (prooflist, message) =>
                 {

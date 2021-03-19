@@ -23,7 +23,7 @@ namespace PBFT.Tests
         [TestMethod]
         public void JsonLoadServerData()
         {
-            var serverdata = LoadJSONValues.GetServerData("testServerInfo.json", 0).Result;
+            var serverdata = LoadJSONValues.GetServerData("testServerInfo.json", 0).GetAwaiter().GetResult();
             var id = serverdata.Item1;
             var ipaddr = serverdata.Item2;
             Console.WriteLine(id);
@@ -35,7 +35,7 @@ namespace PBFT.Tests
         [TestMethod]
         public void JsonLoadServerFileContent()
         {
-            var filecontent = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
+            var filecontent = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").GetAwaiter().GetResult();
             int i = 0;
             string baseIP = "127.0.0.1:900";
             foreach (var (id,ip) in filecontent)

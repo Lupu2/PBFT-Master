@@ -97,7 +97,7 @@ namespace PBFT
                     //serv.ChangeClientStatus(req.ClientID);
                     await scheduler.Schedule(() =>
                     {
-                        serv.ChangeClientStatus(req.ClientID);
+                        serv.ChangeClientStatus(req.ClientID); ;
                         var reply = execute.HandleRequest(req)
                             .GetAwaiter();
                         reply.OnCompleted(() =>
@@ -105,7 +105,13 @@ namespace PBFT
                             serv.ChangeClientStatus(req.ClientID);
                             Console.WriteLine("It worked!");
                         });
+                        
                     });
+                    int seqHigh = serv.CurSeqRange.End.Value;
+                    if (serv.CurSeqNr >= seqHigh)
+                    {
+                        await serv.Checkpointing();
+                    }
                     //serv.ChangeClientStatus(req.ClientID);
                 }
                 

@@ -50,7 +50,8 @@ namespace PBFT.Tests
             //Key initialization
             var (prikey1, pubkey1) = Crypto.InitializeKeyPairs();
             var (prikey2, pubkey2) = Crypto.InitializeKeyPairs();
-            //var (prikey3, pubkey3) = Crypto.InitializeKeyPairs();
+            var (prikey3, pubkey3) = Crypto.InitializeKeyPairs();
+            
             //Message initialization
             PhaseMessage pm1;
             if (serv.IsPrimary()) pm1 = new PhaseMessage(1, 1, 0, digest, PMessageType.Prepare);
@@ -64,14 +65,15 @@ namespace PBFT.Tests
             pm3.SignMessage(prikey1);
             var pm4 = new PhaseMessage(2, 1, 0, digest, PMessageType.Commit);
             pm4.SignMessage(prikey2);
-            //var pm5 = new PhaseMessage(3, 1, 0, digest, PMessageType.Commit);
-            //pm5.SignMessage(prikey3);
+            var pm5 = new PhaseMessage(3, 1, 0, digest, PMessageType.Commit);
+            pm5.SignMessage(prikey3);
             if (serv.IsPrimary()) serv.ServPubKeyRegister[1] = pubkey1;
             else serv.ServPubKeyRegister[0] = pubkey1;
             serv.ServPubKeyRegister[2] = pubkey2;
-            
+            //serv.ServPubKeyRegister[3] = pubkey3;
             pmesbridge.Emit(pm1);
             pmesbridge.Emit(pm2);
+            Thread.Sleep(3000);
             pmesbridge.Emit(pm3);
             pmesbridge.Emit(pm4);
             //pmesbridge.Emit(pm5);
@@ -140,5 +142,13 @@ namespace PBFT.Tests
             var rep = await protocol;
             return rep;
         }
+
+        [TestMethod]
+        public void ProtocolTestWithFullWorkflow()
+        {
+            
+        }
+        
+        
     }
 }

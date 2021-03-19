@@ -10,6 +10,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.ExecutionEngine.DataStructures;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
@@ -40,6 +41,8 @@ namespace PBFT.Replica
         public CDictionary<int, bool> ClientActive;
         public CDictionary<int, Reply> ReplyLog;
         public CDictionary<int, string> ServerContactList;
+        public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
+        
         
         //NON-Persitent
         private Engine _scheduler {get; set;}
@@ -67,6 +70,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
+            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress,HandleNewClientConnection);
@@ -95,6 +99,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
+            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
@@ -122,6 +127,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
+            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
@@ -153,6 +159,7 @@ namespace PBFT.Replica
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
             ServerContactList = contactList;
+            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             
             //Initialize non-persistent storage
             _servListener = new TempConnListener(ServerContactList[ServID], HandleNewClientConnection);
@@ -275,6 +282,7 @@ namespace PBFT.Replica
                                    ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
                                {
                                    if (!ClientActive[reqmes.ClientID]) RequestBridge.Emit(reqmes);
+                                   
                                }
                                else //Rules broken, terminate connection
                                {
@@ -302,6 +310,7 @@ namespace PBFT.Replica
 
                                break;
                            case MessageType.ViewChange:
+                               ViewChange vc = (ViewChange) mes;
                                break;
                            case MessageType.NewView:
                                break;
@@ -421,8 +430,6 @@ namespace PBFT.Replica
             }
         }*/
         
-        
-        
         /*public async CTask InitializeSession(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
         {
             var sessionmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
@@ -452,6 +459,7 @@ namespace PBFT.Replica
         //Log functions
         public bool InitializeLog(int seqNr)
         {
+            Console.WriteLine("Initialized Log");
             if (!Log.ContainsKey(seqNr)) Log[seqNr] = new CList<ProtocolCertificate>();
             else return false;
             return true;
@@ -462,12 +470,24 @@ namespace PBFT.Replica
         public void AddCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Certificate saved!");
-            Log[seqNr].Add(cert);
+            lock (_sync)
+            {
+                Log[seqNr].Add(cert);   
+            }
+        }
+
+        public async CTask Checkpointing()
+        {
+            //send checkpoint message
+            //wait for the checkpoint certificate to be ready
+            //collect the information in log and create a hash value for checkpoint
+            //update seqence number range and current seqnr
+            //GarbageCollect(lowest sequence number in range - 1)
         }
         
         public void AddEngine(Engine sche) => _scheduler = sche;
         
-        public void GarbageCollect(int seqNr)
+        private void GarbageCollect(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
                 if (entrySeqNr < seqNr) 

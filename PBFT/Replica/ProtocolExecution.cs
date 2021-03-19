@@ -10,6 +10,7 @@ using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx.ExecutionEngine;
 
 namespace PBFT.Replica
@@ -62,8 +63,9 @@ namespace PBFT.Replica
                 var preprepared = await MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
                     
-                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange)) //oversight, not the servers pubkey the message id's pubkey!!!
+                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange))
                     .Next();
+                //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                 
                 qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, clireq, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                 curSeq = qcertpre.SeqNr;
@@ -77,8 +79,7 @@ namespace PBFT.Replica
             }
             
             //Prepare phase
-            ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, clireq, CertType.Committed);
-            
+            ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, clireq, CertType.Committed);   
             var prepared = MesBridge
                 .Where(pm => pm.PhaseType == PMessageType.Prepare)
                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
@@ -218,9 +219,8 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                     .Next(); //probably won't work
-
-                var committed =
-                    MesBridge //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
+                //CList<PhaseMessage> eks = new CList<PhaseMessage>();
+                var committed= MesBridge //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                         .Where(pm => pm.PhaseType == PMessageType.Commit)
                         .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
                             qcertcom))
@@ -233,7 +233,7 @@ namespace PBFT.Replica
                         .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                         .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                         .Next();
-                
+                //qcertcom.ProofList = eks;
                 Console.WriteLine("Waiting for Prepare messages");
                 //await prepared.Where(_ => qcertpre.ValidateCertificate(FailureNr)).Next();
                 await prepared;

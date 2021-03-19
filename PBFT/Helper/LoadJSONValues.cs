@@ -10,8 +10,8 @@ namespace PBFT.Helper
 {
     public class JSONServerObj
     {
-        public int ID { get; set;  }
-        public string IP { get; set; }
+        public int ID { get; set;}
+        public string IP { get; set;}
 
         public JSONServerObj(int id, string ipaddr)
         {
@@ -39,7 +39,6 @@ namespace PBFT.Helper
                 var serv = jsonServ.Single(s => s.ID == actualID);
                 return serv;
             }
-            
         }
 
         public static async Task<CDictionary<int,string>> LoadJSONFileContent(string filepath)

@@ -6,6 +6,7 @@ namespace PBFT.Messages
 {
     public class ViewChange : IProtocolMessages, SignedMessage
     {
+        public int stableSeqNr;
         public int ServID;
         public int NextViewNr;
         //public int StableSequenceNr (based on checkpoints)

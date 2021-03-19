@@ -138,7 +138,6 @@ namespace PBFT.Messages
                 //Console.WriteLine(e);
                 //throw;
             //}
-            
         }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, PhaseType);
@@ -150,8 +149,7 @@ namespace PBFT.Messages
             return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {null}\n Signature: {Signature}";  
                      
         }
-
-
+        
         public bool Compare(PhaseMessage pes2)
         {
             if (pes2.ServID != ServID) return false;

@@ -43,22 +43,16 @@ namespace PBFT.Tests.Network
                     MessageType.PhaseMessage)
             );
             var bytemes = bytemes1.Concat(bytemes2).ToArray();
-            //Console.WriteLine(BitConverter.ToString(bytemes));
-            //Console.WriteLine(Encoding.ASCII.GetString(bytemes));
+            
             List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
             List<int> types = new List<int>();
-            Console.WriteLine("Received a Message");
-
             var jsonstringobj = Encoding.ASCII.GetString(bytemes);
             var mesobjects = jsonstringobj.Split('|', StringSplitOptions.RemoveEmptyEntries);
             if (mesobjects.Length > 1)
             {
-                Console.WriteLine("THIS IS A MESSAGE FROM LORD REX, WE ARE NOW IN BIG TROUBLE!");
                 int idx = 0;
                 foreach (var mesjson in mesobjects)
                 {
-                    Console.WriteLine("MesJSON");
-                    Console.WriteLine(mesjson);
                     byte[] bytesegment = bytemes.ToArray();
                     if (idx != 0)
                     {
@@ -67,8 +61,6 @@ namespace PBFT.Tests.Network
                             .ToArray();
                     }
                     var messegment = bytesegment.Take(mesjson.Length).ToArray();
-                    Console.WriteLine("MesSegment");
-                    Console.WriteLine(Encoding.ASCII.GetString(messegment));
                     var (type, mes) = Deserializer.ChooseDeserialize(messegment);
                     types.Add(type);
                     incommingMessages.Add(mes);
