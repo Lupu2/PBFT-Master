@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -36,6 +37,7 @@ namespace PBFT.Tests.Replica
             ccert.ProofList.Add(check1);
             ccert.ProofList.Add(check2);
             ccert.ProofList.Add(check3);
+            ccert.ProofList.Add(check1);
             Assert.IsTrue(ccert.ProofsAreValid());
             ccert.ResetCertificate();
             var check1bad = new Checkpoint(1, 1, null);
@@ -283,7 +285,62 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void FaultyCheckpointValidationTest()
         {
+             var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null,new CDictionary<int, string>());
+            testserv.InitializeLog(0);
+            testserv.InitializeLog(1);
+            testserv.InitializeLog(2);
             
+            var req0 = new Request(1, "Hello", "12:00");
+            var req1 = new Request(1, "Hi", "12:00");
+            var req2 = new Request(1, "Hola", "12:00");
+            var pre0 = new PhaseMessage(0, 0, 1, Crypto.CreateDigest(req0), PMessageType.PrePrepare);
+            var com0 = new PhaseMessage(0, 0, 1, Crypto.CreateDigest(req0), PMessageType.Commit);
+            var pre1 = new PhaseMessage(0, 1, 1, Crypto.CreateDigest(req1), PMessageType.PrePrepare);
+            var com1 = new PhaseMessage(0, 1, 1, Crypto.CreateDigest(req1), PMessageType.Commit);
+            var pre2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.PrePrepare);
+            var com2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.Commit);
+
+            var preproof0 = new ProtocolCertificate(0, 1, req0, CertType.Prepared);
+            var comproof0 = new ProtocolCertificate(0, 1, req0, CertType.Committed);
+            var preproof1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
+            var comproof1 = new ProtocolCertificate(1, 1, req1, CertType.Committed);
+            var preproof2 = new ProtocolCertificate(2, 1, req2, CertType.Prepared);
+            var comproof2 = new ProtocolCertificate(2, 1, req2, CertType.Committed);
+            preproof0.ProofList.Add(pre0);
+            comproof0.ProofList.Add(com0);
+            preproof1.ProofList.Add(pre1);
+            comproof1.ProofList.Add(com1);
+            preproof2.ProofList.Add(pre2);
+            comproof2.ProofList.Add(com2);
+
+            testserv.AddProtocolCertificate(0,preproof0);
+            testserv.AddProtocolCertificate(0,comproof0);
+            testserv.AddProtocolCertificate(1,preproof1);
+            testserv.AddProtocolCertificate(1,comproof1);
+            testserv.AddProtocolCertificate(2,preproof2);
+            testserv.AddProtocolCertificate(2,comproof2);
+            _ = testserv.ListenForStableCheckpoint();
+            Assert.AreEqual(testserv.NrOfLogEntries(), 3);
+            
+            byte[] dig1 = testserv.TestMakeStateDigest(2);
+            var cert1 = new CheckpointCertificate(2, dig1, testserv.CheckpointBridge);
+            testserv.CheckpointLog[2] = cert1;
+            Assert.AreEqual(testserv.CheckpointLog.Count,1);
+            var cp = new Checkpoint(testserv.ServID, 2, dig1);
+            testserv.SignMessage(cp, MessageType.Checkpoint);
+            var cp1 = new Checkpoint(0, 2, dig1);
+            testserv.SignMessage(cp1, MessageType.Checkpoint);
+            var cp2 = new Checkpoint(2, 2, null);
+            testserv.SignMessage(cp2, MessageType.Checkpoint);
+            cert1.AppendProof(cp, testserv.Pubkey, 1);
+            cert1.AppendProof(cp1, testserv.Pubkey, 1);
+            cert1.AppendProof(cp2, testserv.Pubkey, 1);
+            Assert.IsFalse(cert1.ValidateCertificate(1));
+            Assert.AreEqual(testserv.NrOfLogEntries(), 3);
+            Assert.AreEqual(testserv.CheckpointLog.Count,1);
+            Assert.AreEqual(testserv.CheckpointLog[2].LastSeqNr,cert1.LastSeqNr);
+            Assert.AreEqual(testserv.CheckpointLog[2].Stable,cert1.Stable);
+            Assert.IsTrue(testserv.CheckpointLog[2].StateDigest.SequenceEqual(cert1.StateDigest));
         }
     }
 }

@@ -106,6 +106,7 @@ namespace PBFT.Certificates
             stateToSerialize.Set(nameof(StateDigest), Serializer.SerializeHash(StateDigest));
             stateToSerialize.Set(nameof(Stable), Stable);
             stateToSerialize.Set(nameof(ProofList), ProofList);
+            stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
         }
         
         private static CheckpointCertificate Deserialize(IReadOnlyDictionary<string, object> sd)

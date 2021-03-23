@@ -121,5 +121,24 @@ namespace PBFT.Tests.Persistency
             Reply rep2 = _objectStore.Resolve<Reply>();
             Assert.IsTrue(rep.Compare(rep2));
         }
+
+        [TestMethod]
+        public void CheckpointTest()
+        {
+            var test = new Request(1,"Hello", "12:00");
+            var testdig = Crypto.CreateDigest(test);
+            var checkmes = new Checkpoint(1, 1,testdig);
+            checkmes.SignMessage(_pri);
+            Assert.AreEqual(checkmes.ServID,1);
+            Assert.AreEqual(checkmes.StableSeqNr,1);
+            Assert.IsTrue(checkmes.StateDigest.SequenceEqual(testdig));
+            Assert.AreNotEqual(checkmes.Signature,null);
+            _objectStore.Attach(checkmes);
+            _objectStore.Persist();
+            _objectStore = null;
+            _objectStore = ObjectStore.Load(_storage, false);
+            Checkpoint copymes = _objectStore.Resolve<Checkpoint>();
+            Assert.IsTrue(copymes.Compare(checkmes));
+        }
     }
 }
