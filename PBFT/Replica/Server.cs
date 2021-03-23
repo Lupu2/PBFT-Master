@@ -1,13 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Net;
-using System.Net.Http;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Text.Json.Serialization;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ExecutionEngine.DataStructures;
@@ -18,7 +14,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using Cleipnir.StorageEngine.InMemory;
+using Newtonsoft.Json;
 using PBFT.Certificates;
 using PBFT.Network;
 using PBFT.Helper;
@@ -34,7 +30,6 @@ namespace PBFT.Replica
         public ViewPrimary CurPrimary {get; set;}
         public int CurSeqNr {get; set;}
         public Range CurSeqRange { get; set;}
-        
         public int CheckpointConstant { get; set; }
         public int TotalReplicas {get; set;}
         public CheckpointCertificate StableCheckpoints;
@@ -46,9 +41,8 @@ namespace PBFT.Replica
         public CDictionary<int, Reply> ReplyLog;
         public CDictionary<int, string> ServerContactList;
         public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
-        
-
         public CDictionary<int, CheckpointCertificate> CheckpointLog;
+        
         //NON-Persitent
         private Engine _scheduler {get; set;}
         private TempConnListener _servListener { get; set; }
@@ -72,11 +66,14 @@ namespace PBFT.Replica
             CurSeqRange = new Range(0,2*checkpointinter);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            CheckpointBridge = new Source<CheckpointCertificate>();
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            StableCheckpoints = null;
+            CheckpointLog = new CDictionary<int, CheckpointCertificate>();
             
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress,HandleNewClientConnection);
@@ -101,6 +98,7 @@ namespace PBFT.Replica
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            CheckpointBridge = new Source<CheckpointCertificate>();
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
@@ -133,6 +131,7 @@ namespace PBFT.Replica
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            CheckpointBridge = new Source<CheckpointCertificate>();
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
@@ -152,11 +151,11 @@ namespace PBFT.Replica
             rebooted = false;
         }
 
-        [JsonConstructor]
+        [System.Text.Json.Serialization.JsonConstructor]
         public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas, 
             Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, 
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList, 
-            CheckpointCertificate stablecheck, CDictionary<int,CheckpointCertificate> checkpoints)
+            CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
             ServID = id;
             CurView = curview;
@@ -168,6 +167,7 @@ namespace PBFT.Replica
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            CheckpointBridge = new Source<CheckpointCertificate>();
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = clientActiveRegister;
@@ -243,14 +243,14 @@ namespace PBFT.Replica
         
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
-            //_scheduler.Schedule(() =>
-            //{
+            _scheduler.Schedule(() =>
+            {
                 _ = HandleIncommingMessages(conn);
-            //});
+            });
         }
         
         //Handle incomming messages
-        public async Task HandleIncommingMessages(TempInteractiveConn conn)
+        public async CTask HandleIncommingMessages(TempInteractiveConn conn)
         {
             while (true)
             {
@@ -333,11 +333,17 @@ namespace PBFT.Replica
                                break;
                            case MessageType.Checkpoint:
                                Checkpoint check = (Checkpoint) mes;
-                               if (CheckpointLog.ContainsKey(check.StableSeqNr) && StableCheckpoints.LastSeqNr != check.StableSeqNr)
-                                   CheckpointLog[check.StableSeqNr].AppendProof(check, ServPubKeyRegister[check.ServID], Quorum.CalculateFailureLimit(TotalReplicas));
+                               if (CheckpointLog.ContainsKey(check.StableSeqNr))
+                               {
+                                   if (StableCheckpoints == null || StableCheckpoints.LastSeqNr != check.StableSeqNr)
+                                       CheckpointLog[check.StableSeqNr].AppendProof(check,
+                                                                        ServPubKeyRegister[check.ServID],
+                                                                        Quorum.CalculateFailureLimit(TotalReplicas)
+                                                                        );
+                               }
                                else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
                                {
-                                   CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr, check.StateDigest);
+                                   CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr, check.StateDigest, CheckpointBridge);
                                    cert.AppendProof(check, ServPubKeyRegister[check.ServID], Quorum.CalculateFailureLimit(TotalReplicas));
                                    CheckpointLog[check.StableSeqNr] = cert;
                                    CreateCheckpoint(check.StableSeqNr);
@@ -358,7 +364,7 @@ namespace PBFT.Replica
             }
         }
         
-        public async Task Multicast(byte[] sermessage, MessageType type)
+        public async CTask Multicast(byte[] sermessage, MessageType type)
         {
             Console.WriteLine("Multicasting: " + type);
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
@@ -370,29 +376,15 @@ namespace PBFT.Replica
             }
         }
 
-        public async Task SendMessage(byte[] sermessage, Socket sock, MessageType type)
+        public async CTask SendMessage(byte[] sermessage, Socket sock, MessageType type)
         {
             Console.WriteLine($"Sending: {type} message");
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             //Console.WriteLine("identifier?");
-            /*if (ServConnInfo.ContainsKey(id))
-            {
-                var conn = ServConnInfo[id];
-                await conn.Socket.SendAsync(fullbuffmes, SocketFlags.None);
-            }*/
-            /*else if (ClientConnInfo.ContainsKey(id))
-            {
-                var conn = ClientConnInfo[id];
-                await conn.Socket.SendAsync(fullbuffmes, SocketFlags.None);
-            }*/
             //Console.WriteLine("Hello Mom");
             //Console.WriteLine("Sending message");
             await sock.SendAsync(fullbuffmes, SocketFlags.None);
-            /*else //no info registered for this server
-            {
-                Console.WriteLine("no registered data");
-            }*/
         }
 
         public void EmitPhaseMessageLocally(PhaseMessage mes)
@@ -490,8 +482,6 @@ namespace PBFT.Replica
             return true;
         }
         
-        //public void AddCertificate(int seqNr, ProtocolCertificate cert) => Log[seqNr].Add(cert);
-
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Certificate saved!");
@@ -501,22 +491,44 @@ namespace PBFT.Replica
             }
         }
 
-        public async Task ListenForStableCheckpoint()
+        public async CTask ListenForStableCheckpoint()
         {
             Console.WriteLine("Listen for stable checkpoints");
             while (true)
             {
                 var stablecheck = await CheckpointBridge.Next();
+                Console.WriteLine("Update Checkpoint State");
                 StableCheckpoints = stablecheck;
-                GarbageCollect(StableCheckpoints.LastSeqNr);
+                GarbageCollectLog(StableCheckpoints.LastSeqNr);
+                GarbageCollectCheckpoints(StableCheckpoints.LastSeqNr);
             }
         }
         
-        private byte[] MakeStateDigest(int N)
-        { //TODO finish makestatedigest and have it make a digest of the log state up to N
-            byte[] digest = new byte[]{1};
-            return digest;
+        private byte[] MakeStateDigest(int n)
+        {
+            if (Log.Count > 0 && n > 0 && n <= Log.Count)
+            {
+                var digdict = new Dictionary<int, string>();
+                foreach (var (seq,proofs) in Log)
+                {
+                    if (seq <= n)
+                    {
+                        var seqproof = JsonConvert.SerializeObject(Serializer.PrepareForSerialize(proofs));
+                        digdict[seq] = seqproof;
+                    }
+                }
+                using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
+                {
+                    //Console.WriteLine(digdict.Count);
+                    string serializedlog = JsonConvert.SerializeObject(digdict);
+                    //Console.WriteLine(serializedlog);
+                    var bytelog = Encoding.ASCII.GetBytes(serializedlog);
+                    return shaalgo.ComputeHash(bytelog);
+                }    
+            }
+            throw new ArgumentException();
         }
+        public byte[] TestMakeStateDigest(int n) => MakeStateDigest(n);
         
         public void CreateCheckpoint(int limseqNr)
         {
@@ -525,24 +537,35 @@ namespace PBFT.Replica
                 var statedig = MakeStateDigest(limseqNr);
                 CheckpointCertificate checkcert;
                 if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
-                else checkcert = new CheckpointCertificate(limseqNr, statedig);
+                else checkcert = new CheckpointCertificate(limseqNr, statedig, CheckpointBridge);
                 var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
                 checkpointmes.SignMessage(_prikey);
-                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).RunSynchronously();
-                //Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter().GetResult();
+                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter().GetResult(); //wait for multicast to finish
                 checkcert.AppendProof(checkpointmes,Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));    
             }
         }
         
         public void AddEngine(Engine sche) => _scheduler = sche;
         
-        private void GarbageCollect(int seqNr)
+        private void GarbageCollectLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
                 if (entrySeqNr <= seqNr) 
                     Log.Remove(entrySeqNr);
         }
         
+        private void GarbageCollectCheckpoints(int seqNr)
+        {
+            foreach (var (entrySeqNr, _) in CheckpointLog)
+            {
+                if (entrySeqNr <= seqNr) 
+                    CheckpointLog.Remove(entrySeqNr);
+            }
+                
+        }
+
+        public int NrOfLogEntries() => Log.Count;
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -550,6 +573,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(CurSeqNr), CurSeqNr);
             stateToSerialize.Set("CurSeqRangeLow", CurSeqRange.Start.Value);
             stateToSerialize.Set("CurSeqRangeHigh", CurSeqRange.End.Value);
+            stateToSerialize.Set(nameof(CheckpointConstant), CheckpointConstant);
             stateToSerialize.Set(nameof(CurPrimary), CurPrimary);
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
             stateToSerialize.Set(nameof(RequestBridge), RequestBridge);

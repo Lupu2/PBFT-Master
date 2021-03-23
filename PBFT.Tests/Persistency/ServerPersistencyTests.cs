@@ -32,7 +32,7 @@ namespace PBFT.Tests.Persistency
         
         [TestMethod]
         public void ServerPersistencyInfoTest()
-        {
+        {   //TODO update ServerPersistencyInfoTest to match current Server State
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(),
                 new Source<PhaseMessage>(), new CDictionary<int, string>());
             /*
@@ -56,6 +56,7 @@ namespace PBFT.Tests.Persistency
             serv.ClientActive.Set(1,true);
             _objectStore.Attach(serv);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage);
             var servcopy = _objectStore.Resolve<Server>();
             Assert.AreEqual(servcopy.ServID, serv.ServID);
@@ -66,6 +67,8 @@ namespace PBFT.Tests.Persistency
             Assert.AreEqual(servcopy.CurPrimary.ViewNr, serv.CurPrimary.ViewNr);
             Assert.AreEqual(servcopy.CurPrimary.ServID, serv.CurPrimary.ServID);
             Assert.AreEqual(servcopy.TotalReplicas, serv.TotalReplicas);
+            Assert.AreEqual(servcopy.CheckpointConstant,serv.CheckpointConstant);
+            Assert.AreEqual(servcopy.StableCheckpoints, null);
             Assert.IsTrue(servcopy.ReplyLog[1].Compare(serv.ReplyLog[1]));
             Assert.IsTrue(servcopy.ClientActive[1]);
         }
@@ -80,6 +83,7 @@ namespace PBFT.Tests.Persistency
             
             _objectStore.Attach(vm);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             ViewPrimary vmcopy = _objectStore.Resolve<ViewPrimary>();
             Assert.AreEqual(vmcopy.ServID,1);

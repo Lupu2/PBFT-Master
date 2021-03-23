@@ -18,7 +18,6 @@ namespace PBFT.Messages
         public byte[] StateDigest {get; set;} //Digest of the state
         public byte[] Signature{get; set;}
         
-
         public Checkpoint(int id, int seqnr, byte[] statedigest)
         {
             ServID = id;
@@ -78,11 +77,8 @@ namespace PBFT.Messages
         
         public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, StableSeqNr, StateDigest);
 
-        public override string ToString()
-        {
-            return base.ToString();
-        }
-
+        public override string ToString() => $"ServID: {ServID}, SeqNumber:{StableSeqNr}, Digest:{StateDigest}, Signature:{Signature} ";
+        
         public bool Compare(Checkpoint check)
         {
             if (check.ServID != ServID) return false;

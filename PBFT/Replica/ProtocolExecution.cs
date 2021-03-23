@@ -9,6 +9,7 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx.ExecutionEngine;
@@ -34,8 +35,10 @@ namespace PBFT.Replica
             MesBridge = bridge;
         }
 
-        public async CTask<Reply> HandleRequest(Request clireq) 
+        public async CTask<Reply> HandleRequest(Request clireq)
         {
+
+            //await Sync.Next();
             try
             {
                 byte[] digest;
@@ -50,7 +53,8 @@ namespace PBFT.Replica
                 {
                     curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request 
                 }*/
-                curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
+                curSeq = ++Serv.CurSeqNr;
+                //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                 var init = Serv.InitializeLog(curSeq);
                 if (!init) return null; 
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
@@ -62,7 +66,6 @@ namespace PBFT.Replica
                     
                 var preprepared = await MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                    
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange))
                     .Next();
                 //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
@@ -133,7 +136,8 @@ namespace PBFT.Replica
                     return prooflist;
                 })
                 .Where(pm => qcertcom.ValidateCertificate(FailureNr))
-                .Next();*/
+                .Next();
+            */
             
             //Reply
             //Save the 2 Certificates
@@ -141,7 +145,7 @@ namespace PBFT.Replica
             Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
             //Need to move or insert await for curSeqNr to be the next request to be handled
             Console.WriteLine($"Completing operation: {clireq.Message}");
-            var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
+            var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
             rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
             await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
             return rep;
@@ -188,7 +192,7 @@ namespace PBFT.Replica
 
                         .Where(pm =>
                             pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView,
-                                Serv.CurSeqRange)) //oversight, not the servers pubkey the message id's pubkey!!!
+                                Serv.CurSeqRange)) 
                         .Next();
 
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, clireq, CertType.Prepared,
@@ -219,6 +223,7 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                     .Next(); //probably won't work
+                
                 //CList<PhaseMessage> eks = new CList<PhaseMessage>();
                 var committed= MesBridge //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                         .Where(pm => pm.PhaseType == PMessageType.Commit)
@@ -255,7 +260,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Commit phase finished");
                 //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");
-                var rep = new Reply(Serv.ServID, Serv.CurSeqNr, Serv.CurView, true, clireq.Message,
+                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,
                     DateTime.Now.ToString());
                 rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
                 //await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);

@@ -35,13 +35,13 @@ namespace PBFT.Helper
 
         public static byte[] CreateDigest(Request clientRequest)
         {
-            using (var shaalgo = SHA256.Create()) //using= Dispose when finished with package 
+            using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
             {
                 var serareq = clientRequest.SerializeToBuffer();
                 return shaalgo.ComputeHash(serareq);
             }
         }
-
+        
         public static bool VerifySignature(byte[] signature, byte[] mesdig, RSAParameters pubkey, string hashpro="SHA256")
         { //https://docs.microsoft.com/en-us/dotnet/standard/security/cryptographic-signatures
             Console.WriteLine("Verifying Signature");

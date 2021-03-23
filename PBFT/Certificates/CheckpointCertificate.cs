@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.Persistency;
@@ -22,21 +24,23 @@ namespace PBFT.Certificates
 
         public Source<CheckpointCertificate> CheckpointBridge {get; set;}
 
-        public CheckpointCertificate(int seqLimit, byte[] digest)
+        public CheckpointCertificate(int seqLimit, byte[] digest, Source<CheckpointCertificate> check)
         {
             LastSeqNr = seqLimit;
             StateDigest = digest;
             Stable = false;
             ProofList = new CList<Checkpoint>();
+            CheckpointBridge = check;
         }
         
         [JsonConstructor]
-        public CheckpointCertificate(int seqLimit, byte[] digest, bool stable, CList<Checkpoint> proofs)
+        public CheckpointCertificate(int seqLimit, byte[] digest, bool stable, Source<CheckpointCertificate> check, CList<Checkpoint> proofs)
         {
             LastSeqNr = seqLimit;
             StateDigest = digest;
             Stable = stable;
             ProofList = proofs;
+            CheckpointBridge = check;
         }
         
         public bool QReached(int nodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * nodes + 1;
@@ -53,10 +57,14 @@ namespace PBFT.Certificates
 
         public bool ProofsAreValid()
         {
+            if (ProofList.Count < 1) return false;
             foreach (var check in ProofList)
             {
                 if (check.StableSeqNr != LastSeqNr) return false;
-                if (check.StateDigest == null || check.StateDigest.SequenceEqual(StateDigest)) return false;
+                if (check.StateDigest == null && StateDigest != null || check.StateDigest != null && StateDigest == null) 
+                    return false;
+                if (check.StateDigest != null && StateDigest != null && !check.StateDigest.SequenceEqual(StateDigest)) 
+                    return false;
                 if (check.Signature == null) return false;
             }
             return true;
@@ -81,13 +89,17 @@ namespace PBFT.Certificates
             //if certificate becomes stable call emit CheckpointCertificate
             if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest)) 
                 ProofList.Add(check);
-            ValidateCertificate(failureNr);
+            Stable = ValidateCertificate(failureNr);
             if (Stable) EmitCertificate();
         }
 
-        private void EmitCertificate() => CheckpointBridge.Emit(this);
-        
-        
+        private void EmitCertificate()
+        {
+            Console.WriteLine("Emitting Checkpoint Certification");
+            CheckpointBridge.Emit(this);
+        }
+
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(LastSeqNr), LastSeqNr);
@@ -101,6 +113,7 @@ namespace PBFT.Certificates
                 sd.Get<int>(nameof(LastSeqNr)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                 sd.Get<bool>(nameof(Stable)),
+                sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointBridge)),
                 sd.Get<CList<Checkpoint>>(nameof(ProofList))
             );
     }

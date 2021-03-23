@@ -41,6 +41,7 @@ namespace PBFT.Tests.Persistency
             StringAssert.Contains(req.Timestamp,DateTime.Now.ToString()); //usually fast enough
             _objectStore.Attach(req);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             Request req2 = _objectStore.Resolve<Request>();
             Assert.IsTrue(req.Compare(req2));
@@ -75,6 +76,7 @@ namespace PBFT.Tests.Persistency
             _objectStore.Attach(mes2);
             _objectStore.Attach(mes3);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             var copies = _objectStore.ResolveAll<PhaseMessage>();
             foreach (var copy in copies)
@@ -114,6 +116,7 @@ namespace PBFT.Tests.Persistency
             StringAssert.Contains(rep.Timestamp, now.ToString());
             _objectStore.Attach(rep);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             Reply rep2 = _objectStore.Resolve<Reply>();
             Assert.IsTrue(rep.Compare(rep2));

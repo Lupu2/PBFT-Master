@@ -196,6 +196,9 @@ namespace PBFT.Certificates
             ProofList = new CList<PhaseMessage>();
         }
 
+        public ProtocolCertificate CloneInfoCertificate() =>
+            new ProtocolCertificate(SeqNr, ViewNr, CurReq, CType, Valid, new CList<PhaseMessage>());
+        
         public override string ToString() => $"CertType:{CType}, SeqNr:{SeqNr}, ViewNr:{ViewNr}";
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)

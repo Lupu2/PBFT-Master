@@ -73,7 +73,7 @@ namespace PBFT.Tests
             //serv.ServPubKeyRegister[3] = pubkey3;
             pmesbridge.Emit(pm1);
             pmesbridge.Emit(pm2);
-            Thread.Sleep(3000);
+            //Thread.Sleep(3000);
             pmesbridge.Emit(pm3);
             pmesbridge.Emit(pm4);
             //pmesbridge.Emit(pm5);

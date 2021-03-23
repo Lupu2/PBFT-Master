@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using Cleipnir.ObjectDB.PersistentDataStructures;
+using PBFT.Certificates;
 
 namespace PBFT.Helper
 {
@@ -44,5 +46,11 @@ namespace PBFT.Helper
 
         public static string SerializeHash(byte[] hash) => Convert.ToBase64String(hash);
         
+        public static CList<ProtocolCertificate> PrepareForSerialize(CList<ProtocolCertificate> certs)
+        {
+            var copyList = new CList<ProtocolCertificate>();
+            foreach (var cert in certs) copyList.Add(cert.CloneInfoCertificate());
+            return copyList;
+        }
     }
 }

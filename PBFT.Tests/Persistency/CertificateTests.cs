@@ -52,6 +52,7 @@ namespace PBFT.Tests.Persistency
             _objectStore.Attach(qcert1);
             _objectStore.Attach(qcert2);
             _objectStore.Persist();
+            _objectStore = null; //remove current state to test load functionality works
             _objectStore = ObjectStore.Load(_storage, false);
             var certificates = _objectStore.ResolveAll<ProtocolCertificate>();
             foreach (var copycert in certificates)
