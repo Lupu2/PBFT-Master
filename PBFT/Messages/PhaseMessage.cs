@@ -124,8 +124,7 @@ namespace PBFT.Messages
         {
             if (Digest != null)
                 return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {BitConverter.ToString(Digest)}\n Signature: {Signature}";
-            return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {null}\n Signature: {Signature}";  
-                     
+            return$"ID:{ServID}, SeqNr: {SeqNr}, ViewNr: {ViewNr}, Phase: {PhaseType} \nDigest: {null}\n Signature: {Signature}";
         }
         
         public bool Compare(PhaseMessage pes2)

@@ -1,6 +1,10 @@
+using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
+
 namespace PBFT.Certificates
 {
-    public class ViewChangeCertificate : IQCertificate
+    public class ViewChangeCertificate : IQCertificate, IPersistable
     {
         public bool QReached(int nodes)
         {
@@ -21,5 +25,12 @@ namespace PBFT.Certificates
         {
             throw new System.NotImplementedException();
         }
+
+        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+        {
+            throw new System.NotImplementedException();
+        }
+        
+        
     }
 }

@@ -79,8 +79,8 @@ namespace PBFT.Tests.Replica
         public void MakeLogDigestTest()
         {
             //int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null,new CDictionary<int, string>());
-            var testserv2 = new Server(2,1,4,null,5,"127.0.0.1:9002",null,null,new CDictionary<int, string>());
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, new CDictionary<int, string>());
+            var testserv2 = new Server(2,1,4,null,5,"127.0.0.1:9002",null,null, null, null, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -159,7 +159,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ListenForStableCheckpointTest()
         {
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null,new CDictionary<int, string>());
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -223,7 +223,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void AppendCheckpointCertificateTest()
         {
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null,new CDictionary<int, string>());
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -285,7 +285,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void FaultyCheckpointValidationTest()
         {
-             var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null,new CDictionary<int, string>());
+             var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);

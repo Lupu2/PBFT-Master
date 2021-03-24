@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -36,6 +36,8 @@ namespace PBFT.Replica
         public CheckpointCertificate StableCheckpoints;
         public Source<Request> RequestBridge;
         public Source<PhaseMessage> ProtocolBridge;
+        public Source<ViewChange> ViewBridge;
+        public Source<ViewChangeCertificate> ShutDownBridge;
         public Source<CheckpointCertificate> CheckpointBridge;
         private CDictionary<int, CList<ProtocolCertificate>> Log;
         public CDictionary<int, bool> ClientActive;
@@ -56,7 +58,8 @@ namespace PBFT.Replica
         private readonly object _sync = new object();
         private bool rebooted;
         
-        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList) //Initial constructor
+        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, 
+                      Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, Source<ViewChangeCertificate> shutdownbridge, CDictionary<int,string> contactList) //Initial constructor
         {
             ServID = id;
             CurView = curview;
@@ -67,6 +70,8 @@ namespace PBFT.Replica
             CurSeqRange = new Range(0,2*checkpointinter);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            ViewBridge = viewbridge;
+            ShutDownBridge = shutdownbridge;
             CheckpointBridge = new Source<CheckpointCertificate>();
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
@@ -87,7 +92,8 @@ namespace PBFT.Replica
             rebooted = false;
         }
 
-        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList)
+        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, 
+                      Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, Source<ViewChangeCertificate> shutbridge, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -99,6 +105,8 @@ namespace PBFT.Replica
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            ViewBridge = viewbridge;
+            ShutDownBridge = shutbridge;
             CheckpointBridge = new Source<CheckpointCertificate>();
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
@@ -121,7 +129,8 @@ namespace PBFT.Replica
         }
 
         public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, 
-            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int,string> contactList)
+            int replicas, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, 
+            Source<ViewChangeCertificate> shutbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int,string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -132,6 +141,8 @@ namespace PBFT.Replica
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            ViewBridge = viewbridge;
+            ShutDownBridge = shutbridge;
             CheckpointBridge = new Source<CheckpointCertificate>();
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
@@ -152,9 +163,9 @@ namespace PBFT.Replica
             rebooted = false;
         }
 
-        [System.Text.Json.Serialization.JsonConstructor]
+        [JsonConstructor]
         public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas, 
-            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, 
+            Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, Source<ViewChangeCertificate> shutbridge, CDictionary<int, CList<ProtocolCertificate>> oldlog, 
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList, 
             CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
@@ -168,6 +179,8 @@ namespace PBFT.Replica
             CurSeqRange = seqRange;
             RequestBridge = reqbridge;
             ProtocolBridge = pesbridge;
+            ViewBridge = viewbridge;
+            ShutDownBridge = shutbridge;
             CheckpointBridge = new Source<CheckpointCertificate>();
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
@@ -256,6 +269,8 @@ namespace PBFT.Replica
                 ServConnInfo.Remove(id);
             }
         }
+        
+        public void AddEngine(Engine sche) => _scheduler = sche;
         
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
@@ -354,6 +369,7 @@ namespace PBFT.Replica
                                ViewChange vc = (ViewChange) mes;
                                break;
                            case MessageType.NewView:
+                               NewView nv = (NewView) mes;
                                break;
                            case MessageType.Checkpoint:
                                Checkpoint check = (Checkpoint) mes;
@@ -506,6 +522,8 @@ namespace PBFT.Replica
             return true;
         }
         
+        public int NrOfLogEntries() => Log.Count;
+        
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Certificate saved!");
@@ -513,6 +531,21 @@ namespace PBFT.Replica
             {
                 Log[seqNr].Add(cert);   
             }
+        }
+
+        public CList<ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
+        {
+            CList<ProtocolCertificate> preplist = new CList<ProtocolCertificate>();
+            foreach (var (seqNr,certList) in Log)
+            {
+                if (seqNr > stableSeqNr)
+                {
+                    foreach (var cert in certList) //most likely always prep,commit order, but can't be completely sure
+                        if (cert.CType == CertType.Prepared) preplist.Add(cert);
+                }
+            }
+            
+            return preplist;
         }
 
         public async CTask ListenForStableCheckpoint()
@@ -569,8 +602,6 @@ namespace PBFT.Replica
             }
         }
         
-        public void AddEngine(Engine sche) => _scheduler = sche;
-        
         private void GarbageCollectLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
@@ -587,9 +618,7 @@ namespace PBFT.Replica
             }
                 
         }
-
-        public int NrOfLogEntries() => Log.Count;
-
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -602,6 +631,8 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
             stateToSerialize.Set(nameof(RequestBridge), RequestBridge);
             stateToSerialize.Set(nameof(ProtocolBridge), ProtocolBridge);
+            stateToSerialize.Set(nameof(ViewBridge), ViewBridge);
+            stateToSerialize.Set(nameof(ShutDownBridge), ShutDownBridge);
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
             stateToSerialize.Set(nameof(ReplyLog), ReplyLog);
@@ -621,6 +652,8 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(TotalReplicas)),
                 sd.Get<Source<Request>>(nameof(RequestBridge)),
                 sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
+                sd.Get<Source<ViewChange>>(nameof(ViewBridge)),
+                sd.Get<Source<ViewChangeCertificate>>(nameof(ShutDownBridge)),
                 sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
                 sd.Get<CDictionary<int, Reply>>(nameof(ReplyLog)),

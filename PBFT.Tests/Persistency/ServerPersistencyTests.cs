@@ -8,6 +8,7 @@ using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
@@ -32,23 +33,9 @@ namespace PBFT.Tests.Persistency
         
         [TestMethod]
         public void ServerPersistencyInfoTest()
-        {   //TODO update ServerPersistencyInfoTest to match current Server State
+        {   //Remember to update this test each time the server object is updated.
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(),
-                new Source<PhaseMessage>(), new CDictionary<int, string>());
-            /*
-            Server Info saved:
-                ServID
-                CurView
-                CurSeqNr
-                "CurSeqRangeLow"
-                "CurSeqRangeHigh"
-                ViewPrimary
-                TotalReplicas
-                RequestBridge
-                ProtocolBridge
-                Log
-                ClientActive
-             */
+                new Source<PhaseMessage>(), new Source<ViewChange>(), new Source<ViewChangeCertificate>(),new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             var rep = new Reply(1, 1, 1, false, "error", DateTime.Now.ToString());
             rep.SignMessage(_prikey);

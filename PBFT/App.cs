@@ -1,14 +1,12 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Reflection.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
+using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
@@ -53,11 +51,14 @@ namespace PBFT
                 Server server;
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
+                Source<ViewChange> viewSource = new Source<ViewChange>();
+                Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
+                
                 if (!con)
                 {
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource ,serversInfo);
                     //protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
                 }
                 else
@@ -65,12 +66,12 @@ namespace PBFT
                     //load persistent data
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                        protSource, serversInfo); //TODO update with that collected in the storageEngine
+                        protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
                     
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, shutdownSource);
                 server.InitializeConnections()
                     .GetAwaiter()
                     .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
@@ -96,43 +97,45 @@ namespace PBFT
                 var req = await requestMessage.Next();
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]))
                 {
-                    Console.WriteLine("Handling client request");
-                    //await scheduler.Schedule(() => execute.HandleRequest(req));
-                    //serv.ChangeClientStatus(req.ClientID);
-                    await scheduler.Schedule(() =>
+                    if (execute.Active)
                     {
-                        execute.Serv.ChangeClientStatus(req.ClientID);
-                        var operation = AppOperation(req, serv, execute).GetAwaiter();
-                        operation.OnCompleted(() =>
+                        Console.WriteLine("Handling client request");
+                        //await scheduler.Schedule(() => execute.HandleRequest(req));
+                        //serv.ChangeClientStatus(req.ClientID);
+                        await scheduler.Schedule(() =>
                         {
-                            Console.WriteLine("It worked!");
-                            Console.WriteLine(serv.CurSeqNr);
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                        });
-                        /*serv.ChangeClientStatus(req.ClientID);
+                            var operation = AppOperation(req, serv, execute).GetAwaiter();
+                            operation.OnCompleted(() =>
+                            {
+                                Console.WriteLine("It worked!");
+                                Console.WriteLine(serv.CurSeqNr);
+                                execute.Serv.ChangeClientStatus(req.ClientID);
+                                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr);
+                            });
+                            /*serv.ChangeClientStatus(req.ClientID);
 
-                        var reply = execute.HandleRequest(req)
-                            .GetAwaiter();
-                        /*    .GetResult();
-                        serv.CurSeqNr = reply.SeqNr;
-                        execute.Serv.ChangeClientStatus(req.ClientID);
-                        Console.WriteLine("It worked!");
-                        Console.WriteLine(serv.CurSeqNr);
-                        if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                            serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                        reply.OnCompleted(() =>
-                        {
+                            var reply = execute.HandleRequest(req)
+                                .GetAwaiter();
+                            /*    .GetResult();
+                            serv.CurSeqNr = reply.SeqNr;
                             execute.Serv.ChangeClientStatus(req.ClientID);
                             Console.WriteLine("It worked!");
                             Console.WriteLine(serv.CurSeqNr);
                             if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                 serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                        });*/
-                    });
-                    
-                    //serv.ChangeClientStatus(req.ClientID);
+                            reply.OnCompleted(() =>
+                            {
+                                execute.Serv.ChangeClientStatus(req.ClientID);
+                                Console.WriteLine("It worked!");
+                                Console.WriteLine(serv.CurSeqNr);
+                                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr);
+                            });*/
+                        });
+                        //serv.ChangeClientStatus(req.ClientID);
+                    }
                 }
                 
             }

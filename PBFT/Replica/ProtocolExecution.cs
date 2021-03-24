@@ -9,30 +9,33 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx.ExecutionEngine;
+using Newtonsoft.Json;
 
 namespace PBFT.Replica
 {
     public class ProtocolExecution : IPersistable
     {
         public Server Serv {get; set;}
-        
         public int FailureNr {get; set;}
-        
+        public bool Active { get; set; }
         private readonly object _sync = new object();
-
         private Source<PhaseMessage> MesBridge;
+        private Source<ViewChangeCertificate> ShutdownBridge;
 
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
 
-        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> bridge) 
+        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<ViewChangeCertificate> shutbridge) 
         {
             Serv = server;
             FailureNr = fnodes;
-            MesBridge = bridge;
+            Active = true;
+            MesBridge = mesbridge;
+            ShutdownBridge = shutbridge;
         }
 
         public async CTask<Reply> HandleRequest(Request clireq)
@@ -274,23 +277,65 @@ namespace PBFT.Replica
             }
         }
 
-        /*public async CTask HandlePrimaryChange()
+        public async CTask HandlePrimaryChange(ViewChangeCertificate vcc)
         {
-               
-        }*/
+            Active = false;
+            ViewChange:
+            Serv.CurPrimary.NextPrimary();
+            ViewChange vc;
+            CList<ProtocolCertificate> preps;
+            if (Serv.StableCheckpoints == null)
+            {
+                preps = Serv.CollectPrepareCertificates(0);
+                vc = new ViewChange(0,Serv.ServID, Serv.CurView, Serv.StableCheckpoints, preps);
+            }
+            else
+            {
+                int stableseq = Serv.StableCheckpoints.LastSeqNr;
+                preps = Serv.CollectPrepareCertificates(stableseq);
+                vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpoints, preps);
+            }
 
+            await Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
+            
+            //Start timeout
+            //await View Change message validation/ have enough, need referanse to existing View Certificate
+            //if timeout --> goto ViewChange
+            bool primary = Serv.IsPrimary();
+            if (primary)
+            {
+                var prepares = Serv.CurPrimary.MakePrepareMessages(preps, Serv.CurSeqRange.Start.Value, Serv.CurSeqRange.End.Value);
+                var nvmes = new NewView(Serv.CurView, vcc, prepares);
+                await Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
+                await RedoMessage(prepares);
+                Active = true;
+            }
+            else
+            {
+                
+            }
+            
+        }
+
+        public async CTask RedoMessage(CList<PhaseMessage> oldpreList)
+        {
+            
+        }
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(Serv), Serv);
             stateToSerialize.Set(nameof(FailureNr), FailureNr);
             stateToSerialize.Set(nameof(MesBridge), MesBridge);
+            stateToSerialize.Set(nameof(ShutdownBridge), ShutdownBridge);
         }
 
         public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
             => new ProtocolExecution(
                 sd.Get<Server>(nameof(Serv)),
                 sd.Get<int>(nameof(FailureNr)),
-                sd.Get<Source<PhaseMessage>>(nameof(MesBridge))
+                sd.Get<Source<PhaseMessage>>(nameof(MesBridge)),
+                sd.Get<Source<ViewChangeCertificate>>(nameof(ShutdownBridge))
                 );
     }
 }

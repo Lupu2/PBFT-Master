@@ -3,6 +3,9 @@ using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
+using Cleipnir.ObjectDB.PersistentDataStructures;
+using PBFT.Certificates;
+using PBFT.Messages;
 
 namespace PBFT.Replica
 {
@@ -37,6 +40,18 @@ namespace PBFT.Replica
         {
             ViewNr = viewnr;
             ServID = ViewNr % NrOfNodes;
+        }
+
+        public CList<PhaseMessage> MakePrepareMessages(CList<ProtocolCertificate> protcerts, int lowbound, int highbound)
+        {
+            
+            CList<PhaseMessage> premessages = new CList<PhaseMessage>();
+            foreach (var cert in protcerts)
+            {
+                
+            }
+
+            return premessages;
         }
         
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
