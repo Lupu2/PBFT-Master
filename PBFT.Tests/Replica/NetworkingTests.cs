@@ -16,6 +16,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Network;
 using PBFT.Replica;
+
 namespace PBFT.Tests.Replica
 {
     [TestClass]
@@ -28,8 +29,9 @@ namespace PBFT.Tests.Replica
                 new Source<PhaseMessage>(), new CDictionary<int, string>());
             serv.Start();
             new Thread(Sender) {IsBackground = true}.Start();
-            Thread.Sleep(3000); //wait long enough for the server do its job, its stuck since it can't send back any messages
+            Thread.Sleep(2000); //wait long enough for the server do its job, its stuck since it can't send back any messages
             Assert.IsTrue(serv.ClientPubKeyRegister.ContainsKey(1));
+            serv.Dispose();
         }
 
         public void Sender()
@@ -61,8 +63,10 @@ namespace PBFT.Tests.Replica
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
             new Thread(()=> OtherServer(serv.Pubkey)) {IsBackground = true}.Start();
-            Thread.Sleep(5000); //wait long enough for the server do its job, its stuck since it can't send back any messages
+            Thread.Sleep(2500); //wait long enough for the server do its job, its stuck since it can't send back any messages
             Assert.IsTrue(serv.ServPubKeyRegister.ContainsKey(1));
+            
+            serv.Dispose();
         }
 
         public void OtherServer(RSAParameters otherpubkey)
@@ -78,7 +82,7 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(serv.ServPubKeyRegister[0].Modulus.SequenceEqual(otherpubkey.Modulus));
         }
 
-        /*[TestMethod]
+        [TestMethod]
         public void SimpleServerConnectionPhaseMessageTest()
         {
             var mesSource = new Source<PhaseMessage>();
@@ -95,7 +99,8 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(pesmes.SeqNr,0);
             Assert.AreEqual(pesmes.ViewNr,0);
             Assert.AreEqual(pesmes.Digest,null);
-        }*/
+            serv.Dispose();
+        }
 
         public async Task<PhaseMessage> ListenForMessage(Source<PhaseMessage> messource)
         {

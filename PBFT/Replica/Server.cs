@@ -14,6 +14,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.StorageEngine.SimpleFile;
 using Newtonsoft.Json;
 using PBFT.Certificates;
 using PBFT.Network;
@@ -239,10 +240,32 @@ namespace PBFT.Replica
             Console.WriteLine("Server starting");
             _ = _servListener.Listen();
             _ = ListenForStableCheckpoint();
-        } 
+        }
+
+        public void Dispose()
+        {
+            _servListener.Dispose();
+            foreach (var (id, cconn) in ClientConnInfo)
+            {
+                cconn.Dispose();
+                ClientConnInfo.Remove(id);
+            }
+            foreach (var (id, sconn) in ServConnInfo)
+            {
+                sconn.Dispose();
+                ServConnInfo.Remove(id);
+            }
+        }
         
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
+            if (_scheduler == null)
+            {
+                Console.WriteLine("Missing Engine");
+                var teststorage = new SimpleFileStorageEngine("teststorage.txt",true);
+                _scheduler = ExecutionEngineFactory.StartNew(teststorage);
+                AddEngine(_scheduler);
+            }
             _scheduler.Schedule(() =>
             {
                 _ = HandleIncommingMessages(conn);
@@ -252,6 +275,7 @@ namespace PBFT.Replica
         //Handle incomming messages
         public async CTask HandleIncommingMessages(TempInteractiveConn conn)
         {
+            Console.WriteLine("New connection initialized!");
             while (true)
             {
                 try
