@@ -93,6 +93,13 @@ namespace PBFT.Certificates
             if (Stable) EmitCertificate();
         }
 
+        public bool CompareAndValidate(CheckpointCertificate ccert)
+        {
+            if (!ccert.Stable) return false;
+            if (!StateDigest.SequenceEqual(ccert.StateDigest)) return false;
+            return true;
+        }
+
         private void EmitCertificate()
         {
             Console.WriteLine("Emitting Checkpoint Certification");

@@ -6,12 +6,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml.Schema;
-using Cleipnir.ExecutionEngine.Providers;
-using Cleipnir.Helpers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
-using Microsoft.VisualStudio.TestPlatform.CommunicationUtilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -26,8 +22,8 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void SimpleListenerTest()
         {
-            var serv = new Server(1, 1, 1, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, 
+            var serv = new Server(1, 1, 4, null, 20, "127.0.0.1:9001", 
+                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
                 new CDictionary<int, string>());
             serv.Start();
             new Thread(Sender) {IsBackground = true}.Start();
@@ -62,7 +58,7 @@ namespace PBFT.Tests.Replica
         public void SimpleServerToServerCommunicationTest() //need to redesign network layer before continuing with these tests. Creating connection is not working properly atm.
         {
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, 
+                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
                 new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
@@ -78,7 +74,8 @@ namespace PBFT.Tests.Replica
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
             var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, servers);
+                new Source<Request>(), new Source<PhaseMessage>(), null, null, null, 
+                servers);
             serv.Start();
             serv.InitializeConnections();
             Thread.Sleep(2500);
@@ -92,7 +89,7 @@ namespace PBFT.Tests.Replica
         {
             var mesSource = new Source<PhaseMessage>();
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", 
-                new Source<Request>(), mesSource, null, null, 
+                new Source<Request>(), mesSource, null, null, null,
                 new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
@@ -120,7 +117,7 @@ namespace PBFT.Tests.Replica
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
             var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, 
+                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
                 servers);
             serv.Start();
             serv.InitializeConnections();

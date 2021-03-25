@@ -1,9 +1,11 @@
 using System;
 using System.IO;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
 using PBFT.Certificates;
@@ -15,6 +17,7 @@ namespace PBFT
 {
     public static class App
     {
+        public static CList<string> PseudoApp;
         public static void Run(string[] args)
         {
             Console.WriteLine("Application running...");
@@ -48,30 +51,44 @@ namespace PBFT
                 else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
                 var con = File.Exists("./PBFTStorage.txt");
                 Engine scheduler;
-                Server server;
+                Server server = null;
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
                 Source<ViewChange> viewSource = new Source<ViewChange>();
                 Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
-                
+                Source<NewView> newviewSource = new Source<NewView>();
+                PseudoApp = new CList<string>();
                 if (!con)
                 {
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource ,serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
+                    scheduler.Schedule(() =>
+                    {
+                        Roots.Entangle(PseudoApp);
+                        Roots.Entangle(server);
+                    });
+
                     //protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
                 }
                 else
                 {
                     //load persistent data
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                        protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
-                    
+                    //server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
+                    //   protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
+                    scheduler.Schedule(() =>
+                    {
+                        server = Roots.Resolve<Server>();
+                        PseudoApp = Roots.Resolve<CList<string>>();
+                    });
+                    server.AddEngine(scheduler);
+
+
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, shutdownSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, newviewSource ,shutdownSource);
                 server.InitializeConnections()
                     .GetAwaiter()
                     .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
@@ -80,6 +97,7 @@ namespace PBFT
                 
                 //_ = RequestHandler(server, protexec, reqSource, scheduler);
                 Console.ReadLine();
+                server.Dispose();
             }
         }
 
@@ -88,7 +106,7 @@ namespace PBFT
             _ = RequestHandler(execute, requestMessage, scheduler);
         }
         
-        public static async Task RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
         {
             Server serv = execute.Serv;
             while (true)
@@ -112,7 +130,7 @@ namespace PBFT
                                 Console.WriteLine(serv.CurSeqNr);
                                 execute.Serv.ChangeClientStatus(req.ClientID);
                                 if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr);
+                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                             });
                             /*serv.ChangeClientStatus(req.ClientID);
 
@@ -141,10 +159,20 @@ namespace PBFT
             }
         }
 
+        public static void CreateCheckpoint(Engine eng, Server serv)
+        {
+            eng.Schedule(() =>
+            {
+                serv.CreateCheckpoint(serv.CurSeqNr, PseudoApp);
+            });
+
+        }
+        
         public static async Task AppOperation(Request req, Server serv, ProtocolExecution execute)
         {
             var reply = await execute.HandleRequest(req);
             serv.CurSeqNr = reply.SeqNr;
+            PseudoApp.Add(reply.Result);
             Console.WriteLine(reply);
                         /*reply.OnCompleted(() =>
                         {

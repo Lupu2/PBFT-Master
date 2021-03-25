@@ -36,7 +36,7 @@ namespace PBFT.Tests.Replica
         {
             Server testserv = new Server(0,0,4,null,50,"127.0.0.1:9000", 
                 new Source<Request>(),new Source<PhaseMessage>(), new Source<ViewChange>(), 
-                new Source<ViewChangeCertificate>(), new CDictionary<int, string>());
+                new Source<ViewChangeCertificate>(), new Source<NewView>(), new CDictionary<int, string>());
             Assert.AreEqual(testserv.CurPrimary.ServID,0);
             Assert.AreEqual(testserv.CurView,0);
             Assert.IsTrue(testserv.IsPrimary());

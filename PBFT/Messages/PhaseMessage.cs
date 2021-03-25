@@ -117,6 +117,17 @@ namespace PBFT.Messages
                 //throw;
             //}
         }
+        
+        public bool ValidateRedo(RSAParameters pubkey, int cviewNr)
+        {
+            Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
+            var clone = CreateCopyTemplate();
+            if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
+                return false;
+            if (ViewNr != cviewNr) return false;
+            Console.WriteLine($"PhaseMes Validation {ServID},{PhaseType} True");
+            return true;
+        }
 
         public IProtocolMessages CreateCopyTemplate() => new PhaseMessage(ServID, SeqNr, ViewNr, Digest, PhaseType);
 

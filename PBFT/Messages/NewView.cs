@@ -66,6 +66,14 @@ namespace PBFT.Messages
             }
         }
 
+        public bool Validate(RSAParameters pubkey, int nextview)
+        {
+            //TODO add validation cases
+            var copymes = CreateCopyTemplate();
+            if (!Crypto.VerifySignature(Signature, copymes.SerializeToBuffer(), pubkey)) return false;
+            return true;
+        }
+        
         public IProtocolMessages CreateCopyTemplate() => new NewView(NewViewNr, ViewProof, PrePrepMessages);
         
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)

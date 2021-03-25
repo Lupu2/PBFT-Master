@@ -22,11 +22,11 @@ namespace PBFT.Messages
         public int NextViewNr { get; set; }
         public CheckpointCertificate CertProofs { get; set; }
         
-        public CList<ProtocolCertificate> RemPreProofs { get; set;}
+        public CDictionary<int, ProtocolCertificate> RemPreProofs { get; set;}
         
         public byte[] Signature { get; set; }
 
-        public ViewChange(int stableSeq, int rid, int newViewNr, CheckpointCertificate cProof, CList<ProtocolCertificate> prepCerts) //update when you have an understanding of proofs
+        public ViewChange(int stableSeq, int rid, int newViewNr, CheckpointCertificate cProof, CDictionary<int, ProtocolCertificate> prepCerts) //update when you have an understanding of proofs
         {
             StableSeqNr = stableSeq;
             ServID = rid;
@@ -36,7 +36,7 @@ namespace PBFT.Messages
         }
 
         [JsonConstructor]
-        public ViewChange(int stableSeq, int rid, int newViewNr, CheckpointCertificate cproof, CList<ProtocolCertificate> prepcerts, byte[] sign) //update when you have an understaning of proofs
+        public ViewChange(int stableSeq, int rid, int newViewNr, CheckpointCertificate cproof, CDictionary<int, ProtocolCertificate> prepcerts, byte[] sign) //update when you have an understaning of proofs
         {
             StableSeqNr = stableSeq;
             ServID = rid;
@@ -95,7 +95,7 @@ namespace PBFT.Messages
             string tostring = $"ServerID:{ServID}, NextViewNr:{NextViewNr} ,StableSeq:{StableSeqNr}\nProof:";
             foreach (var cproof in CertProofs.ProofList) 
                 tostring += $"ID: {cproof.ServID}, SeqNr:{cproof.StableSeqNr}\n";
-            foreach (var pproof in RemPreProofs)
+            foreach (var (_,pproof) in RemPreProofs)
                 tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, CType:{pproof.CType}, Request:{pproof.CurReq}\n";
             return tostring;
         }
@@ -115,7 +115,7 @@ namespace PBFT.Messages
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(NextViewNr)),
                 sd.Get<CheckpointCertificate>(nameof(CertProofs)),
-                sd.Get<CList<ProtocolCertificate>>(nameof(RemPreProofs)),
+                sd.Get<CDictionary<int,ProtocolCertificate>>(nameof(RemPreProofs)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
             );
 

@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System;
 using System.Linq;
 using System.Text;
+using Cleipnir.ObjectDB.PersistentDataStructures;
+using Newtonsoft.Json;
 using PBFT.Messages;
 
 namespace PBFT.Helper
@@ -39,6 +41,16 @@ namespace PBFT.Helper
             {
                 var serareq = clientRequest.SerializeToBuffer();
                 return shaalgo.ComputeHash(serareq);
+            }
+        }
+        
+        public static byte[] MakeStateDigest(CList<string> appstate)
+        {
+            var seriastate = JsonConvert.SerializeObject((appstate));
+            var bytesstate = Encoding.ASCII.GetBytes(seriastate);
+            using (var sha = SHA256.Create())
+            {
+                return sha.ComputeHash(bytesstate);
             }
         }
         

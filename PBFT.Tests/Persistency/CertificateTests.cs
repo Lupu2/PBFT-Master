@@ -29,7 +29,7 @@ namespace PBFT.Tests.Persistency
         public void StorageIntialization()
         {
             _storage = new InMemoryStorageEngine();
-            //_objectStore = ObjectStore.New(_storage);
+            _objectStore = ObjectStore.New(_storage);
             (_prikey, _pubkey) = Crypto.InitializeKeyPairs();
         }
 
@@ -119,7 +119,6 @@ namespace PBFT.Tests.Persistency
             Thread.Sleep(2000);
 
             Console.WriteLine("THIS SHIT IS BULLLLLLLLLLLL, THE RESULT WAS READY AGES AGO!!!!!!");
-            Console.WriteLine("PRIME EXAMPLE OF WHY ASYNC AWAIT DOESN'T FUCKING WORK");
             var res = listener.GetResult();
             Assert.IsTrue(res.Stable);
         }*/
@@ -178,6 +177,7 @@ namespace PBFT.Tests.Persistency
         public async CTask<CheckpointCertificate> ListenforCheckpointMessage(Source<CheckpointCertificate> checkbridge)
         {
             var rescert = await checkbridge.Next();
+            Console.WriteLine("I got result!");
             return rescert;
         }
     }
