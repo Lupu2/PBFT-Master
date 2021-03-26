@@ -9,12 +9,15 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
+using System.Transactions;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx.ExecutionEngine;
 using Newtonsoft.Json;
+using Timeout = System.Threading.Timeout;
 
 namespace PBFT.Replica
 {
@@ -191,14 +194,16 @@ namespace PBFT.Replica
                     //Replicas
                     Console.WriteLine("Server is not primary");
                     // await incomming PhaseMessages Where = MessageType.PrePrepare
+                    _ = TimeoutOps.TimeoutOperation(ShutdownBridge, 1000);
                     var preprepared = await MesBridge
+                        .DisposeOn(ShutdownBridge.Next())
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-
                         .Where(pm =>
                             pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView,
-                                Serv.CurSeqRange)) 
+                                Serv.CurSeqRange))
                         .Next();
-
+                    Console.WriteLine("Finished Preprepare");
+                    Console.WriteLine(preprepared);
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, clireq, CertType.Prepared,
                         preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr;
@@ -207,9 +212,7 @@ namespace PBFT.Replica
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.Prepare);
                     prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
-                    //Serv.EmitPhaseMessageLocally(prepare);
                     qcertpre.ProofList.Add(prepare);
-                    //MesBridge.Emit(prepare);
                 }
 
                 //Prepare phase
@@ -219,7 +222,6 @@ namespace PBFT.Replica
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
-                    //.Do(pm => qcertpre.ProofList.Add(pm))
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
                     {
                         prooflist.Add(message);
@@ -241,10 +243,10 @@ namespace PBFT.Replica
                         })
                         .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                         .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                        //.DisposeOn(ShutdownBridge.Next())
                         .Next();
                 //qcertcom.ProofList = eks;
                 Console.WriteLine("Waiting for Prepare messages");
-                //await prepared.Where(_ => qcertpre.ValidateCertificate(FailureNr)).Next();
                 await prepared;
                 Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 Console.WriteLine("Prepare phase finished");
@@ -284,12 +286,15 @@ namespace PBFT.Replica
             Active = false;
             ViewChange:
             Serv.CurPrimary.NextPrimary();
+            if (vcc == null || vcc.ViewInfo.ViewNr != Serv.CurPrimary.ViewNr)
+                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpoints);
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
             if (Serv.StableCheckpoints == null)
             {
                 preps = Serv.CollectPrepareCertificates(0);
                 vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
+                
             }
             else
             {

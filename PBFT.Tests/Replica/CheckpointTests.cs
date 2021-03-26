@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.Rx;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Certificates;
 using PBFT.Helper;
@@ -78,8 +79,12 @@ namespace PBFT.Tests.Replica
         public void MakeLogDigestTest()
         {
             //int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, null, new CDictionary<int, string>());
-            var testserv2 = new Server(2,1,4,null,5,"127.0.0.1:9002",null,null, null, null, null, new CDictionary<int, string>());
+            var checksource = new Source<CheckpointCertificate>();
+            var checksource2 = new Source<CheckpointCertificate>();
+            var sh = new SourceHandler(null, null, null, null, null, checksource);
+            var sh2 = new SourceHandler(null, null, null, null, null, checksource2);
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",sh, new CDictionary<int, string>());
+            var testserv2 = new Server(2,1,4,null,5,"127.0.0.1:9002",sh2, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -158,7 +163,9 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ListenForStableCheckpointTest()
         {
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, null, new CDictionary<int, string>());
+            var checksource = new Source<CheckpointCertificate>();
+            var sh = new SourceHandler(null, null, null, null, null, checksource);
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001", sh, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -196,7 +203,7 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(testserv.NrOfLogEntries(), 3);
             
             byte[] dig1 = testserv.TestMakeStateDigest(2);
-            var cert1 = new CheckpointCertificate(2, dig1, testserv.CheckpointBridge);
+            var cert1 = new CheckpointCertificate(2, dig1, testserv.Subjects.CheckpointSubject);
             testserv.CheckpointLog[2] = cert1;
             Assert.AreEqual(testserv.CheckpointLog.Count,1);
             var cp = new Checkpoint(testserv.ServID, 2, dig1);
@@ -222,7 +229,9 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void AppendCheckpointCertificateTest()
         {
-            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, null ,new CDictionary<int, string>());
+            var checksource = new Source<CheckpointCertificate>();
+            var sh = new SourceHandler(null, null, null, null, null, checksource);
+            var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001", sh,new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -260,7 +269,7 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(testserv.NrOfLogEntries(), 3);
             
             byte[] dig1 = testserv.TestMakeStateDigest(2);
-            var cert1 = new CheckpointCertificate(2, dig1, testserv.CheckpointBridge);
+            var cert1 = new CheckpointCertificate(2, dig1, testserv.Subjects.CheckpointSubject);
             testserv.CheckpointLog[2] = cert1;
             Assert.AreEqual(testserv.CheckpointLog.Count,1);
             var cp = new Checkpoint(testserv.ServID, 2, dig1);
@@ -284,7 +293,9 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void FaultyCheckpointValidationTest()
         {
-             var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",null,null, null, null, null, new CDictionary<int, string>());
+            var checksource = new Source<CheckpointCertificate>();
+            var sh = new SourceHandler(null, null, null, null, null, checksource);
+             var testserv = new Server(1,1,4,null,5,"127.0.0.1:9001",sh, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -322,7 +333,7 @@ namespace PBFT.Tests.Replica
             Assert.AreEqual(testserv.NrOfLogEntries(), 3);
             
             byte[] dig1 = testserv.TestMakeStateDigest(2);
-            var cert1 = new CheckpointCertificate(2, dig1, testserv.CheckpointBridge);
+            var cert1 = new CheckpointCertificate(2, dig1, testserv.Subjects.CheckpointSubject);
             testserv.CheckpointLog[2] = cert1;
             Assert.AreEqual(testserv.CheckpointLog.Count,1);
             var cp = new Checkpoint(testserv.ServID, 2, dig1);

@@ -38,7 +38,7 @@ namespace PBFT.Tests.Persistency
             req.SignMessage(_pri);
             Assert.AreEqual(req.ClientID,1);
             StringAssert.Contains(req.Message,"Hello World!");
-            StringAssert.Contains(req.Timestamp,DateTime.Now.ToString()); //usually fast enough
+            StringAssert.Contains(req.Timestamp,currentTime); //usually fast enough
             _objectStore.Attach(req);
             _objectStore.Persist();
             _objectStore = null;

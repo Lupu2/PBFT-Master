@@ -57,12 +57,15 @@ namespace PBFT
                 Source<ViewChange> viewSource = new Source<ViewChange>();
                 Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
                 Source<NewView> newviewSource = new Source<NewView>();
+                Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
+                SourceHandler sh = new (reqSource, protSource, viewSource, shutdownSource, newviewSource, checkSource);
                 PseudoApp = new CList<string>();
                 if (!con)
                 {
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
+                    //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, sh, serversInfo);
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);

@@ -22,9 +22,8 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void SimpleListenerTest()
         {
-            var serv = new Server(1, 1, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
-                new CDictionary<int, string>());
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null);
+            var serv = new Server(1, 1, 4, null, 20, "127.0.0.1:9001", sh, new CDictionary<int, string>());
             serv.Start();
             new Thread(Sender) {IsBackground = true}.Start();
             Thread.Sleep(5000); //wait long enough for the server do its job, its stuck since it can't send back any messages
@@ -57,9 +56,8 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void SimpleServerToServerCommunicationTest() //need to redesign network layer before continuing with these tests. Creating connection is not working properly atm.
         {
-            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
-                new CDictionary<int, string>());
+            var sourceHandler = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null);
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sourceHandler, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
             new Thread(()=> OtherServer(serv.Pubkey)) {IsBackground = true}.Start();
@@ -71,11 +69,10 @@ namespace PBFT.Tests.Replica
 
         public void OtherServer(RSAParameters otherpubkey)
         {
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null);
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
-            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, null, 
-                servers);
+            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", sh, servers);
             serv.Start();
             serv.InitializeConnections();
             Thread.Sleep(2500);
@@ -88,9 +85,8 @@ namespace PBFT.Tests.Replica
         public void SimpleServerConnectionPhaseMessageTest()
         {
             var mesSource = new Source<PhaseMessage>();
-            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", 
-                new Source<Request>(), mesSource, null, null, null,
-                new CDictionary<int, string>());
+            var sh = new SourceHandler(new Source<Request>(), mesSource, null, null, null, null);
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
             new Thread(OtherServerPhase) {IsBackground = true}.Start();
@@ -114,11 +110,10 @@ namespace PBFT.Tests.Replica
 
         public void OtherServerPhase()
         {
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null);
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
-            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", 
-                new Source<Request>(), new Source<PhaseMessage>(), null, null, null,
-                servers);
+            var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", sh, servers);
             serv.Start();
             serv.InitializeConnections();
             Thread.Sleep(3000);

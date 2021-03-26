@@ -34,8 +34,9 @@ namespace PBFT.Tests.Persistency
         [TestMethod]
         public void ServerPersistencyInfoTest()
         {   //Remember to update this test each time the server object is updated.
-            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(),
-                new Source<PhaseMessage>(), new Source<ViewChange>(), new Source<ViewChangeCertificate>(), new Source<NewView>(), new CDictionary<int, string>());
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), new Source<ViewChange>(),
+                new Source<ViewChangeCertificate>(), new Source<NewView>(), new Source<CheckpointCertificate>());
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             var rep = new Reply(1, 1, 1, false, "error", DateTime.Now.ToString());
             rep.SignMessage(_prikey);
