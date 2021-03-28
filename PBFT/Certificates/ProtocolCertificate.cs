@@ -22,25 +22,25 @@ namespace PBFT.Certificates
         public CertType CType {get; set;}
         public int SeqNr {get; set;}
         public int ViewNr {get; set;}
-        public Request CurReq {get; set;}
+        public byte[] CurReqDigest {get; set;}
         private bool Valid{get; set;}
 
         public CList<PhaseMessage> ProofList {get; set;}
-        public ProtocolCertificate(int seq, int vnr, Request req, CertType cType)
+        public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType)
         {
                 SeqNr = seq;
                 ViewNr = vnr;
-                CurReq = req;
+                CurReqDigest = req;
                 CType = cType;
                 Valid = false;
                 ProofList = new CList<PhaseMessage>();
         }
 
-        public ProtocolCertificate(int seq, int vnr, Request req, CertType cType, PhaseMessage firstrecord)
+        public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType, PhaseMessage firstrecord)
         {
             SeqNr = seq;
             ViewNr = vnr;
-            CurReq = req;
+            CurReqDigest = req;
             CType = cType;
             Valid = false;
             ProofList = new CList<PhaseMessage>();
@@ -48,11 +48,11 @@ namespace PBFT.Certificates
         }
         
         [JsonConstructor]
-        public ProtocolCertificate(int seq, int vnr, Request req, CertType cType, bool val, CList<PhaseMessage> proof)
+        public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType, bool val, CList<PhaseMessage> proof)
         {
             SeqNr = seq;
             ViewNr = vnr;
-            CurReq = req;
+            CurReqDigest = req;
             CType = cType;
             Valid = false;
             ProofList = proof;
@@ -197,7 +197,7 @@ namespace PBFT.Certificates
         }
 
         public ProtocolCertificate CloneInfoCertificate() =>
-            new ProtocolCertificate(SeqNr, ViewNr, CurReq, CType, Valid, new CList<PhaseMessage>());
+            new ProtocolCertificate(SeqNr, ViewNr, CurReqDigest, CType, Valid, new CList<PhaseMessage>());
         
         public override string ToString() => $"CertType:{CType}, SeqNr:{SeqNr}, ViewNr:{ViewNr}";
 
@@ -206,7 +206,7 @@ namespace PBFT.Certificates
             //throw new System.NotImplementedException();
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
-            stateToSerialize.Set(nameof(CurReq), CurReq);
+            stateToSerialize.Set(nameof(CurReqDigest), Serializer.SerializeHash(CurReqDigest));
             stateToSerialize.Set(nameof(CType), (int)CType);
             stateToSerialize.Set(nameof(Valid), Valid);
             stateToSerialize.Set(nameof(ProofList), ProofList);
@@ -216,7 +216,7 @@ namespace PBFT.Certificates
             => new ProtocolCertificate(
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
-                sd.Get<Request>(nameof(CurReq)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(CurReqDigest))),
                 Enums.ToEnumCertType(sd.Get<int>(nameof(CType))),
                 sd.Get<bool>(nameof(Valid)),
                 sd.Get<CList<PhaseMessage>>(nameof(ProofList))

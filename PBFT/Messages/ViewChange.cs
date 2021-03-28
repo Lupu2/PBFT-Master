@@ -96,7 +96,7 @@ namespace PBFT.Messages
             foreach (var cproof in CertProofs.ProofList) 
                 tostring += $"ID: {cproof.ServID}, SeqNr:{cproof.StableSeqNr}\n";
             foreach (var (_,pproof) in RemPreProofs)
-                tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, CType:{pproof.CType}, Request:{pproof.CurReq}\n";
+                tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, CType:{pproof.CType}, RequestDigest:{pproof.CurReqDigest}\n";
             return tostring;
         }
         

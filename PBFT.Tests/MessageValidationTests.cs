@@ -71,7 +71,7 @@ namespace PBFT.Tests
             //Valid PrePrepare with existing Proofs
             CList<PhaseMessage> proofs = new CList<PhaseMessage>();
             proofs.Add(pes7);
-            ProtocolCertificate q = new ProtocolCertificate(1, 2, req, CertType.Prepared, false, proofs);
+            ProtocolCertificate q = new ProtocolCertificate(1, 2, digest, CertType.Prepared, false, proofs);
             PhaseMessage pes8 = new PhaseMessage(2, 1, 1, digest, PMessageType.PrePrepare);
             pes8.SignMessage(_prikey2);
             Assert.IsTrue(pes8.Validate(Pubkey2,1,ran,q));

@@ -39,8 +39,8 @@ namespace PBFT.Tests.Persistency
             _objectStore = ObjectStore.New(_storage);
             Request req1 = new Request(1, "test1", DateTime.Now.ToString());
             Request req2 = new Request(2, "test2", DateTime.Now.ToString());
-            ProtocolCertificate qcert1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
-            ProtocolCertificate qcert2 = new ProtocolCertificate(2, 2, req2, CertType.Committed);
+            ProtocolCertificate qcert1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Prepared);
+            ProtocolCertificate qcert2 = new ProtocolCertificate(2, 2, Crypto.CreateDigest(req2), CertType.Committed);
             PhaseMessage pm1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(req1), PMessageType.Commit);
             PhaseMessage pm2 = new PhaseMessage(2, 2, 2, Crypto.CreateDigest(req2), PMessageType.Prepare);
             req1.SignMessage(_prikey);

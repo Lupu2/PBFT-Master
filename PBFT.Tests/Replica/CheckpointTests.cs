@@ -112,16 +112,16 @@ namespace PBFT.Tests.Replica
             var pre4 = new PhaseMessage(0, 4, 1, Crypto.CreateDigest(req4), PMessageType.PrePrepare);
             var com4 = new PhaseMessage(0, 4, 1, Crypto.CreateDigest(req4), PMessageType.Commit);
             
-            var preproof0 = new ProtocolCertificate(0, 1, req0, CertType.Prepared);
-            var comproof0 = new ProtocolCertificate(0, 1, req0, CertType.Committed);
-            var preproof1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
-            var comproof1 = new ProtocolCertificate(1, 1, req1, CertType.Committed);
-            var preproof2 = new ProtocolCertificate(2, 1, req2, CertType.Prepared);
-            var comproof2 = new ProtocolCertificate(2, 1, req2, CertType.Committed);
-            var preproof3 = new ProtocolCertificate(3, 1, req3, CertType.Prepared);
-            var comproof3 = new ProtocolCertificate(3, 1, req3, CertType.Committed);
-            var preproof4 = new ProtocolCertificate(4, 1, req4, CertType.Prepared);
-            var comproof4 = new ProtocolCertificate(4, 1, req4, CertType.Committed);
+            var preproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Prepared);
+            var comproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Committed);
+            var preproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Prepared);
+            var comproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Committed);
+            var preproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Prepared);
+            var comproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Committed);
+            var preproof3 = new ProtocolCertificate(3, 1, Crypto.CreateDigest(req3), CertType.Prepared);
+            var comproof3 = new ProtocolCertificate(3, 1, Crypto.CreateDigest(req3), CertType.Committed);
+            var preproof4 = new ProtocolCertificate(4, 1, Crypto.CreateDigest(req4), CertType.Prepared);
+            var comproof4 = new ProtocolCertificate(4, 1, Crypto.CreateDigest(req4), CertType.Committed);
             testserv.AddProtocolCertificate(0,preproof0);
             testserv.AddProtocolCertificate(0,comproof0);
             testserv.AddProtocolCertificate(1,preproof1);
@@ -180,12 +180,12 @@ namespace PBFT.Tests.Replica
             var pre2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.PrePrepare);
             var com2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.Commit);
 
-            var preproof0 = new ProtocolCertificate(0, 1, req0, CertType.Prepared);
-            var comproof0 = new ProtocolCertificate(0, 1, req0, CertType.Committed);
-            var preproof1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
-            var comproof1 = new ProtocolCertificate(1, 1, req1, CertType.Committed);
-            var preproof2 = new ProtocolCertificate(2, 1, req2, CertType.Prepared);
-            var comproof2 = new ProtocolCertificate(2, 1, req2, CertType.Committed);
+            var preproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Prepared);
+            var comproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Committed);
+            var preproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Prepared);
+            var comproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Committed);
+            var preproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Prepared);
+            var comproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Committed);
             preproof0.ProofList.Add(pre0);
             comproof0.ProofList.Add(com0);
             preproof1.ProofList.Add(pre1);
@@ -246,12 +246,12 @@ namespace PBFT.Tests.Replica
             var pre2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.PrePrepare);
             var com2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.Commit);
 
-            var preproof0 = new ProtocolCertificate(0, 1, req0, CertType.Prepared);
-            var comproof0 = new ProtocolCertificate(0, 1, req0, CertType.Committed);
-            var preproof1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
-            var comproof1 = new ProtocolCertificate(1, 1, req1, CertType.Committed);
-            var preproof2 = new ProtocolCertificate(2, 1, req2, CertType.Prepared);
-            var comproof2 = new ProtocolCertificate(2, 1, req2, CertType.Committed);
+            var preproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Prepared);
+            var comproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Committed);
+            var preproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Prepared);
+            var comproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Committed);
+            var preproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Prepared);
+            var comproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Committed);
             preproof0.ProofList.Add(pre0);
             comproof0.ProofList.Add(com0);
             preproof1.ProofList.Add(pre1);
@@ -310,12 +310,12 @@ namespace PBFT.Tests.Replica
             var pre2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.PrePrepare);
             var com2 = new PhaseMessage(0, 2, 1, Crypto.CreateDigest(req2), PMessageType.Commit);
 
-            var preproof0 = new ProtocolCertificate(0, 1, req0, CertType.Prepared);
-            var comproof0 = new ProtocolCertificate(0, 1, req0, CertType.Committed);
-            var preproof1 = new ProtocolCertificate(1, 1, req1, CertType.Prepared);
-            var comproof1 = new ProtocolCertificate(1, 1, req1, CertType.Committed);
-            var preproof2 = new ProtocolCertificate(2, 1, req2, CertType.Prepared);
-            var comproof2 = new ProtocolCertificate(2, 1, req2, CertType.Committed);
+            var preproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Prepared);
+            var comproof0 = new ProtocolCertificate(0, 1, Crypto.CreateDigest(req0), CertType.Committed);
+            var preproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Prepared);
+            var comproof1 = new ProtocolCertificate(1, 1, Crypto.CreateDigest(req1), CertType.Committed);
+            var preproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Prepared);
+            var comproof2 = new ProtocolCertificate(2, 1, Crypto.CreateDigest(req2), CertType.Committed);
             preproof0.ProofList.Add(pre0);
             comproof0.ProofList.Add(com0);
             preproof1.ProofList.Add(pre1);

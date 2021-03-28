@@ -55,7 +55,7 @@ namespace PBFT.Replica
                         ServID, 
                         i, 
                         ViewNr, 
-                        Crypto.CreateDigest(protcerts[i].CurReq),
+                        protcerts[i].CurReqDigest,
                         PMessageType.PrePrepare
                     );
                 else newpre = new PhaseMessage(ServID, i, ViewNr, null, PMessageType.PrePrepare);
