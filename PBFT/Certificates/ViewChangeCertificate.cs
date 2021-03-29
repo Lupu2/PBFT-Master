@@ -19,7 +19,7 @@ namespace PBFT.Certificates
         public ViewPrimary ViewInfo { get; set; }
         public bool Valid { get; set; }
         
-        public CheckpointCertificate CurSystemState {get; set;}
+        public CheckpointCertificate CurSystemState { get; set; }
         public CList<ViewChange> ProofList { get; set; }
 
         public ViewChangeCertificate(ViewPrimary info, CheckpointCertificate state)
@@ -39,7 +39,7 @@ namespace PBFT.Certificates
             ProofList = proofs;
         }
         
-        public bool QReached(int nodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * nodes + 1;
+        public bool QReached(int nodes) => (ProofList.Count - AccountForDuplicates()) >= 2 * nodes + 1;
         
         private int AccountForDuplicates()
         {
@@ -49,19 +49,23 @@ namespace PBFT.Certificates
                 .GroupBy(c => new {c.ServID, c.Signature})
                 .Where(c => c.Count() > 1)
                 .Sum(c => c.Count()-1);
+            Console.WriteLine(count);
             return count;
         }
         
         public bool ProofsAreValid()
         {
+            Console.WriteLine("PROOFS ARE VALID");
             foreach (var vc in ProofList)
             {
-                /*public int StableSeqNr { get; set; }
+                /*
+                public int StableSeqNr { get; set; }
                 public int ServID { get; set; }
                 public CheckpointCertificate CertProofs { get; set; }
                 public CDictionary<int, ProtocolCertificate> RemPreProofs { get; set;}
                 */
-                if (vc.NextViewNr == ViewInfo.ViewNr) 
+                
+                if (vc.NextViewNr != ViewInfo.ViewNr) 
                     return false;
                 if (CurSystemState == null && vc.CertProofs != null || CurSystemState != null && vc.CertProofs == null)
                     return false;
@@ -89,9 +93,9 @@ namespace PBFT.Certificates
 
         public void AppendViewChange(ViewChange vc, RSAParameters pubkey)
         {
-            if(vc.Validate(pubkey, ViewInfo.ViewNr)) ProofList.Add(vc);  
-        } 
-        
+            if (vc.Validate(pubkey, ViewInfo.ViewNr)) ProofList.Add(vc);
+        }
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ViewInfo), ViewInfo);

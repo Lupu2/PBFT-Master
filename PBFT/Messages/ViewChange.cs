@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
@@ -80,7 +81,7 @@ namespace PBFT.Messages
         {
             var copy = CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
-            if(!Crypto.VerifySignature(Signature,copy.SerializeToBuffer(),pubkey)) return false;
+            if(!Crypto.VerifySignature(Signature,copy.SerializeToBuffer(), pubkey)) return false;
             //Verify Checkout Certificate... 
             return true;
         }

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Runtime.Intrinsics.X86;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,20 +25,14 @@ namespace PBFT.Replica
     public class Server : IPersistable
     {
         //Persistent
-        public int ServID {get; set;}
-        public int CurView {get; set;}
-        public ViewPrimary CurPrimary {get; set;}
-        public int CurSeqNr {get; set;}
-        public Range CurSeqRange { get; set;}
+        public int ServID { get; set; }
+        public int CurView { get; set; }
+        public ViewPrimary CurPrimary { get; set; }
+        public int CurSeqNr { get; set; }
+        public Range CurSeqRange { get; set; }
         public int CheckpointConstant { get; set; }
-        public int TotalReplicas {get; set;}
+        public int TotalReplicas { get; set; }
         public CheckpointCertificate StableCheckpoints;
-        /*public Source<Request> RequestBridge;
-        public Source<PhaseMessage> ProtocolBridge;
-        public Source<ViewChange> ViewBridge;
-        public Source<ViewChangeCertificate> ShutDownBridge;
-        public Source<CheckpointCertificate> CheckpointBridge;
-        public Source<NewView> NewViewBridge;*/
         public SourceHandler Subjects { get; set; }
         private CDictionary<int, CList<ProtocolCertificate>> Log;
         public CDictionary<int, bool> ClientActive;
@@ -47,20 +40,21 @@ namespace PBFT.Replica
         public CDictionary<int, string> ServerContactList;
         public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
         public CDictionary<int, CheckpointCertificate> CheckpointLog;
-        
+
         //NON-Persitent
-        private Engine _scheduler {get; set;}
+        private Engine _scheduler { get; set; }
         private TempConnListener _servListener { get; set; }
-        private RSAParameters _prikey{get; set;}
-        public RSAParameters Pubkey{get; set;}
+        private RSAParameters _prikey { get; set; }
+        public RSAParameters Pubkey { get; set; }
         public Dictionary<int, TempInteractiveConn> ClientConnInfo;
         public Dictionary<int, TempInteractiveConn> ServConnInfo;
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         private readonly object _sync = new object();
         private bool rebooted;
-        
-        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, SourceHandler sh, CDictionary<int,string> contactList) //Initial constructor
+
+        public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress,
+            SourceHandler sh, CDictionary<int, string> contactList) //Initial constructor
         {
             ServID = id;
             CurView = curview;
@@ -68,14 +62,8 @@ namespace PBFT.Replica
             TotalReplicas = totalreplicas;
             CheckpointConstant = checkpointinter;
             CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
-            CurSeqRange = new Range(0,2*checkpointinter);
+            CurSeqRange = new Range(0, 2 * checkpointinter);
             Subjects = sh;
-            /*RequestBridge = reqbridge;
-            ProtocolBridge = pesbridge;
-            ViewBridge = viewbridge;
-            ShutDownBridge = shutdownbridge;
-            NewViewBridge = newbridge;
-            CheckpointBridge = new Source<CheckpointCertificate>();*/
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
@@ -83,10 +71,10 @@ namespace PBFT.Replica
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             StableCheckpoints = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
-            
+
             _scheduler = sche;
-            _servListener = new TempConnListener(ipaddress,HandleNewClientConnection);
-            (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
+            _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
+            (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -95,7 +83,8 @@ namespace PBFT.Replica
             rebooted = false;
         }
 
-        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, SourceHandler sh, CDictionary<int,string> contactList)
+        public Server(int id, int curview, int seqnr, int totalreplicas, Engine sche, int checkpointinter,
+            string ipaddress, SourceHandler sh, CDictionary<int, string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -106,12 +95,6 @@ namespace PBFT.Replica
             if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
             else CurSeqRange = new Range(checkpointinter, checkpointinter * 2);
             Subjects = sh;
-            /*RequestBridge = reqbridge;
-            ProtocolBridge = pesbridge;
-            ViewBridge = viewbridge;
-            ShutDownBridge = shutbridge;
-            NewViewBridge = newbridge;
-            CheckpointBridge = new Source<CheckpointCertificate>();*/
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
@@ -120,10 +103,10 @@ namespace PBFT.Replica
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             StableCheckpoints = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
-            
+
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
-            (_prikey,Pubkey) = Crypto.InitializeKeyPairs();
+            (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -132,10 +115,9 @@ namespace PBFT.Replica
             rebooted = false;
         }
 
-        public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead, int replicas, 
-            //Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, 
-            //Source<ViewChangeCertificate> shutbridge, Source<NewView> newbridge, 
-            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int,string> contactList)
+        public Server(int id, int curview, int seqnr, Range seqRange, Engine sche, string ipaddress, ViewPrimary lead,
+            int replicas,
+            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int, string> contactList)
         {
             ServID = id;
             CurView = curview;
@@ -145,12 +127,6 @@ namespace PBFT.Replica
             CheckpointConstant = seqRange.End.Value / 2;
             CurSeqRange = seqRange;
             Subjects = sh;
-            /*RequestBridge = reqbridge;
-            ProtocolBridge = pesbridge;
-            ViewBridge = viewbridge;
-            ShutDownBridge = shutbridge;
-            NewViewBridge = newbridge;
-            CheckpointBridge = new Source<CheckpointCertificate>();*/
             Log = oldlog;
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
@@ -158,7 +134,7 @@ namespace PBFT.Replica
             ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
             StableCheckpoints = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
-            
+
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
@@ -171,9 +147,10 @@ namespace PBFT.Replica
         }
 
         [JsonConstructor]
-        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas, 
-            //Source<Request> reqbridge, Source<PhaseMessage> pesbridge, Source<ViewChange> viewbridge, Source<ViewChangeCertificate> shutbridge, Source<NewView> newbridge, 
-            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog, CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog, CDictionary<int,string> contactList, 
+        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas,
+            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
+            CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
+            CDictionary<int, string> contactList,
             CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
             ServID = id;
@@ -185,21 +162,16 @@ namespace PBFT.Replica
             CheckpointConstant = checkpointint;
             CurSeqRange = seqRange;
             Subjects = sh;
-            /*RequestBridge = reqbridge;
-            ProtocolBridge = pesbridge;
-            ViewBridge = viewbridge;
-            ShutDownBridge = shutbridge;
-            NewViewBridge = newbridge;
-            CheckpointBridge = new Source<CheckpointCertificate>();*/
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
             Log = oldlog;
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>(); //possibly change this to get stored view messages?
+            ViewMessageRegister =
+                new CDictionary<int, CArray<ViewChange>>(); //possibly change this to get stored view messages?
             StableCheckpoints = stablecheck;
             CheckpointLog = checkpoints;
-            
+
             //Initialize non-persistent storage
             _servListener = new TempConnListener(ServerContactList[ServID], HandleNewClientConnection);
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
@@ -213,15 +185,19 @@ namespace PBFT.Replica
         public bool IsPrimary()
         {
             Start:
+            Console.WriteLine("Isprimary");
+            Console.WriteLine(CurView);
+            Console.WriteLine(CurPrimary.ViewNr);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
                 return false;
             }
+
             CurPrimary.UpdateView(CurView);
             goto Start;
         }
-        
+
         public IProtocolMessages SignMessage(IProtocolMessages mes, MessageType type)
         {
             switch (type)
@@ -252,8 +228,9 @@ namespace PBFT.Replica
                     mes = tempck;
                     break;
                 default:
-                  throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException();
             }
+
             return mes;
         }
 
@@ -272,30 +249,29 @@ namespace PBFT.Replica
                 cconn.Dispose();
                 ClientConnInfo.Remove(id);
             }
+
             foreach (var (id, sconn) in ServConnInfo)
             {
                 sconn.Dispose();
                 ServConnInfo.Remove(id);
             }
         }
-        
+
         public void AddEngine(Engine sche) => _scheduler = sche;
-        
+
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
             if (_scheduler == null)
             {
                 Console.WriteLine("Missing Engine");
-                var teststorage = new SimpleFileStorageEngine("teststorage.txt",true);
+                var teststorage = new SimpleFileStorageEngine("teststorage.txt", true);
                 _scheduler = ExecutionEngineFactory.StartNew(teststorage);
                 AddEngine(_scheduler);
             }
-            _scheduler.Schedule(() =>
-            {
-                _ = HandleIncommingMessages(conn);
-            });
+
+            _scheduler.Schedule(() => { _ = HandleIncommingMessages(conn); });
         }
-        
+
         //Handle incomming messages
         public async CTask HandleIncommingMessages(TempInteractiveConn conn)
         {
@@ -305,132 +281,144 @@ namespace PBFT.Replica
                 try
                 {
                     var (mestypeList, mesList) = await NetworkFunctionality.Receive(conn.Socket);
-                   //Console.WriteLine(ServPubKeyRegister.Count);
-                   int nrofInMess = mestypeList.Count;
-                   for (int i = 0; i < nrofInMess; i++)
-                   {
-                       var mes = mesList[i];
-                       var mesenum = Enums.ToEnumMessageType(mestypeList[i]); 
-                       Console.WriteLine("Type");
-                       Console.WriteLine(mesenum);
-                       switch (mesenum)
-                       {
-                           case MessageType.SessionMessage:
-                               SessionMessage sesmes = (SessionMessage) mes;
-                               DeviceType devtype = sesmes.Devtype;
-                               if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) ||
-                                                                    !ClientConnInfo[sesmes.DevID].Socket.Connected))
-                               {
-                                   Console.WriteLine("New Session Message");
-                                   MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                                   SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                                   await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                       MessageType.SessionMessage);
-                                   Console.WriteLine("Returning message");
-                               }
-                               else if (devtype == DeviceType.Server && sesmes.DevID != ServID && (!ServConnInfo.ContainsKey(sesmes.DevID) ||
-                                                                         !ServConnInfo[sesmes.DevID].Socket.Connected))
-                               {
-                                   Console.WriteLine("New Session Message");
-                                   MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                                   SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                                   await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                       MessageType.SessionMessage);
-                                   Console.WriteLine("Returning message");
-                               }
+                    //Console.WriteLine(ServPubKeyRegister.Count);
+                    int nrofInMess = mestypeList.Count;
+                    for (int i = 0; i < nrofInMess; i++)
+                    {
+                        var mes = mesList[i];
+                        var mesenum = Enums.ToEnumMessageType(mestypeList[i]);
+                        Console.WriteLine("Type");
+                        Console.WriteLine(mesenum);
+                        switch (mesenum)
+                        {
+                            case MessageType.SessionMessage:
+                                SessionMessage sesmes = (SessionMessage) mes;
+                                DeviceType devtype = sesmes.Devtype;
+                                if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) ||
+                                                                     !ClientConnInfo[sesmes.DevID].Socket.Connected))
+                                {
+                                    Console.WriteLine("New Session Message");
+                                    MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                    SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                                    await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                        MessageType.SessionMessage);
+                                    Console.WriteLine("Returning message");
+                                }
+                                else if (devtype == DeviceType.Server && sesmes.DevID != ServID &&
+                                         (!ServConnInfo.ContainsKey(sesmes.DevID) ||
+                                          !ServConnInfo[sesmes.DevID].Socket.Connected))
+                                {
+                                    Console.WriteLine("New Session Message");
+                                    MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                    SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                                    await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                        MessageType.SessionMessage);
+                                    Console.WriteLine("Returning message");
+                                }
 
-                               break;
-                           case MessageType.Request:
-                               Console.WriteLine("New Request Message");
-                               Request reqmes = (Request) mes;
-                               if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
-                                   ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
-                               {
-                                   if (!ClientActive[reqmes.ClientID]) Subjects.RequestSubject.Emit(reqmes);
-                                   
-                               }
-                               else //Rules broken, terminate connection
-                               {
-                                   Console.WriteLine("Connection terminated, rules were broken");
-                                   conn.Dispose();
-                                   return;
-                               }
+                                break;
+                            case MessageType.Request:
+                                Console.WriteLine("New Request Message");
+                                Request reqmes = (Request) mes;
+                                if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
+                                    ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
+                                {
+                                    if (!ClientActive[reqmes.ClientID]) Subjects.RequestSubject.Emit(reqmes);
 
-                               break;
-                           case MessageType.PhaseMessage:
-                               Console.WriteLine("New PhaseMessage Message");
-                               PhaseMessage pesmes = (PhaseMessage) mes;
-                               Console.WriteLine(mes);
-                               if (ServConnInfo.ContainsKey(pesmes.ServID) && ServPubKeyRegister.ContainsKey(pesmes.ServID))
-                               {
-                                   Console.WriteLine("Emitting");
-                                   Subjects.ProtocolSubject.Emit(pesmes);
-                               }
-                               else //Rules broken, terminate connection
-                               {
-                                   Console.WriteLine("Connection terminated, rules were broken");
-                                   conn.Dispose();
-                                   return;
-                               }
+                                }
+                                else //Rules broken, terminate connection
+                                {
+                                    Console.WriteLine("Connection terminated, rules were broken");
+                                    conn.Dispose();
+                                    return;
+                                }
 
-                               break;
-                           case MessageType.ViewChange:
-                               ViewChange vc = (ViewChange) mes;
-                               if (ServConnInfo.ContainsKey(CurPrimary.ServID) && ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
-                               {
-                                   bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
-                                   if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
-                                   {
-                                       ViewMessageRegister[vc.NextViewNr].Add(vc);
-                                       ViewChangeCertificate vcc = new ViewChangeCertificate(new ViewPrimary(ServID, vc.NextViewNr, TotalReplicas), StableCheckpoints);
-                                       foreach (var vctemp in ViewMessageRegister[vc.NextViewNr]) 
-                                           vcc.AppendViewChange(vctemp, ServPubKeyRegister[vc.ServID]);
-                                       Subjects.ShutdownSubject.Emit(vcc);
-                                   }
-                                   else if(val && ! ViewMessageRegister.ContainsKey(vc.NextViewNr)) //does not already have any view-change messages for view n
-                                   {
-                                       ViewMessageRegister[vc.NextViewNr] = new CArray<ViewChange>();
-                                       ViewMessageRegister[vc.NextViewNr].Add(vc);
-                                   }
-                               }
-                               break;
-                           case MessageType.NewView:
-                               NewView nvmes = (NewView) mes;
-                               if (ServConnInfo.ContainsKey(CurPrimary.ServID) && ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
-                               {
-                                   Console.WriteLine("Emitting");
-                                   Subjects.NewViewSubject.Emit(nvmes);
-                               }
-                               else //Rules broken, terminate connection
-                               {
-                                   Console.WriteLine("Connection terminated, rules were broken");
-                                   conn.Dispose();
-                                   return;
-                               }
-                               break;
-                           case MessageType.Checkpoint:
-                               Checkpoint check = (Checkpoint) mes;
-                               if (CheckpointLog.ContainsKey(check.StableSeqNr))
-                               {
-                                   if (StableCheckpoints == null || StableCheckpoints.LastSeqNr != check.StableSeqNr)
-                                       CheckpointLog[check.StableSeqNr].AppendProof(check,
-                                                                        ServPubKeyRegister[check.ServID],
-                                                                        Quorum.CalculateFailureLimit(TotalReplicas)
-                                                                        );
-                               }
-                               else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
-                               {
-                                   CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr, check.StateDigest, Subjects.CheckpointSubject);
-                                   cert.AppendProof(check, ServPubKeyRegister[check.ServID], Quorum.CalculateFailureLimit(TotalReplicas));
-                                   CheckpointLog[check.StableSeqNr] = cert;
-                                   App.CreateCheckpoint(_scheduler,this);
-                               }
-                               break;
-                           default:
-                               Console.WriteLine("Unrecognizable Message");
-                               break;
-                       }
-                   }
+                                break;
+                            case MessageType.PhaseMessage:
+                                Console.WriteLine("New PhaseMessage Message");
+                                PhaseMessage pesmes = (PhaseMessage) mes;
+                                Console.WriteLine(mes);
+                                if (ServConnInfo.ContainsKey(pesmes.ServID) &&
+                                    ServPubKeyRegister.ContainsKey(pesmes.ServID))
+                                {
+                                    Console.WriteLine("Emitting");
+                                    Subjects.ProtocolSubject.Emit(pesmes);
+                                }
+                                else //Rules broken, terminate connection
+                                {
+                                    Console.WriteLine("Connection terminated, rules were broken");
+                                    conn.Dispose();
+                                    return;
+                                }
+
+                                break;
+                            case MessageType.ViewChange:
+                                ViewChange vc = (ViewChange) mes;
+                                if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
+                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
+                                {
+                                    bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
+                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
+                                    ) //will already have a view-change message for view n, therefore count = 2
+                                    {
+                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
+                                        ViewChangeCertificate vcc = new ViewChangeCertificate(
+                                            new ViewPrimary(ServID, vc.NextViewNr, TotalReplicas), StableCheckpoints);
+                                        foreach (var vctemp in ViewMessageRegister[vc.NextViewNr])
+                                            vcc.AppendViewChange(vctemp, ServPubKeyRegister[vc.ServID]);
+                                        Subjects.ShutdownSubject.Emit(vcc);
+                                    }
+                                    else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
+                                    ) //does not already have any view-change messages for view n
+                                    {
+                                        ViewMessageRegister[vc.NextViewNr] = new CArray<ViewChange>();
+                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
+                                    }
+                                }
+
+                                break;
+                            case MessageType.NewView:
+                                NewView nvmes = (NewView) mes;
+                                if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
+                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
+                                {
+                                    Console.WriteLine("Emitting");
+                                    Subjects.NewViewSubject.Emit(nvmes);
+                                }
+                                else //Rules broken, terminate connection
+                                {
+                                    Console.WriteLine("Connection terminated, rules were broken");
+                                    conn.Dispose();
+                                    return;
+                                }
+
+                                break;
+                            case MessageType.Checkpoint:
+                                Checkpoint check = (Checkpoint) mes;
+                                if (CheckpointLog.ContainsKey(check.StableSeqNr))
+                                {
+                                    if (StableCheckpoints == null || StableCheckpoints.LastSeqNr != check.StableSeqNr)
+                                        CheckpointLog[check.StableSeqNr].AppendProof(check,
+                                            ServPubKeyRegister[check.ServID],
+                                            Quorum.CalculateFailureLimit(TotalReplicas)
+                                        );
+                                }
+                                else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
+                                {
+                                    CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr,
+                                        check.StateDigest, Subjects.CheckpointSubject);
+                                    cert.AppendProof(check, ServPubKeyRegister[check.ServID],
+                                        Quorum.CalculateFailureLimit(TotalReplicas));
+                                    CheckpointLog[check.StableSeqNr] = cert;
+                                    App.CreateCheckpoint(_scheduler, this);
+                                }
+
+                                break;
+                            default:
+                                Console.WriteLine("Unrecognizable Message");
+                                break;
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
@@ -440,15 +428,16 @@ namespace PBFT.Replica
                 }
             }
         }
-        
+
         public async CTask Multicast(byte[] sermessage, MessageType type)
         {
             Console.WriteLine("Multicasting: " + type);
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
-            foreach(var(sid, conn) in ServConnInfo)
+            foreach (var (sid, conn) in ServConnInfo)
             {
-                if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
+                if (sid != ServID
+                ) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
                     await conn.Socket.SendAsync(fullbuffmes, SocketFlags.None);
             }
         }
@@ -470,7 +459,7 @@ namespace PBFT.Replica
             //Console.WriteLine(mes);
             Subjects.ProtocolSubject.Emit(mes);
         }
-        
+
         public async Task InitializeConnections() //Add Client To Client Dictionaries
         {
             if (rebooted) //Rebooting
@@ -480,36 +469,36 @@ namespace PBFT.Replica
                     if (k != ServID)
                     {
                         Console.WriteLine($"Initialize connection on {ip}");
-                        var servConn = new TempInteractiveConn(ip); 
+                        var servConn = new TempInteractiveConn(ip);
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
                         //ServConnInfo[k] = servConn;
                         SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
                         await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
-                        _= HandleIncommingMessages(servConn);
+                        _ = HandleIncommingMessages(servConn);
                     }
                 }
             }
             else //Starting
             {
-                foreach (var (k,ip) in ServerContactList)
+                foreach (var (k, ip) in ServerContactList)
                 {
-                    if (k != ServID && ServID>k)
+                    if (k != ServID && ServID > k)
                     {
                         //var servConn = new TempConn(ip, false, null);
                         Console.WriteLine($"Initialize connection on {ip}");
-                        var servConn = new TempInteractiveConn(ip); 
+                        var servConn = new TempInteractiveConn(ip);
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
                         //ServConnInfo[k] = servConn;
                         SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
                         await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
-                        _= HandleIncommingMessages(servConn);
+                        _ = HandleIncommingMessages(servConn);
                     }
                 }
             }
         }
-        
+
         /*public async Task ReEstablishConnections()
         {
             foreach (var (k,conn) in ServConnInfo)
@@ -524,7 +513,7 @@ namespace PBFT.Replica
                 }
             }
         }*/
-        
+
         /*public async CTask InitializeSession(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
         {
             var sessionmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
@@ -549,31 +538,43 @@ namespace PBFT.Replica
             lock (_sync)
                 ServPubKeyRegister[id] = key;
         }
-        
+
         //Log functions
-        public bool InitializeLog(int seqNr)
-        {
-            Console.WriteLine("Initialized Log");
-            if (!Log.ContainsKey(seqNr)) Log[seqNr] = new CList<ProtocolCertificate>();
-            else return false;
-            return true;
-        }
+        public void InitializeLog(int seqNr) => Log[seqNr] = new CList<ProtocolCertificate>();
         
         public int NrOfLogEntries() => Log.Count;
-        
+
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Certificate saved!");
+            Console.WriteLine("SeqNr:" + seqNr);
+            Console.WriteLine($"Cert: {cert}");
             lock (_sync)
             {
-                Log[seqNr].Add(cert);   
+                Log[seqNr].Add(cert);
             }
+        }
+
+        public CList<ProtocolCertificate> GetProtocolCertificate(int seqNr)
+        {
+            if (Log.ContainsKey(seqNr))
+            {
+                lock (_sync)
+                {
+                    return Log[seqNr];
+                }    
+            }
+            else
+            {
+                return new CList<ProtocolCertificate>();
+            }
+            
         }
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
-            foreach (var (seqNr,certList) in Log)
+            foreach (var (seqNr, certList) in Log)
             {
                 if (seqNr > stableSeqNr)
                 {
@@ -582,6 +583,7 @@ namespace PBFT.Replica
                             prepdict[seqNr] = cert;
                 }
             }
+
             return prepdict;
         }
 
@@ -597,20 +599,21 @@ namespace PBFT.Replica
                 GarbageCollectCheckpoints(StableCheckpoints.LastSeqNr);
             }
         }
-        
+
         private byte[] MakeStateDigest(int n)
         {
             if (Log.Count > 0 && n > 0 && n <= Log.Count)
             {
                 var digdict = new Dictionary<int, string>();
-                foreach (var (seq,proofs) in Log)
+                foreach (var (seq, proofs) in Log)
                 {
                     if (seq <= n)
-                    { 
+                    {
                         var seqproof = JsonConvert.SerializeObject(Serializer.PrepareForSerialize(proofs));
                         digdict[seq] = seqproof;
                     }
                 }
+
                 using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
                 {
                     //Console.WriteLine(digdict.Count);
@@ -618,13 +621,14 @@ namespace PBFT.Replica
                     //Console.WriteLine(serializedlog);
                     var bytelog = Encoding.ASCII.GetBytes(serializedlog);
                     return shaalgo.ComputeHash(bytelog);
-                } 
+                }
             }
+
             throw new ArgumentException();
         }
-        
+
         public byte[] TestMakeStateDigest(int n) => MakeStateDigest(n);
-        
+
         public void CreateCheckpoint(int limseqNr, CList<string> appstate)
         {
             if (StableCheckpoints == null || StableCheckpoints.LastSeqNr < limseqNr)
@@ -636,18 +640,19 @@ namespace PBFT.Replica
                 else checkcert = new CheckpointCertificate(limseqNr, statedig, Subjects.CheckpointSubject);
                 var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
                 checkpointmes.SignMessage(_prikey);
-                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter().GetResult(); //wait for multicast to finish
-                checkcert.AppendProof(checkpointmes,Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));    
+                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter()
+                    .GetResult(); //wait for multicast to finish
+                checkcert.AppendProof(checkpointmes, Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));
             }
         }
-        
+
         private void GarbageCollectLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
-                if (entrySeqNr <= seqNr) 
+                if (entrySeqNr <= seqNr)
                     Log.Remove(entrySeqNr);
         }
-        
+
         private void GarbageCollectCheckpoints(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
@@ -656,7 +661,7 @@ namespace PBFT.Replica
                     CheckpointLog.Remove(entrySeqNr);
             }
         }
-        
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -667,11 +672,6 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(CheckpointConstant), CheckpointConstant);
             stateToSerialize.Set(nameof(CurPrimary), CurPrimary);
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
-            /*stateToSerialize.Set(nameof(RequestBridge), RequestBridge);
-            stateToSerialize.Set(nameof(ProtocolBridge), ProtocolBridge);
-            stateToSerialize.Set(nameof(ViewBridge), ViewBridge);
-            stateToSerialize.Set(nameof(ShutDownBridge), ShutDownBridge);
-            stateToSerialize.Set(nameof(NewViewBridge), NewViewBridge);*/
             stateToSerialize.Set(nameof(Subjects), Subjects);
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
@@ -680,21 +680,16 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(StableCheckpoints), StableCheckpoints);
             stateToSerialize.Set(nameof(CheckpointLog), CheckpointLog);
         }
-        
+
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
-        => new Server(
+            => new Server(
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(CurView)),
                 sd.Get<int>(nameof(CurSeqNr)),
                 sd.Get<int>(nameof(CheckpointConstant)),
-                new Range(sd.Get<int>("CurSeqRangeLow"),sd.Get<int>("CurSeqRangeHigh")),
+                new Range(sd.Get<int>("CurSeqRangeLow"), sd.Get<int>("CurSeqRangeHigh")),
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
-                /*sd.Get<Source<Request>>(nameof(RequestBridge)),
-                sd.Get<Source<PhaseMessage>>(nameof(ProtocolBridge)),
-                sd.Get<Source<ViewChange>>(nameof(ViewBridge)),
-                sd.Get<Source<ViewChangeCertificate>>(nameof(ShutDownBridge)),
-                sd.Get<Source<NewView>>(nameof(NewViewBridge)),*/
                 sd.Get<SourceHandler>(nameof(Subjects)),
                 sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),
@@ -702,6 +697,6 @@ namespace PBFT.Replica
                 sd.Get<CDictionary<int, string>>(nameof(ServerContactList)),
                 sd.Get<CheckpointCertificate>(nameof(StableCheckpoints)),
                 sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
-        );
+            );
     }
 }

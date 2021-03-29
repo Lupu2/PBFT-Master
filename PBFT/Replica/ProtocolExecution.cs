@@ -63,8 +63,7 @@ namespace PBFT.Replica
                 }*/
                 curSeq = ++Serv.CurSeqNr;
                 //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
-                var init = Serv.InitializeLog(curSeq);
-                if (!init) return null; 
+                Serv.InitializeLog(curSeq);
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                 preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                 qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
@@ -79,9 +78,8 @@ namespace PBFT.Replica
                 //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                 
                 qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
-                curSeq = qcertpre.SeqNr;
-                var init = Serv.InitializeLog(curSeq);
-                if (!init) return null;
+                curSeq = qcertpre.SeqNr; 
+                Serv.InitializeLog(curSeq);
                 PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
                 prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
                 qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
@@ -180,10 +178,8 @@ namespace PBFT.Replica
                 if (Serv.IsPrimary()) //Primary
                 {
                     Console.WriteLine("Server is primary");
-                    curSeq = ++Serv
-                        .CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
-                    var init = Serv.InitializeLog(curSeq);
-                    if (!init) return null;
+                    curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
+                    Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.PrePrepare);
                     preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
@@ -208,8 +204,7 @@ namespace PBFT.Replica
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared,
                         preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr;
-                    var init = Serv.InitializeLog(curSeq);
-                    if (!init) return null;
+                    Serv.InitializeLog(curSeq);
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.Prepare);
                     prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
@@ -287,15 +282,16 @@ namespace PBFT.Replica
             Active = false;
             ViewChange:
             Serv.CurPrimary.NextPrimary();
+            Serv.CurView++;
+            //Serv.CurView = Serv.CurPrimary.ViewNr;
             if (vcc == null || vcc.ViewInfo.ViewNr != Serv.CurPrimary.ViewNr)
                 vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpoints);
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
             if (Serv.StableCheckpoints == null)
             {
-                preps = Serv.CollectPrepareCertificates(0);
+                preps = Serv.CollectPrepareCertificates(-1);
                 vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
-                
             }
             else
             {
@@ -380,7 +376,7 @@ namespace PBFT.Replica
                 Serv.AddProtocolCertificate(prepre.SeqNr, comcert);
             }
         }
-        
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(Serv), Serv);

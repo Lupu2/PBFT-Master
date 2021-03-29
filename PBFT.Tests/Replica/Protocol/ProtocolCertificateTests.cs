@@ -42,7 +42,7 @@ namespace PBFT.Tests.Replica
             Request req = new Request(1, "Hello World", DateTime.Now.ToString());
             req.SignMessage(pri);
             byte[] dig = req.SerializeToBuffer();
-            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, dig, CertType.Prepared); ;
+            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, dig, CertType.Prepared);
             Assert.IsFalse(cert1.ValidateCertificate(1));
             //Correct Certification test
             PhaseMessage p1 = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
@@ -114,7 +114,6 @@ namespace PBFT.Tests.Replica
             Assert.IsFalse(cert2.ValidateCertificate(1)); //Duplicates
             cert2.ProofList.Add(p27);
             Assert.IsTrue(cert2.ValidateCertificate(1));
-            
         }
     }
 }

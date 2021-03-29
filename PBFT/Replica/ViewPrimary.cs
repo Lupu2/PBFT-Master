@@ -5,6 +5,7 @@ using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Newtonsoft.Json;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -25,6 +26,7 @@ namespace PBFT.Replica
             ServID = ViewNr % numberofReplicas;
         }
         
+        [JsonConstructor]
         public ViewPrimary(int id, int vnr, int numberReplicas)
         {
             ServID = id;

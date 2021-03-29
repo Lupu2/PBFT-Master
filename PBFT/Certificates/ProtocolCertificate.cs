@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
@@ -8,9 +7,7 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using PBFT.Messages;
 using System.Linq;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Newtonsoft.Json;
-using PBFT.Certificates;
 using PBFT.Helper;
 
 namespace PBFT.Certificates

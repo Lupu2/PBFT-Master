@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Dynamic;
+using System.Linq;
+using System.Reflection;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
@@ -101,6 +104,63 @@ namespace PBFT.Tests.Replica
             Assert.IsFalse(Crypto.VerifySignature(checkmes.Signature,checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
             checkmes = (Checkpoint) server.SignMessage(checkmes, MessageType.Checkpoint);
             Assert.IsTrue(Crypto.VerifySignature(checkmes.Signature, checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
+        }
+        
+        [TestMethod]
+        public void ServerCollectPrepareCertificatesTest()
+        {
+            var server = new Server(0, 1, 5, 4, null, 10, "127.0.0.1:9001", null, new CDictionary<int, string>());
+            server.InitializeLog(0);
+            server.InitializeLog(1);
+            server.InitializeLog(2);
+            server.InitializeLog(3);
+            server.InitializeLog(4);
+            server.InitializeLog(5);
+            var dig0 = Crypto.CreateDigest(new Request(1, "hello", "12:00"));
+            var dig1 = Crypto.CreateDigest(new Request(2, "Pops", "12:01"));
+            var dig2 = Crypto.CreateDigest(new Request(3, "Smart", "12:02"));
+            var dig3 = Crypto.CreateDigest(new Request(1, "Jason", "12:03"));
+            var dig4 = Crypto.CreateDigest(new Request(2, "Jake", "12:04"));
+            var dig5 = Crypto.CreateDigest(new Request(3, "Lake", "12:05"));
+            var propcert0 = new ProtocolCertificate(0, 1, dig0, CertType.Prepared);
+            var comcert0 = new ProtocolCertificate(0, 1, dig0, CertType.Committed);
+            var propcert1 = new ProtocolCertificate(1, 1, dig1, CertType.Prepared);
+            var comcert1 = new ProtocolCertificate(1, 1, dig1, CertType.Committed);
+            var propcert2 = new ProtocolCertificate(2, 1, dig2, CertType.Prepared);
+            var comcert2 = new ProtocolCertificate(2, 1, dig2, CertType.Committed);
+            var propcert3 = new ProtocolCertificate(3, 1, dig3, CertType.Prepared);
+            var comcert3 = new ProtocolCertificate(3, 1, dig3, CertType.Committed);
+            var propcert4 = new ProtocolCertificate(4, 1, dig4, CertType.Prepared);
+            var comcert4 = new ProtocolCertificate(4, 1, dig4, CertType.Committed);
+            var propcert5 = new ProtocolCertificate(5, 1, dig5, CertType.Prepared);
+            List<ProtocolCertificate> protoList = new List<ProtocolCertificate>() 
+            {
+                propcert1, 
+                propcert2, 
+                propcert3, 
+                propcert4,
+                propcert5
+            };
+            server.AddProtocolCertificate(0, propcert0);
+            server.AddProtocolCertificate(0, comcert0);
+            server.AddProtocolCertificate(1, propcert1);
+            server.AddProtocolCertificate(1, comcert1);
+            server.AddProtocolCertificate(2, propcert2);
+            server.AddProtocolCertificate(2, comcert2);
+            server.AddProtocolCertificate(3, propcert3);
+            server.AddProtocolCertificate(3, comcert3);
+            server.AddProtocolCertificate(4, propcert4);
+            server.AddProtocolCertificate(4, comcert4);
+            server.AddProtocolCertificate(5, propcert5);
+            var resdict = server.CollectPrepareCertificates(0);
+            Assert.AreEqual(resdict.Count, 5);
+            foreach (var (i,procert) in resdict)
+            {
+                Assert.IsTrue(procert.CType == CertType.Prepared);
+                Assert.AreEqual(procert.SeqNr,protoList[i-1].SeqNr);
+                Assert.AreEqual(procert.ViewNr, protoList[i-1].ViewNr);
+                Assert.IsTrue(procert.CurReqDigest.SequenceEqual(protoList[i-1].CurReqDigest));
+            }
         }
     }
 }

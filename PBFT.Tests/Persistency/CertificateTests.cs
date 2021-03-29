@@ -180,5 +180,11 @@ namespace PBFT.Tests.Persistency
             Console.WriteLine("I got result!");
             return rescert;
         }
+
+        [TestMethod]
+        public void ViewChangeCertificateTest()
+        {
+            
+        }
     }
 }

@@ -45,8 +45,6 @@ namespace PBFT.Tests.Replica
             ccert.ProofList.Add(check3);
             ccert.ProofList.Add(check1bad);
             Assert.IsFalse(ccert.ProofsAreValid());
-            
-            
         }
 
         [TestMethod]
