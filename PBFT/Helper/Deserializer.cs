@@ -29,7 +29,7 @@ namespace PBFT.Helper
             switch (formatByte) 
             {
                 case (int) MessageType.SessionMessage:
-                     return (formatByte, SessionMessage.DeSerializeToObject(serobj));
+                     return (formatByte, Session.DeSerializeToObject(serobj));
                 case (int) MessageType.Request:
                     return (formatByte, Request.DeSerializeToObject(serobj));
                 case (int) MessageType.PhaseMessage:

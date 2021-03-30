@@ -102,10 +102,12 @@ namespace PBFT.Tests.Persistency
             cert.AppendProof(check2,_pubkey,1);
             Assert.AreEqual(cert.ProofList.Count, 2);
             _objectStore.Attach(cert);
+            _objectStore.Attach(listener);
             _objectStore.Persist();
             _objectStore = null;
             _objectStore = ObjectStore.Load(_storage);
             var copycert = _objectStore.Resolve<CheckpointCertificate>();
+            //listener = _objectStore.Resolve<CAwaitable.Awaiter<>();
             Assert.AreEqual(copycert.ProofList.Count,2);
             var copycheck1 = copycert.ProofList[0];
             var copycheck2 = copycert.ProofList[1];
@@ -122,6 +124,7 @@ namespace PBFT.Tests.Persistency
             var res = listener.GetResult();
             Assert.IsTrue(res.Stable);
         }*/
+        
         
         [TestMethod]
         public void CheckpointCertificateTest()

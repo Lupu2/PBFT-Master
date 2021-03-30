@@ -67,7 +67,7 @@ namespace PBFT.Replica
                 PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                 preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                 qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
-                await Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
+                Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
             }else{ //Replicas
                 // await incomming PhaseMessages Where = MessageType.PrePrepar
                 
@@ -84,7 +84,7 @@ namespace PBFT.Replica
                 prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
                 qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
                 //Serv.EmitPhaseMessageLocally(prepare);
-                await Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
+                Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
             }
             
             //Prepare phase
@@ -118,7 +118,7 @@ namespace PBFT.Replica
             
             PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
             commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
-            await Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
+            Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
             //qcertcom.ProofList.Add(commitmes);
             Serv.EmitPhaseMessageLocally(commitmes);
             Console.WriteLine("Waiting for commits");
@@ -153,7 +153,7 @@ namespace PBFT.Replica
             Console.WriteLine($"Completing operation: {clireq.Message}");
             var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
             rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
-            await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
+            Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
             return rep;
             }
             catch (Exception e)
@@ -300,7 +300,7 @@ namespace PBFT.Replica
                 vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpoints, preps);
             }
             Serv.SignMessage(vc, MessageType.ViewChange);
-            await Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
+            Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
             
             //Start timeout
             //await View Change message validation/ have enough, need referanse to existing View Certificate
@@ -316,7 +316,7 @@ namespace PBFT.Replica
                 foreach (var prepre in prepares) Serv.SignMessage(prepre, MessageType.PhaseMessage);
                 var nvmes = new NewView(Serv.CurView, vcc, prepares);
                 Serv.SignMessage(nvmes, MessageType.NewView);
-                await Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
+                Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 await RedoMessage(prepares);
                 Active = true;
             }
@@ -355,7 +355,7 @@ namespace PBFT.Replica
                 {
                     var prepare = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Prepare);
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
-                    await Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
+                    Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
                 
                 var preps = MesBridge
@@ -370,7 +370,7 @@ namespace PBFT.Replica
                 
                 var commes = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Commit);
                 Serv.SignMessage(commes, MessageType.PhaseMessage);
-                await Serv.Multicast(commes.SerializeToBuffer(), MessageType.PhaseMessage);
+                Serv.Multicast(commes.SerializeToBuffer(), MessageType.PhaseMessage);
                 Serv.EmitPhaseMessageLocally(commes);
                 await coms;
                 Serv.AddProtocolCertificate(prepre.SeqNr, comcert);

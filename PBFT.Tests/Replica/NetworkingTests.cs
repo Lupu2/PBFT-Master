@@ -39,7 +39,7 @@ namespace PBFT.Tests.Replica
                 while (!_socket.Connected)
                     _socket.Connect("127.0.0.1",9001);
 
-                var ses = new SessionMessage(DeviceType.Client, new RSAParameters(), 1);
+                var ses = new Session(DeviceType.Client, new RSAParameters(), 1);
                 var msg = ses.SerializeToBuffer();
                 msg = Serializer.AddTypeIdentifierToBytes(msg, MessageType.SessionMessage);
                 msg = NetworkFunctionality.AddEndDelimiter(msg);
@@ -155,7 +155,7 @@ namespace PBFT.Tests.Replica
                 while (!_socket.Connected)
                     _socket.Connect("127.0.0.1", 9000);
                 var (_pri, pub) = Crypto.InitializeKeyPairs();
-                var ses = new SessionMessage(DeviceType.Client, pub, 1);
+                var ses = new Session(DeviceType.Client, pub, 1);
                 var msg = ses.SerializeToBuffer();
                 msg = Serializer.AddTypeIdentifierToBytes(msg, MessageType.SessionMessage);
                 _socket.Send(msg);
@@ -166,7 +166,7 @@ namespace PBFT.Tests.Replica
                     .Take(msgLength)
                     .ToArray();
                 var (_, mes) = Deserializer.ChooseDeserialize(bytemes);
-                SessionMessage sesmes = (SessionMessage) mes;
+                Session sesmes = (Session) mes;
                 Console.WriteLine("CLIENT RECEIVED SESSION MESSAGE");
                 Assert.AreEqual(sesmes.DevID, 0);
                 Request req = new Request(1, "Hello Everybody!");

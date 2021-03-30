@@ -269,11 +269,11 @@ namespace PBFT.Replica
                 AddEngine(_scheduler);
             }
 
-            _scheduler.Schedule(() => { _ = HandleIncommingMessages(conn); });
+            _ = HandleIncommingMessages(conn);
         }
 
         //Handle incomming messages
-        public async CTask HandleIncommingMessages(TempInteractiveConn conn)
+        public async Task HandleIncommingMessages(TempInteractiveConn conn)
         {
             Console.WriteLine("New connection initialized!");
             while (true)
@@ -292,16 +292,17 @@ namespace PBFT.Replica
                         switch (mesenum)
                         {
                             case MessageType.SessionMessage:
-                                SessionMessage sesmes = (SessionMessage) mes;
+                                Session sesmes = (Session) mes;
                                 DeviceType devtype = sesmes.Devtype;
-                                if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) ||
-                                                                     !ClientConnInfo[sesmes.DevID].Socket.Connected))
+                                if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) || !ClientConnInfo[sesmes.DevID].Socket.Connected))
                                 {
                                     Console.WriteLine("New Session Message");
-                                    MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                                    SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                                    await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                        MessageType.SessionMessage);
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                        Session replysesmes = new Session(DeviceType.Server, Pubkey, ServID);
+                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket, MessageType.SessionMessage);
+                                    });
                                     Console.WriteLine("Returning message");
                                 }
                                 else if (devtype == DeviceType.Server && sesmes.DevID != ServID &&
@@ -309,21 +310,26 @@ namespace PBFT.Replica
                                           !ServConnInfo[sesmes.DevID].Socket.Connected))
                                 {
                                     Console.WriteLine("New Session Message");
-                                    MessageHandler.HandleSessionMessage(sesmes, conn, this);
-                                    SessionMessage replysesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                                    await SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
-                                        MessageType.SessionMessage);
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        MessageHandler.HandleSessionMessage(sesmes, conn, this);
+                                        Session replysesmes = new Session(DeviceType.Server, Pubkey, ServID);
+                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                            MessageType.SessionMessage);
+                                    });
                                     Console.WriteLine("Returning message");
                                 }
-
                                 break;
                             case MessageType.Request:
-                                Console.WriteLine("New Request Message");
                                 Request reqmes = (Request) mes;
                                 if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
                                     ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
                                 {
-                                    if (!ClientActive[reqmes.ClientID]) Subjects.RequestSubject.Emit(reqmes);
+                                    if (!ClientActive[reqmes.ClientID]) 
+                                        await _scheduler.Schedule(() => 
+                                        {
+                                            Subjects.RequestSubject.Emit(reqmes);
+                                        });
 
                                 }
                                 else //Rules broken, terminate connection
@@ -332,7 +338,6 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
-
                                 break;
                             case MessageType.PhaseMessage:
                                 Console.WriteLine("New PhaseMessage Message");
@@ -342,7 +347,10 @@ namespace PBFT.Replica
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
                                     Console.WriteLine("Emitting");
-                                    Subjects.ProtocolSubject.Emit(pesmes);
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        Subjects.ProtocolSubject.Emit(pesmes);
+                                    });
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -366,7 +374,10 @@ namespace PBFT.Replica
                                             new ViewPrimary(ServID, vc.NextViewNr, TotalReplicas), StableCheckpoints);
                                         foreach (var vctemp in ViewMessageRegister[vc.NextViewNr])
                                             vcc.AppendViewChange(vctemp, ServPubKeyRegister[vc.ServID]);
-                                        Subjects.ShutdownSubject.Emit(vcc);
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Subjects.ShutdownSubject.Emit(vcc);
+                                        });
                                     }
                                     else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //does not already have any view-change messages for view n
@@ -383,7 +394,10 @@ namespace PBFT.Replica
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
                                 {
                                     Console.WriteLine("Emitting");
-                                    Subjects.NewViewSubject.Emit(nvmes);
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        Subjects.NewViewSubject.Emit(nvmes);
+                                    });
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -398,21 +412,26 @@ namespace PBFT.Replica
                                 if (CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
                                     if (StableCheckpoints == null || StableCheckpoints.LastSeqNr != check.StableSeqNr)
-                                        CheckpointLog[check.StableSeqNr].AppendProof(check,
-                                            ServPubKeyRegister[check.ServID],
-                                            Quorum.CalculateFailureLimit(TotalReplicas)
-                                        );
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            CheckpointLog[check.StableSeqNr].AppendProof(check,
+                                                ServPubKeyRegister[check.ServID],
+                                                Quorum.CalculateFailureLimit(TotalReplicas)
+                                            );
+                                        });
                                 }
                                 else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
-                                    CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr,
-                                        check.StateDigest, Subjects.CheckpointSubject);
-                                    cert.AppendProof(check, ServPubKeyRegister[check.ServID],
-                                        Quorum.CalculateFailureLimit(TotalReplicas));
-                                    CheckpointLog[check.StableSeqNr] = cert;
-                                    App.CreateCheckpoint(_scheduler, this);
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr,
+                                            check.StateDigest, Subjects.CheckpointSubject);
+                                        cert.AppendProof(check, ServPubKeyRegister[check.ServID],
+                                            Quorum.CalculateFailureLimit(TotalReplicas));
+                                        CheckpointLog[check.StableSeqNr] = cert;
+                                        App.CreateCheckpoint(_scheduler, this);
+                                    });
                                 }
-
                                 break;
                             default:
                                 Console.WriteLine("Unrecognizable Message");
@@ -429,20 +448,19 @@ namespace PBFT.Replica
             }
         }
 
-        public async CTask Multicast(byte[] sermessage, MessageType type)
+        public void Multicast(byte[] sermessage, MessageType type)
         {
             Console.WriteLine("Multicasting: " + type);
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             foreach (var (sid, conn) in ServConnInfo)
             {
-                if (sid != ServID
-                ) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
-                    await conn.Socket.SendAsync(fullbuffmes, SocketFlags.None);
+                if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
+                    conn.Socket.Send(fullbuffmes, SocketFlags.None);
             }
         }
 
-        public async CTask SendMessage(byte[] sermessage, Socket sock, MessageType type)
+        public void SendMessage(byte[] sermessage, Socket sock, MessageType type)
         {
             Console.WriteLine($"Sending: {type} message");
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
@@ -450,7 +468,7 @@ namespace PBFT.Replica
             //Console.WriteLine("identifier?");
             //Console.WriteLine("Hello Mom");
             //Console.WriteLine("Sending message");
-            await sock.SendAsync(fullbuffmes, SocketFlags.None);
+            sock.Send(fullbuffmes, SocketFlags.None);
         }
 
         public void EmitPhaseMessageLocally(PhaseMessage mes)
@@ -473,8 +491,8 @@ namespace PBFT.Replica
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
                         //ServConnInfo[k] = servConn;
-                        SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                        await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
+                        Session sesmes = new Session(DeviceType.Server, Pubkey, ServID);
+                        SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
                         _ = HandleIncommingMessages(servConn);
                     }
                 }
@@ -491,8 +509,8 @@ namespace PBFT.Replica
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
                         //ServConnInfo[k] = servConn;
-                        SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                        await SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
+                        Session sesmes = new Session(DeviceType.Server, Pubkey, ServID);
+                        SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
                         _ = HandleIncommingMessages(servConn);
                     }
                 }
@@ -640,8 +658,7 @@ namespace PBFT.Replica
                 else checkcert = new CheckpointCertificate(limseqNr, statedig, Subjects.CheckpointSubject);
                 var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
                 checkpointmes.SignMessage(_prikey);
-                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint).GetAwaiter()
-                    .GetResult(); //wait for multicast to finish
+                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint); //wait for multicast to finish
                 checkcert.AppendProof(checkpointmes, Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));
             }
         }

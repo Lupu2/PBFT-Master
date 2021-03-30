@@ -14,14 +14,14 @@ namespace PBFT.Tests.Helper
         public void SerializeDeserializeSessionMessage()
         {
             var (pri, pub) = Crypto.InitializeKeyPairs();
-            var sesmes = new SessionMessage(DeviceType.Client, pub,1);
+            var sesmes = new Session(DeviceType.Client, pub,1);
             byte[] serpmes = sesmes.SerializeToBuffer();
             byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.SessionMessage);
             Assert.IsFalse(serpmes.SequenceEqual(readybuff));
             Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
             var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
             Assert.IsTrue(mestype == 0);
-            SessionMessage sesmede = (SessionMessage) demes;
+            Session sesmede = (Session) demes;
             Assert.IsTrue(sesmes.Compare(sesmede));
         }
 

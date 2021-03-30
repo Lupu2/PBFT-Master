@@ -19,7 +19,9 @@ using PBFT.Replica;
 
 namespace PBFT.Tests.Replica.Protocol
 {
-    [TestClass]
+    public class ViewTests
+    {
+    /*[TestClass]
     public class ViewTests
     {
         [TestMethod]
@@ -114,7 +116,7 @@ namespace PBFT.Tests.Replica.Protocol
                 if (certList.Count < 2) test = false;
             }
             return test;
-        }
+        }*/
         
         public async CTask RedoMessageTest(CList<PhaseMessage> oldpreList, Server Serv, Source<PhaseMessage> MesBridge, int failNum)
         {

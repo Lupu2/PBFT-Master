@@ -23,8 +23,6 @@ namespace PBFT
             Console.WriteLine("Application running...");
             Console.WriteLine(args.Length);
             
-            //Console.WriteLine(BitConverter.ToString(Crypto.CreateStringDigest(request)));
-            //Console.WriteLine(BitConverter.ToString(Crypto.CreateStringDigest(request)));
             if (args.Length > 0) //add arguments by editing configuration program arguments or by adding parameters behind executable directly
             {
                 Console.WriteLine("arguments:");
@@ -171,7 +169,7 @@ namespace PBFT
 
         }
         
-        public static async Task AppOperation(Request req, Server serv, ProtocolExecution execute)
+        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute)
         {
             var reply = await execute.HandleRequest(req);
             serv.CurSeqNr = reply.SeqNr;

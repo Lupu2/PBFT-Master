@@ -34,7 +34,7 @@ namespace PBFT.Network
             while (!Socket.Connected) await Socket.ConnectAsync(Address);
             _active = true;
         }
-
+        
         public void Dispose()
         {
             Socket.Dispose();

@@ -154,7 +154,7 @@ namespace PBFT.Client
             }
         }
 
-        private async Task SendSessionMessage(SessionMessage ses)
+        private async Task SendSessionMessage(Session ses)
         {
             
             foreach (var (id, servinfo) in ServerInformation)
@@ -192,7 +192,7 @@ namespace PBFT.Client
                 info.Active = true;
                 _ = ListenForResponse(sock, id);
             }
-            SessionMessage climes = new SessionMessage(DeviceType.Client, Pubkey, ClientID);
+            Session climes = new Session(DeviceType.Client, Pubkey, ClientID);
             await SendSessionMessage(climes);
             
         }
@@ -212,7 +212,7 @@ namespace PBFT.Client
                         switch (mesenum)
                         {
                             case MessageType.SessionMessage:
-                                var sesmes = (SessionMessage) mes;
+                                var sesmes = (Session) mes;
                                 ServerInformation[sesmes.DevID].AddPubKeyInfo(sesmes.Publickey);
                                 break;
                             case MessageType.Reply:

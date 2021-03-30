@@ -6,13 +6,13 @@ using PBFT.Helper;
 namespace PBFT.Messages
 {
     
-    public class SessionMessage : IProtocolMessages
+    public class Session : IProtocolMessages
     {
         public DeviceType Devtype {get; set;}
         public RSAParameters Publickey{get; set;}
         public int DevID {get; set;}
 
-        public SessionMessage(DeviceType type, RSAParameters pubkey, int devid) 
+        public Session(DeviceType type, RSAParameters pubkey, int devid) 
         {
             Devtype = type;
             Publickey = pubkey;
@@ -25,13 +25,13 @@ namespace PBFT.Messages
             return Encoding.ASCII.GetBytes(jsonval);
         }
 
-        public static SessionMessage DeSerializeToObject(byte[] buffer)
+        public static Session DeSerializeToObject(byte[] buffer)
         {
             var jsonobj = Encoding.ASCII.GetString(buffer);
-            return JsonConvert.DeserializeObject<SessionMessage>(jsonobj);
+            return JsonConvert.DeserializeObject<Session>(jsonobj);
         }
 
-        public bool Compare(SessionMessage sesmes)
+        public bool Compare(Session sesmes)
         {
             if (sesmes.Devtype != Devtype) return false;
             if (sesmes.DevID != DevID) return false;
