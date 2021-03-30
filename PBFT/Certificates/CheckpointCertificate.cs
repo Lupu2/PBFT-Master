@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.Persistency;
@@ -22,25 +21,29 @@ namespace PBFT.Certificates
         public bool Stable {get; set;}
         public CList<Checkpoint> ProofList {get; set;}
 
-        public Source<CheckpointCertificate> CheckpointBridge {get; set;}
+        //public Source<CheckpointCertificate> CheckpointBridge {get; set;}
 
-        public CheckpointCertificate(int seqLimit, byte[] digest, Source<CheckpointCertificate> check)
+        public Action<CheckpointCertificate> EmitCheckpoint;
+
+        public CheckpointCertificate(int seqLimit, byte[] digest, Action<CheckpointCertificate> emitCheckpoint)
         {
             LastSeqNr = seqLimit;
             StateDigest = digest;
             Stable = false;
             ProofList = new CList<Checkpoint>();
-            CheckpointBridge = check;
+            //CheckpointBridge = check;
+            EmitCheckpoint = emitCheckpoint;
         }
         
         [JsonConstructor]
-        public CheckpointCertificate(int seqLimit, byte[] digest, bool stable, Source<CheckpointCertificate> check, CList<Checkpoint> proofs)
+        public CheckpointCertificate(int seqLimit, byte[] digest, bool stable, Action<CheckpointCertificate> emitCheckpoint, CList<Checkpoint> proofs)
         {
             LastSeqNr = seqLimit;
             StateDigest = digest;
             Stable = stable;
             ProofList = proofs;
-            CheckpointBridge = check;
+            //CheckpointBridge = check;
+            EmitCheckpoint = emitCheckpoint;
         }
         
         public bool QReached(int nodes) => (ProofList.Count-AccountForDuplicates()) >= 2 * nodes + 1;
@@ -103,7 +106,8 @@ namespace PBFT.Certificates
         private void EmitCertificate()
         {
             Console.WriteLine("Emitting Checkpoint Certification");
-            CheckpointBridge.Emit(this);
+            //CheckpointBridge.Emit(this);
+            EmitCheckpoint(this);
         }
 
 
@@ -112,8 +116,9 @@ namespace PBFT.Certificates
             stateToSerialize.Set(nameof(LastSeqNr), LastSeqNr);
             stateToSerialize.Set(nameof(StateDigest), Serializer.SerializeHash(StateDigest));
             stateToSerialize.Set(nameof(Stable), Stable);
+            stateToSerialize.Set(nameof(EmitCheckpoint), EmitCheckpoint);
             stateToSerialize.Set(nameof(ProofList), ProofList);
-            stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
+            //stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
         }
         
         private static CheckpointCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -121,7 +126,8 @@ namespace PBFT.Certificates
                 sd.Get<int>(nameof(LastSeqNr)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                 sd.Get<bool>(nameof(Stable)),
-                sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointBridge)),
+                sd.Get<Action<CheckpointCertificate>>(nameof(EmitCheckpoint)),
+                //sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointBridge)),
                 sd.Get<CList<Checkpoint>>(nameof(ProofList))
             );
     }

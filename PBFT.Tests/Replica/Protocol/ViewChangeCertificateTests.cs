@@ -1,9 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Reflection;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Newtonsoft.Json.Linq;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;

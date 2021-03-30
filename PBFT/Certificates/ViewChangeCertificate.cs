@@ -8,7 +8,6 @@ using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 

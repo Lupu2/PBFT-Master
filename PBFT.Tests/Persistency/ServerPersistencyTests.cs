@@ -1,11 +1,8 @@
 using System;
-using System.Linq;
 using System.Security.Cryptography;
-using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
-using Cleipnir.StorageEngine.InMemory;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Certificates;
@@ -56,7 +53,7 @@ namespace PBFT.Tests.Persistency
             Assert.AreEqual(servcopy.CurPrimary.ServID, serv.CurPrimary.ServID);
             Assert.AreEqual(servcopy.TotalReplicas, serv.TotalReplicas);
             Assert.AreEqual(servcopy.CheckpointConstant,serv.CheckpointConstant);
-            Assert.AreEqual(servcopy.StableCheckpoints, null);
+            Assert.AreEqual(servcopy.StableCheckpointsCertificate, null);
             Assert.IsTrue(servcopy.ReplyLog[1].Compare(serv.ReplyLog[1]));
             Assert.IsTrue(servcopy.ClientActive[1]);
         }

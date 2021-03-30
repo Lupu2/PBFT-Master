@@ -1,12 +1,9 @@
 using System;
-using System.Linq;
-using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading;
-using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB;
-using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
@@ -14,6 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
+using PBFT.Replica;
 
 namespace PBFT.Tests.Persistency
 {
@@ -130,17 +128,21 @@ namespace PBFT.Tests.Persistency
         public void CheckpointCertificateTest()
         {
             var scheduler = ExecutionEngineFactory.StartNew(_storage);
-           
             Request test = new Request(1, "test digest", "12:00");
             var testdigest = Crypto.CreateDigest(test);
             var testsource = new Source<CheckpointCertificate>();
+            var sh = new SourceHandler(null, null, null, null, null, testsource);
+            CDictionary<int, string> con = new CDictionary<int, string>();
+            con[1] = "127.0.0.1:9001";
+            var serv = new Server(1, 1, 4, scheduler, 10, con[1], sh, con);
+            Action<CheckpointCertificate> emit = serv.EmitCheckpoint;
             var check1 = new Checkpoint(1, 2, testdigest);
             var check2 = new Checkpoint(2, 2, testdigest);
             check1.SignMessage(_prikey);
             check2.SignMessage(_prikey);
             scheduler.Schedule(() =>
             {
-                var cert = new CheckpointCertificate(2, testdigest, testsource);
+                var cert = new CheckpointCertificate(2, testdigest, emit);
                 cert.AppendProof(check1,_pubkey,1);
                 cert.AppendProof(check2,_pubkey,1);
                 Assert.AreEqual(cert.ProofList.Count, 2);
@@ -152,6 +154,7 @@ namespace PBFT.Tests.Persistency
             scheduler.Dispose();
 
             scheduler = ExecutionEngineFactory.Continue(_storage);
+            serv.AddEngine(scheduler);
             scheduler.Schedule(() =>
             {
                 var copycert = Roots.Resolve<CheckpointCertificate>();

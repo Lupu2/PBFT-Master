@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using PBFT.Network;
 using PBFT.Messages;
 
 namespace PBFT.Helper

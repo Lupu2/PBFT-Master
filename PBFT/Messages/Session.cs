@@ -42,5 +42,7 @@ namespace PBFT.Messages
                 return false;
             return true;
         }
+
+        public override string ToString() => $"DeviceType: {Devtype}, Devid: {DevID}, Pubkey: {Publickey}";
     }
 }

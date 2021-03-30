@@ -108,14 +108,14 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(NextViewNr), NextViewNr);
             stateToSerialize.Set(nameof(CertProofs), CertProofs);
             stateToSerialize.Set(nameof(RemPreProofs), RemPreProofs);
-            stateToSerialize.Set(nameof(Signature),  Serializer.SerializeHash(Signature));
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
         
         private static ViewChange Deserialize(IReadOnlyDictionary<string, object> sd)
             => new ViewChange(sd.Get<int>(nameof(StableSeqNr)),
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(NextViewNr)),
-                sd.Get<CheckpointCertificate>(nameof(CertProofs)),
+                sd.Get<Certificates.CheckpointCertificate>(nameof(CertProofs)),
                 sd.Get<CDictionary<int,ProtocolCertificate>>(nameof(RemPreProofs)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
             );

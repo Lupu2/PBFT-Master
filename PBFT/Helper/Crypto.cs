@@ -10,17 +10,6 @@ namespace PBFT.Helper
 {
     public static class Crypto
     {
-        
-        /*//Most likely not useful later, delete pls...
-        public static string CreateDigestBuffer(string buffer)
-        {
-            using( var shaalgo = SHA256.Create()){
-                byte[] bytemes = Encoding.ASCII.GetBytes(buffer);
-                var hash = shaalgo.ComputeHash(bytemes);
-                return BitConverter.ToString(hash);
-            }
-        }*/
-
         public static (RSAParameters, RSAParameters) InitializeKeyPairs()
         {
             RSA rsa = RSA.Create();

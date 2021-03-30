@@ -2,10 +2,7 @@ using System;
 using System.Linq;
 using System.Security.Cryptography;
 using Cleipnir.ObjectDB;
-using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.StorageEngine.InMemory;
-using Cleipnir.StorageEngine.SimpleFile;
-using Microsoft.VisualBasic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -19,15 +16,14 @@ namespace PBFT.Tests.Persistency
         //private SimpleFileStorageEngine _storage;
         private ObjectStore _objectStore;
         private RSAParameters _pri;
-        private RSAParameters _pub;
-        
+
         [TestInitialize]
         public void InitializeStorage()
         {
             _storage = new InMemoryStorageEngine();
             //_storage = new SimpleFileStorageEngine("test.txt");
             _objectStore = ObjectStore.New(_storage);
-            (_pri, _pub) = Crypto.InitializeKeyPairs();
+            (_pri, _) = Crypto.InitializeKeyPairs();
         }
         
         [TestMethod]

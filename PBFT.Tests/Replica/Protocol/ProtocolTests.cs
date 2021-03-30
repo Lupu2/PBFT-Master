@@ -1,9 +1,11 @@
 using System;
-using System.Security.Cryptography;
 using System.Threading;
+using System.Threading.Tasks;
+using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.StorageEngine.InMemory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Certificates;
 using PBFT.Helper;
@@ -15,6 +17,15 @@ namespace PBFT.Tests
     [TestClass]
     public class ProtocolTests
     {
+        private Engine _scheduler;
+        
+        [TestInitialize]
+        public void SchedulerInitialize()
+        {
+            var storage = new InMemoryStorageEngine();
+            _scheduler = ExecutionEngineFactory.StartNew(storage);
+        }
+        
         [TestMethod]
         public void ProtocolExecutionPrimaryNoPersistencyTest()
         {
@@ -22,7 +33,7 @@ namespace PBFT.Tests
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
-            Server testserv = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
+            Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, null, new Source<ViewChangeCertificate>());
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
@@ -37,7 +48,7 @@ namespace PBFT.Tests
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
-            Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
+            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
@@ -45,7 +56,7 @@ namespace PBFT.Tests
             StringAssert.Contains(reply.Result, req.Message);
         }
         
-        public async CTask<Reply> PerformTestFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
+        public async Task<Reply> PerformTestFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
             var protocol = exec.HandleRequestTest(req); //Protocol starting
@@ -91,7 +102,7 @@ namespace PBFT.Tests
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
-            Server testserv = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
+            Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge, null, new Source<ViewChangeCertificate>());
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
@@ -106,7 +117,7 @@ namespace PBFT.Tests
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
-            Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
+            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
@@ -114,7 +125,7 @@ namespace PBFT.Tests
             StringAssert.Contains(reply.Result, req.Message);
         }
         
-        public async CTask<Reply> PerformTestWrongOrderFunction(ProtocolExecution exec, Server serv ,Request req, Source<PhaseMessage> pmesbridge)
+        public async Task<Reply> PerformTestWrongOrderFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
             var protocol = exec.HandleRequestTest(req); //Protocol starting
@@ -146,6 +157,7 @@ namespace PBFT.Tests
             pmesbridge.Emit(pm2);
             pmesbridge.Emit(pm4);
             var rep = await protocol;
+            Console.WriteLine("Reply: " + rep);
             return rep;
         }
 
@@ -162,7 +174,7 @@ namespace PBFT.Tests
             Source<Request> reqbridge = new Source<Request>();
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
-            Server testserv = new Server(1,0,4,null,20,"127.0.0.1:9000",sh, new CDictionary<int, string>());
+            Server testserv = new Server(1,0,4,_scheduler,20,"127.0.0.1:9000",sh, new CDictionary<int, string>());
             ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);

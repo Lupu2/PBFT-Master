@@ -1,11 +1,7 @@
 using System;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.Rx;
-using PBFT.Messages;
 
 namespace PBFT.Network
 {
@@ -16,8 +12,6 @@ namespace PBFT.Network
         private IPEndPoint endpoint;
         public Socket socket;
         private bool active;
-        //private Source<IProtocolMessages> IncomingMessage;
-        //private Source<IProtocolMessages> OutgoingMessage;
         private Action<TempInteractiveConn> newConnection;
         public TempConnListener(string ipAddress, Action<TempInteractiveConn> newConnCallback)
         {

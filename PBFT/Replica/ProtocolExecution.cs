@@ -1,4 +1,3 @@
-using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
@@ -9,16 +8,8 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading;
-using System.Transactions;
-using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
-using Cleipnir.Rx.ExecutionEngine;
-using Newtonsoft.Json;
-using Timeout = System.Threading.Timeout;
 
 namespace PBFT.Replica
 {
@@ -285,19 +276,19 @@ namespace PBFT.Replica
             Serv.CurView++;
             //Serv.CurView = Serv.CurPrimary.ViewNr;
             if (vcc == null || vcc.ViewInfo.ViewNr != Serv.CurPrimary.ViewNr)
-                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpoints);
+                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpointsCertificate);
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
-            if (Serv.StableCheckpoints == null)
+            if (Serv.StableCheckpointsCertificate == null)
             {
                 preps = Serv.CollectPrepareCertificates(-1);
                 vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
             }
             else
             {
-                int stableseq = Serv.StableCheckpoints.LastSeqNr;
+                int stableseq = Serv.StableCheckpointsCertificate.LastSeqNr;
                 preps = Serv.CollectPrepareCertificates(stableseq);
-                vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpoints, preps);
+                vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
             }
             Serv.SignMessage(vc, MessageType.ViewChange);
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
@@ -309,8 +300,8 @@ namespace PBFT.Replica
             {
                 //startval is first entry after last checkpoint, lastval is the last sequence number performed, which could be either CurSeq or CurSeq+1 depending on where the system called for view-change
                 int low;
-                if (Serv.StableCheckpoints == null) low = Serv.CurSeqRange.Start.Value;
-                else low = Serv.StableCheckpoints.LastSeqNr + 1;
+                if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
+                else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
                 int high = Serv.CurSeqNr + 1;
                 var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
                 foreach (var prepre in prepares) Serv.SignMessage(prepre, MessageType.PhaseMessage);
