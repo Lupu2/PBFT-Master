@@ -61,7 +61,7 @@ namespace PBFT
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
                     //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, sh, serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);
@@ -122,15 +122,17 @@ namespace PBFT
                         await scheduler.Schedule(() =>
                         {
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                            var operation = AppOperation(req, serv, execute).GetAwaiter();
-                            operation.OnCompleted(() =>
-                            {
-                                Console.WriteLine("It worked!");
-                                Console.WriteLine(serv.CurSeqNr);
-                                execute.Serv.ChangeClientStatus(req.ClientID);
-                                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                            });
+                                var operation = AppOperation(req, serv, execute).GetAwaiter();
+                                operation.OnCompleted(() =>
+                                {
+                                    Console.WriteLine("It worked!");
+                                    Console.WriteLine(serv.CurSeqNr);
+                                    execute.Serv.ChangeClientStatus(req.ClientID);
+                                    if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                        serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                });
+                            
+
                             /*serv.ChangeClientStatus(req.ClientID);
 
                             var reply = execute.HandleRequest(req)

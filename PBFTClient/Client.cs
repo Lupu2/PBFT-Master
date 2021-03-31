@@ -97,7 +97,6 @@ namespace PBFT.Client
                 if (String.IsNullOrEmpty(op)) continue;
                 done = true;
             }
-
             return op;
         }
         
@@ -139,7 +138,7 @@ namespace PBFT.Client
             Request req = CreateRequest(op);
             Req:
             await SendRequest(req);
-            bool val = await ValidateRequest(req);
+            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(5000)).Result;
             Console.WriteLine("Finished await");
             if (val) return;
             goto Req;
@@ -239,18 +238,13 @@ namespace PBFT.Client
 
         public async Task<bool> ValidateRequest(Request req)
         {
-            var repCert = new ReplyCertificate(req);
+            var repCert = new ReplyCertificate(req, true); //most reply certificates are set to f+1 validation
             
             //Set timeout for validateRequest and return false if it occurs
-            Console.WriteLine("Validating");
-                await ReplySource
-                .Where(rep =>
-                {
-                    Console.WriteLine(rep.Timestamp);
-                    Console.WriteLine(rep.Timestamp);
-                    return rep.Timestamp == req.Timestamp;
-                })
-                .Scan(repCert.ProofList, (prooflist, message) =>
+            //Console.WriteLine("Validating");
+            await ReplySource
+                .Where(rep => rep.Validate(ServerInformation[rep.ServID].GetPubkeyInfo(), req))
+                .Scan(repCert.ProofList, (prooflist, message) => 
                 {
                     prooflist.Add(message);
                     return prooflist;
@@ -259,7 +253,8 @@ namespace PBFT.Client
                 .Next();
             Console.WriteLine("Received appropriate number of replies");
             Console.WriteLine(repCert.ProofList[0].Result);
-            FinishedRequest[req] = repCert;
+            if (repCert.ProofList[0].Result == "Failure") return false;
+                FinishedRequest[req] = repCert;
             return true;
         }
     }

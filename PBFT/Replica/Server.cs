@@ -147,11 +147,10 @@ namespace PBFT.Replica
         }
 
         [JsonConstructor]
-        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas,
-            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
+        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, Engine sche, ViewPrimary lead, 
+            int replicas, SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
-            CDictionary<int, string> contactList,
-            CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints, Engine sche)
+            CDictionary<int, string> contactList, CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
             ServID = id;
             CurView = curview;
@@ -327,12 +326,16 @@ namespace PBFT.Replica
                                 if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
                                     ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
                                 {
-                                    if (!ClientActive[reqmes.ClientID]) 
-                                        await _scheduler.Schedule(() => 
-                                        {
-                                            Subjects.RequestSubject.Emit(reqmes);
-                                        });
-
+                                    int idx = OperationInMemory(reqmes);
+                                    if (idx == -1)
+                                    {
+                                        if (!ClientActive[reqmes.ClientID]) 
+                                            await _scheduler.Schedule(() => 
+                                            {
+                                                Subjects.RequestSubject.Emit(reqmes);
+                                            });
+                                    }
+                                    else SendMessage(ReplyLog[idx].SerializeToBuffer(), conn.Socket, MessageType.Reply);
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -599,6 +602,17 @@ namespace PBFT.Replica
             }
         }
 
+        public int OperationInMemory(Request req)
+        {
+            Console.WriteLine("OperationInMemory");
+            foreach (var (seqNr, rep) in ReplyLog)
+            {
+                Console.WriteLine(rep);
+                Console.WriteLine(req);
+                if (req.Message == rep.Result && req.Timestamp.Equals(rep.Timestamp)) return seqNr;
+            }
+            return -1;
+        }
         public CList<ProtocolCertificate> GetProtocolCertificate(int seqNr)
         {
             if (Log.ContainsKey(seqNr))
@@ -640,6 +654,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Update Checkpoint State");
                 StableCheckpointsCertificate = stablecheck;
                 GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
+                GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
                 GarbageCollectCheckpoints(StableCheckpointsCertificate.LastSeqNr);
             }
         }
@@ -696,6 +711,13 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
+        private void GarbageCollectReplyLog(int seqNr)
+        {
+            foreach (var (entrySeqNr, _) in ReplyLog)
+                if (entrySeqNr <= seqNr)
+                    Log.Remove(entrySeqNr);
+        }
+
         private void GarbageCollectCheckpoints(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
@@ -731,6 +753,7 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(CurSeqNr)),
                 sd.Get<int>(nameof(CheckpointConstant)),
                 new Range(sd.Get<int>("CurSeqRangeLow"), sd.Get<int>("CurSeqRangeHigh")),
+                Engine.Current,
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
                 sd.Get<SourceHandler>(nameof(Subjects)),
@@ -739,8 +762,7 @@ namespace PBFT.Replica
                 sd.Get<CDictionary<int, Reply>>(nameof(ReplyLog)),
                 sd.Get<CDictionary<int, string>>(nameof(ServerContactList)),
                 sd.Get<CheckpointCertificate>(nameof(StableCheckpointsCertificate)),
-                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog)),
-                Engine.Current
-            );
+                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
+        );
         }
 }

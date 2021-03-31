@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ObjectDB.Persistency;
@@ -98,6 +98,19 @@ namespace PBFT.Messages
             }
         }
 
+        public bool Validate(RSAParameters pubkey, Request orgreq)
+        {
+            Console.WriteLine("Validating");
+            Console.WriteLine(orgreq.Timestamp);
+            Console.WriteLine(Timestamp);
+            if(!Timestamp.Equals(orgreq.Timestamp)) return false;
+            Console.WriteLine("Passed Timeout test");
+            var copydig = CreateCopyTemplate().SerializeToBuffer();
+            if (!Crypto.VerifySignature(Signature, copydig, pubkey)) return false;
+            Console.WriteLine("Passed signature test");
+            return true;
+        }
+            
         public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
         
         public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
