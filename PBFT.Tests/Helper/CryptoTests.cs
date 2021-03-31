@@ -1,6 +1,5 @@
 using System;
 using System.Security.Cryptography;
-using Cleipnir.Helpers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;

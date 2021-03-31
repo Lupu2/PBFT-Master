@@ -13,9 +13,10 @@ namespace PBFT.Tests.Replica
         public void ConstructorTests()
         {
             Request req = new Request(1, "hello world");
-            ProtocolCertificate qcertp = new ProtocolCertificate(1, 1, req, CertType.Prepared);
+            var digest = Crypto.CreateDigest(req);
+            ProtocolCertificate qcertp = new ProtocolCertificate(1, 1, digest, CertType.Prepared);
             PhaseMessage pc = new PhaseMessage(1, 2, 1, null, PMessageType.Commit);
-            ProtocolCertificate qcertc = new ProtocolCertificate(2, 2, req, CertType.Committed, pc);
+            ProtocolCertificate qcertc = new ProtocolCertificate(2, 2, digest, CertType.Committed, pc);
             //Tests for first certificate
             Assert.IsTrue(qcertp.ProofList.Count == 0);
             Assert.AreEqual(qcertp.SeqNr, 1);
@@ -41,7 +42,7 @@ namespace PBFT.Tests.Replica
             Request req = new Request(1, "Hello World", DateTime.Now.ToString());
             req.SignMessage(pri);
             byte[] dig = req.SerializeToBuffer();
-            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, req, CertType.Prepared); ;
+            ProtocolCertificate cert1 = new ProtocolCertificate(1, 1, dig, CertType.Prepared);
             Assert.IsFalse(cert1.ValidateCertificate(1));
             //Correct Certification test
             PhaseMessage p1 = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
@@ -59,7 +60,7 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(cert1.ValidateCertificate(1));
             
             //Not valid Certification tests
-            ProtocolCertificate cert2 = new ProtocolCertificate(2, 2, req, CertType.Committed);
+            ProtocolCertificate cert2 = new ProtocolCertificate(2, 2, dig, CertType.Committed);
             PhaseMessage p21 = new PhaseMessage(1, 2, 2, null, PMessageType.Commit);
             PhaseMessage p22 = new PhaseMessage(2, 2, 2, dig, PMessageType.Commit); //correct
             p22.SignMessage(pri);
@@ -113,7 +114,6 @@ namespace PBFT.Tests.Replica
             Assert.IsFalse(cert2.ValidateCertificate(1)); //Duplicates
             cert2.ProofList.Add(p27);
             Assert.IsTrue(cert2.ValidateCertificate(1));
-            
         }
     }
 }

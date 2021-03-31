@@ -2,10 +2,7 @@ using System;
 using System.Linq;
 using System.Security.Cryptography;
 using Cleipnir.ObjectDB;
-using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.StorageEngine.InMemory;
-using Cleipnir.StorageEngine.SimpleFile;
-using Microsoft.VisualBasic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -19,15 +16,14 @@ namespace PBFT.Tests.Persistency
         //private SimpleFileStorageEngine _storage;
         private ObjectStore _objectStore;
         private RSAParameters _pri;
-        private RSAParameters _pub;
-        
+
         [TestInitialize]
         public void InitializeStorage()
         {
             _storage = new InMemoryStorageEngine();
             //_storage = new SimpleFileStorageEngine("test.txt");
             _objectStore = ObjectStore.New(_storage);
-            (_pri, _pub) = Crypto.InitializeKeyPairs();
+            (_pri, _) = Crypto.InitializeKeyPairs();
         }
         
         [TestMethod]
@@ -38,9 +34,10 @@ namespace PBFT.Tests.Persistency
             req.SignMessage(_pri);
             Assert.AreEqual(req.ClientID,1);
             StringAssert.Contains(req.Message,"Hello World!");
-            StringAssert.Contains(req.Timestamp,DateTime.Now.ToString()); //usually fast enough
+            StringAssert.Contains(req.Timestamp,currentTime); //usually fast enough
             _objectStore.Attach(req);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             Request req2 = _objectStore.Resolve<Request>();
             Assert.IsTrue(req.Compare(req2));
@@ -75,6 +72,7 @@ namespace PBFT.Tests.Persistency
             _objectStore.Attach(mes2);
             _objectStore.Attach(mes3);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             var copies = _objectStore.ResolveAll<PhaseMessage>();
             foreach (var copy in copies)
@@ -114,9 +112,29 @@ namespace PBFT.Tests.Persistency
             StringAssert.Contains(rep.Timestamp, now.ToString());
             _objectStore.Attach(rep);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             Reply rep2 = _objectStore.Resolve<Reply>();
             Assert.IsTrue(rep.Compare(rep2));
+        }
+
+        [TestMethod]
+        public void CheckpointTest()
+        {
+            var test = new Request(1,"Hello", "12:00");
+            var testdig = Crypto.CreateDigest(test);
+            var checkmes = new Checkpoint(1, 1,testdig);
+            checkmes.SignMessage(_pri);
+            Assert.AreEqual(checkmes.ServID,1);
+            Assert.AreEqual(checkmes.StableSeqNr,1);
+            Assert.IsTrue(checkmes.StateDigest.SequenceEqual(testdig));
+            Assert.AreNotEqual(checkmes.Signature,null);
+            _objectStore.Attach(checkmes);
+            _objectStore.Persist();
+            _objectStore = null;
+            _objectStore = ObjectStore.Load(_storage, false);
+            Checkpoint copymes = _objectStore.Resolve<Checkpoint>();
+            Assert.IsTrue(copymes.Compare(checkmes));
         }
     }
 }

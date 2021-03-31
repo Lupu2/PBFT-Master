@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using PBFT.Network;
 using PBFT.Messages;
 
 namespace PBFT.Helper
@@ -29,7 +28,7 @@ namespace PBFT.Helper
             switch (formatByte) 
             {
                 case (int) MessageType.SessionMessage:
-                     return (formatByte, SessionMessage.DeSerializeToObject(serobj));
+                     return (formatByte, Session.DeSerializeToObject(serobj));
                 case (int) MessageType.Request:
                     return (formatByte, Request.DeSerializeToObject(serobj));
                 case (int) MessageType.PhaseMessage:
@@ -41,9 +40,9 @@ namespace PBFT.Helper
                 case (int) MessageType.NewView:
                     return (formatByte, NewView.DeSerializeToObject(serobj));
                 case (int) MessageType.Checkpoint:
-                    //TODO insert deserialization for Checkpoint
+                    return (formatByte, Checkpoint.DeSerializeToObject(serobj));
                 default:
-                    Console.WriteLine("Hello Puppy");
+                    Console.WriteLine("Illegal format for deserializer");
                     throw new ArgumentOutOfRangeException(); 
             }
         }

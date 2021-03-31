@@ -71,7 +71,7 @@ namespace PBFT.Tests
             //Valid PrePrepare with existing Proofs
             CList<PhaseMessage> proofs = new CList<PhaseMessage>();
             proofs.Add(pes7);
-            ProtocolCertificate q = new ProtocolCertificate(1, 2, req, CertType.Prepared, false, proofs);
+            ProtocolCertificate q = new ProtocolCertificate(1, 2, digest, CertType.Prepared, false, proofs);
             PhaseMessage pes8 = new PhaseMessage(2, 1, 1, digest, PMessageType.PrePrepare);
             pes8.SignMessage(_prikey2);
             Assert.IsTrue(pes8.Validate(Pubkey2,1,ran,q));
@@ -82,6 +82,45 @@ namespace PBFT.Tests
             PhaseMessage pes9 = new PhaseMessage(2, 1, 1, digest2, PMessageType.PrePrepare);
             pes9.SignMessage(_prikey1);
             Assert.IsFalse(pes9.Validate(Pubkey1,1,ran,q));
+        }
+
+        [TestMethod]
+        public void ValidateViewChangeMessageTest()
+        {
+            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri2, pub2) = Crypto.InitializeKeyPairs();
+
+            var viewMes1 = new ViewChange(-1,1,1,null, new CDictionary<int, ProtocolCertificate>());
+            viewMes1.SignMessage(pri);
+            var viewMes2 = new ViewChange(-1, 1, 1, null, new CDictionary<int, ProtocolCertificate>());
+            viewMes2.SignMessage(pri2);
+            
+            Assert.IsTrue(viewMes1.Validate(pub, 1));
+            Assert.IsFalse(viewMes1.Validate(pub2,1));
+            Assert.IsFalse(viewMes1.Validate(pub, 2));
+            Assert.IsFalse(viewMes2.Validate(pub,1));
+            Assert.IsTrue(viewMes2.Validate(pub2, 1));
+            Assert.IsFalse(viewMes2.Validate(pub2,2));
+        }
+
+        [TestMethod]
+        public void ValidateCheckpointMessageTest()
+        {
+            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri2, pub2) = Crypto.InitializeKeyPairs();
+            var (pri3, pub3) = Crypto.InitializeKeyPairs();
+            var dig = Crypto.CreateDigest(new Request(1, "hello", "12:00"));
+            var checkmes1 = new Checkpoint(0, 2, dig);
+            var checkmes2 = new Checkpoint(1,-1,dig);
+            var checkmes3 = new Checkpoint(2, 1, null);
+            Assert.IsFalse(checkmes1.Validate(pub));
+            checkmes1.SignMessage(pri);
+            Assert.IsTrue(checkmes1.Validate(pub));
+            Assert.IsFalse(checkmes1.Validate(pub2));
+            checkmes2.SignMessage(pri2);
+            Assert.IsFalse(checkmes2.Validate(pub2));
+            checkmes3.Validate(pri3);
+            Assert.IsFalse(checkmes3.Validate(pub3));
         }
     }
 }

@@ -1,13 +1,11 @@
 using System;
-using System.Linq;
 using System.Security.Cryptography;
-using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.Rx;
-using Cleipnir.StorageEngine.InMemory;
 using Cleipnir.StorageEngine.SimpleFile;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
@@ -32,23 +30,10 @@ namespace PBFT.Tests.Persistency
         
         [TestMethod]
         public void ServerPersistencyInfoTest()
-        {
-            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", new Source<Request>(),
-                new Source<PhaseMessage>(), new CDictionary<int, string>());
-            /*
-            Server Info saved:
-                ServID
-                CurView
-                CurSeqNr
-                "CurSeqRangeLow"
-                "CurSeqRangeHigh"
-                ViewPrimary
-                TotalReplicas
-                RequestBridge
-                ProtocolBridge
-                Log
-                ClientActive
-             */
+        {   //Remember to update this test each time the server object is updated.
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), new Source<ViewChange>(),
+                new Source<ViewChangeCertificate>(), new Source<NewView>(), new Source<CheckpointCertificate>());
+            var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             var rep = new Reply(1, 1, 1, false, "error", DateTime.Now.ToString());
             rep.SignMessage(_prikey);
@@ -56,6 +41,7 @@ namespace PBFT.Tests.Persistency
             serv.ClientActive.Set(1,true);
             _objectStore.Attach(serv);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage);
             var servcopy = _objectStore.Resolve<Server>();
             Assert.AreEqual(servcopy.ServID, serv.ServID);
@@ -66,6 +52,8 @@ namespace PBFT.Tests.Persistency
             Assert.AreEqual(servcopy.CurPrimary.ViewNr, serv.CurPrimary.ViewNr);
             Assert.AreEqual(servcopy.CurPrimary.ServID, serv.CurPrimary.ServID);
             Assert.AreEqual(servcopy.TotalReplicas, serv.TotalReplicas);
+            Assert.AreEqual(servcopy.CheckpointConstant,serv.CheckpointConstant);
+            Assert.AreEqual(servcopy.StableCheckpointsCertificate, null);
             Assert.IsTrue(servcopy.ReplyLog[1].Compare(serv.ReplyLog[1]));
             Assert.IsTrue(servcopy.ClientActive[1]);
         }
@@ -80,6 +68,7 @@ namespace PBFT.Tests.Persistency
             
             _objectStore.Attach(vm);
             _objectStore.Persist();
+            _objectStore = null;
             _objectStore = ObjectStore.Load(_storage, false);
             ViewPrimary vmcopy = _objectStore.Resolve<ViewPrimary>();
             Assert.AreEqual(vmcopy.ServID,1);

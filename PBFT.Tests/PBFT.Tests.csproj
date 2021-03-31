@@ -18,4 +18,8 @@
       <ProjectReference Include="..\PBFTClient\PBFTClient.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Client" />
+    </ItemGroup>
+
 </Project>

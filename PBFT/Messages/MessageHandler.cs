@@ -8,7 +8,7 @@ namespace PBFT.Messages
 {
     public static class MessageHandler
     {
-        public static void HandleSessionMessage(SessionMessage sesmes, TempInteractiveConn conn, Server serv)
+        public static void HandleSessionMessage(Session sesmes, TempInteractiveConn conn, Server serv)
         {
             int id = sesmes.DevID;
             DeviceType devtype = sesmes.Devtype;

@@ -1,6 +1,5 @@
 using System.Collections.Generic;
-using System.Data;
-using System.Runtime.CompilerServices;
+using System.Linq;
 using Newtonsoft.Json;
 using System.Text;
 using System.Security.Cryptography;
@@ -15,24 +14,23 @@ namespace PBFT.Messages
     public class Checkpoint : IProtocolMessages, SignedMessage, IPersistable
     {
         public int ServID {get; set;}
-        public int SeqNr{get; set;}
-        public byte[] Digest {get; set;} //Digest of the state
+        public int StableSeqNr{get; set;}
+        public byte[] StateDigest {get; set;} //Digest of the state
         public byte[] Signature{get; set;}
         
-
         public Checkpoint(int id, int seqnr, byte[] statedigest)
         {
             ServID = id;
-            SeqNr = seqnr;
-            Digest = statedigest;
+            StableSeqNr = seqnr;
+            StateDigest = statedigest;
         }
 
         [JsonConstructor]
         public Checkpoint(int id, int seqnr, byte[] statedigest, byte[] sign)
         {
             ServID = id;
-            SeqNr = seqnr;
-            Digest = statedigest;
+            StableSeqNr = seqnr;
+            StateDigest = statedigest;
             Signature = sign;
         }
 
@@ -42,8 +40,12 @@ namespace PBFT.Messages
             return Encoding.ASCII.GetBytes(jsonval);
         }
         
-        public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, SeqNr, Digest);
-
+        public static Checkpoint DeSerializeToObject(byte[] buffer)
+        {
+            string jsonobj = Encoding.ASCII.GetString(buffer);
+            return JsonConvert.DeserializeObject<Checkpoint>(jsonobj);
+        }
+        
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
             using (var rsa = RSA.Create())
@@ -62,18 +64,44 @@ namespace PBFT.Messages
             }
         }
 
+        public bool Validate(RSAParameters pubkey)
+        {
+            if (StableSeqNr < 0) return false;
+            if (StateDigest == null) return false;
+            if (Signature == null) return false;
+            var clone = CreateCopyTemplate();
+            if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
+                return false;
+            return true;
+        }
+        
+        public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, StableSeqNr, StateDigest);
+
+        public override string ToString() => $"ServID: {ServID}, SeqNumber:{StableSeqNr}, Digest:{StateDigest}, Signature:{Signature} ";
+        
+        public bool Compare(Checkpoint check)
+        {
+            if (check.ServID != ServID) return false;
+            if (check.StableSeqNr != StableSeqNr) return false;
+            if (check.StateDigest == null && StateDigest != null || check.StateDigest != null && StateDigest == null) return false;
+            if (check.StateDigest != null && StateDigest != null && !check.StateDigest.SequenceEqual(StateDigest)) return false;
+            if (check.Signature == null && Signature != null || check.Signature != null && Signature == null) return false;
+            if (check.Signature != null && Signature != null && !check.Signature.SequenceEqual(Signature)) return false;
+            return true;
+        }
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
-            stateToSerialize.Set(nameof(SeqNr), SeqNr);
-            stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
+            stateToSerialize.Set(nameof(StableSeqNr), StableSeqNr);
+            stateToSerialize.Set(nameof(StateDigest), Serializer.SerializeHash(StateDigest));
             stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
         private static Checkpoint Deserialize(IReadOnlyDictionary<string, object> sd)
             => new Checkpoint(sd.Get<int>(nameof(ServID)),
-                              sd.Get<int>(nameof(SeqNr)),
-                              Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
+                              sd.Get<int>(nameof(StableSeqNr)),
+                              Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                               Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
                              );
 
