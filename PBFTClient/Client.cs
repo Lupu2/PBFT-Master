@@ -81,8 +81,8 @@ namespace PBFT.Client
             while (true)
             {
                 string op = CreateOperation();
-                RunCommand(op).GetAwaiter().OnCompleted(() => Console.WriteLine("RUN COMMAND FINISHED"));
-                
+                RunCommand(op).Wait();
+                Console.WriteLine("RUN COMMAND FINISHED");
             }
         }
         
@@ -218,6 +218,7 @@ namespace PBFT.Client
                             case MessageType.Reply:
                                 var replymes = (Reply) mes;
                                 //ServerInformation[replymes.ServID].AddReply(replymes);
+                                Console.WriteLine("Emitting reply");
                                 ReplySource.Emit(replymes);
                                 break;
                             default:
@@ -243,7 +244,12 @@ namespace PBFT.Client
             //Set timeout for validateRequest and return false if it occurs
             Console.WriteLine("Validating");
                 await ReplySource
-                .Where(rep => rep.Timestamp == req.Timestamp)
+                .Where(rep =>
+                {
+                    Console.WriteLine(rep.Timestamp);
+                    Console.WriteLine(rep.Timestamp);
+                    return rep.Timestamp == req.Timestamp;
+                })
                 .Scan(repCert.ProofList, (prooflist, message) =>
                 {
                     prooflist.Add(message);

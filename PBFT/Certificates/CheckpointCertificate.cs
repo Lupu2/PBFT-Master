@@ -8,7 +8,6 @@ using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.Rx;
 using PBFT.Helper;
 using PBFT.Messages;
 
@@ -105,7 +104,7 @@ namespace PBFT.Certificates
 
         private void EmitCertificate()
         {
-            Console.WriteLine("Emitting Checkpoint Certification");
+            Console.WriteLine("calling callback function");
             //CheckpointBridge.Emit(this);
             EmitCheckpoint(this);
         }

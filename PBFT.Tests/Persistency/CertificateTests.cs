@@ -84,13 +84,18 @@ namespace PBFT.Tests.Persistency
         }
 
         //Old test that doesn't work for some reason
-        /*[TestMethod]
+        [TestMethod]
         public void CheckpointCertificateTest()
         {
+            var scheduler = ExecutionEngineFactory.StartNew(_storage);
             Request test = new Request(1, "test digest", "12:00");
             var testdigest = Crypto.CreateDigest(test);
             var testsource = new Source<CheckpointCertificate>();
-            var cert = new CheckpointCertificate(2, testdigest, testsource);
+            CDictionary<int, string> con = new CDictionary<int, string>();
+            con[1] = "127.0.0.1:9001";
+            var sh = new SourceHandler(null, null, null, null, null, testsource);
+            var testserv = new Server(1, 1, 4, scheduler, 10, con[1], sh, con);
+            var cert = new CheckpointCertificate(2, testdigest, testserv.EmitCheckpoint);
             var listener = ListenforCheckpointMessage(testsource).GetAwaiter();
             var check1 = new Checkpoint(1, 2, testdigest);
             var check2 = new Checkpoint(2, 2, testdigest);
@@ -100,11 +105,22 @@ namespace PBFT.Tests.Persistency
             cert.AppendProof(check2,_pubkey,1);
             Assert.AreEqual(cert.ProofList.Count, 2);
             _objectStore.Attach(cert);
-            _objectStore.Attach(listener);
+            _objectStore.Attach(testserv);
+            _objectStore.Attach(testsource);
             _objectStore.Persist();
             _objectStore = null;
             _objectStore = ObjectStore.Load(_storage);
+            var newscheduler = ExecutionEngineFactory.StartNew(_storage);
             var copycert = _objectStore.Resolve<CheckpointCertificate>();
+            var copyserv = _objectStore.Resolve<Server>();
+            var copysource = _objectStore.Resolve<Source<CheckpointCertificate>>();
+            copyserv.Subjects.CheckpointSubject = copysource;
+            copyserv.CurSeqNr = 2;
+            copyserv.AddEngine(newscheduler);
+            copycert.EmitCheckpoint = copyserv.EmitCheckpoint;
+           
+            Console.WriteLine("Callback: ");
+            Console.WriteLine(copycert.EmitCheckpoint);
             //listener = _objectStore.Resolve<CAwaitable.Awaiter<>();
             Assert.AreEqual(copycert.ProofList.Count,2);
             var copycheck1 = copycert.ProofList[0];
@@ -114,51 +130,54 @@ namespace PBFT.Tests.Persistency
             Assert.AreNotEqual(check1.Signature,null);
             var check3 = new Checkpoint(0, 2, testdigest);
             check3.SignMessage(_prikey);
-            copycert.AppendProof(check3,_pubkey,1);
+            copycert.AppendProof(check3, _pubkey,1);
             Assert.IsTrue(copycert.ValidateCertificate(1));
             Thread.Sleep(2000);
 
             Console.WriteLine("THIS SHIT IS BULLLLLLLLLLLL, THE RESULT WAS READY AGES AGO!!!!!!");
-            var res = listener.GetResult();
+            var res = copysource.Next().GetAwaiter().GetResult();
             Assert.IsTrue(res.Stable);
-        }*/
+        }
         
         
         [TestMethod]
-        public void CheckpointCertificateTest()
+        public void CheckpointCertificateSchedulerTest()
         {
             var scheduler = ExecutionEngineFactory.StartNew(_storage);
             Request test = new Request(1, "test digest", "12:00");
             var testdigest = Crypto.CreateDigest(test);
-            var testsource = new Source<CheckpointCertificate>();
-            var sh = new SourceHandler(null, null, null, null, null, testsource);
-            CDictionary<int, string> con = new CDictionary<int, string>();
-            con[1] = "127.0.0.1:9001";
-            var serv = new Server(1, 1, 4, scheduler, 10, con[1], sh, con);
-            Action<CheckpointCertificate> emit = serv.EmitCheckpoint;
             var check1 = new Checkpoint(1, 2, testdigest);
             var check2 = new Checkpoint(2, 2, testdigest);
-            check1.SignMessage(_prikey);
-            check2.SignMessage(_prikey);
             scheduler.Schedule(() =>
             {
+                var testsource = new Source<CheckpointCertificate>();
+                var sh = new SourceHandler(null, null, null, null, null, testsource);
+                CDictionary<int, string> con = new CDictionary<int, string>();
+                con[1] = "127.0.0.1:9001";
+                var serv = new Server(1, 1, 4, Engine.Current, 10, con[1], sh, con);
+                Action<CheckpointCertificate> emit = serv.EmitCheckpoint;
+                check1.SignMessage(_prikey);
+                check2.SignMessage(_prikey);
                 var cert = new CheckpointCertificate(2, testdigest, emit);
                 cert.AppendProof(check1,_pubkey,1);
                 cert.AppendProof(check2,_pubkey,1);
                 Assert.AreEqual(cert.ProofList.Count, 2);
+                Roots.Entangle(testsource);
+                Roots.Entangle(serv);
                 Roots.Entangle(cert);
-                var listener = ListenforCheckpointMessage(testsource);
-                Roots.Entangle(listener);
             });
             scheduler.Sync().Wait();
             scheduler.Dispose();
 
             scheduler = ExecutionEngineFactory.Continue(_storage);
-            serv.AddEngine(scheduler);
             scheduler.Schedule(() =>
             {
+                var copysource = Roots.Resolve<Source<CheckpointCertificate>>();
+                var copyserv = Roots.Resolve<Server>();
+                copyserv.Subjects.CheckpointSubject = copysource;
                 var copycert = Roots.Resolve<CheckpointCertificate>();
-                var copylistener = Roots.Resolve<CTask<CheckpointCertificate>>();
+                copyserv.CurSeqNr = 2;
+                copycert.EmitCheckpoint = copyserv.EmitCheckpoint;
                 Assert.AreEqual(copycert.ProofList.Count, 2);
                 var copycheck1 = copycert.ProofList[0];
                 var copycheck2 = copycert.ProofList[1];
@@ -170,7 +189,7 @@ namespace PBFT.Tests.Persistency
                 copycert.AppendProof(check3, _pubkey, 1);
                 Assert.IsTrue(copycert.ValidateCertificate(1));
                 
-                var res = copylistener.GetAwaiter().GetResult();
+                var res = copysource.Next().GetAwaiter().GetResult();
                 Assert.IsTrue(res.Stable);
                 Assert.AreEqual(res.ProofList.Count, 3);
                 Assert.AreNotEqual(res.StateDigest,null);

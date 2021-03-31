@@ -172,6 +172,7 @@ namespace PBFT
             var reply = await execute.HandleRequest(req);
             serv.CurSeqNr = reply.SeqNr;
             PseudoApp.Add(reply.Result);
+            Console.WriteLine(PseudoApp.Count);
             Console.WriteLine(reply);
                         /*reply.OnCompleted(() =>
                         {

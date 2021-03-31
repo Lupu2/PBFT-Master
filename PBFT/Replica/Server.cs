@@ -151,7 +151,7 @@ namespace PBFT.Replica
             SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
             CDictionary<int, string> contactList,
-            CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
+            CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints, Engine sche)
         {
             ServID = id;
             CurView = curview;
@@ -180,6 +180,7 @@ namespace PBFT.Replica
             ServPubKeyRegister = new Dictionary<int, RSAParameters>();
             ServPubKeyRegister[ServID] = Pubkey;
             rebooted = true;
+            _scheduler = sche;
         }
 
         public bool IsPrimary()
@@ -347,7 +348,7 @@ namespace PBFT.Replica
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    Console.WriteLine("Emitting");
+                                    Console.WriteLine("Emitting"); //protocol, emit
                                     await _scheduler.Schedule(() =>
                                     {
                                         Subjects.ProtocolSubject.Emit(pesmes);
@@ -484,7 +485,9 @@ namespace PBFT.Replica
 
         public void EmitCheckpoint(CheckpointCertificate cpc)
         {
-            Console.WriteLine("scheduler:");
+            Console.WriteLine("Receieved stable checkpoint certificate, emitting");
+            Console.WriteLine(CurSeqNr);
+
             _scheduler.Schedule(() =>
             {
                 Subjects.CheckpointSubject.Emit(cpc);
@@ -722,7 +725,7 @@ namespace PBFT.Replica
         }
 
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new Server(
+        => new Server(
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(CurView)),
                 sd.Get<int>(nameof(CurSeqNr)),
@@ -736,7 +739,8 @@ namespace PBFT.Replica
                 sd.Get<CDictionary<int, Reply>>(nameof(ReplyLog)),
                 sd.Get<CDictionary<int, string>>(nameof(ServerContactList)),
                 sd.Get<CheckpointCertificate>(nameof(StableCheckpointsCertificate)),
-                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
+                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog)),
+                Engine.Current
             );
-    }
+        }
 }
