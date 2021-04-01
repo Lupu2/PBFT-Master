@@ -57,37 +57,15 @@ namespace PBFT.Messages
             var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<Reply>(jsonobj);
         }
-
-        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
-        {
-            stateToSerialize.Set(nameof(ServID), ServID);
-            stateToSerialize.Set(nameof(SeqNr), SeqNr);
-            stateToSerialize.Set(nameof(ViewNr), ViewNr);
-            stateToSerialize.Set(nameof(Status), Status);
-            stateToSerialize.Set(nameof(Result), Result); 
-            stateToSerialize.Set(nameof(Timestamp), Timestamp);
-            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
-        }
-
-        private static Reply Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new Reply(
-                sd.Get<int>(nameof(ServID)),
-                sd.Get<int>(nameof(SeqNr)),
-                sd.Get<int>(nameof(ViewNr)),
-                sd.Get<bool>(nameof(Status)),
-                sd.Get<string>(nameof(Result)),
-                sd.Get<string>(nameof(Timestamp)),
-                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
-            );
-
-            public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
+        
+        public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
         {
             using (var rsa = RSA.Create())
             {
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = this.SerializeToBuffer();
+                    var serareq = SerializeToBuffer();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
@@ -100,13 +78,16 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, Request orgreq)
         {
+            //Console.WriteLine("Pubkey: " + BitConverter.ToString(pubkey.Modulus));
             Console.WriteLine("Validating");
+            Console.WriteLine(this);
             Console.WriteLine(orgreq.Timestamp);
-            Console.WriteLine(Timestamp);
             if(!Timestamp.Equals(orgreq.Timestamp)) return false;
             Console.WriteLine("Passed Timeout test");
-            var copydig = CreateCopyTemplate().SerializeToBuffer();
-            if (!Crypto.VerifySignature(Signature, copydig, pubkey)) return false;
+            var copy = CreateCopyTemplate();
+            Console.WriteLine("COPY:");
+            Console.WriteLine(copy);
+            if (!Crypto.VerifySignature(Signature, copy.SerializeToBuffer(), pubkey)) return false;
             Console.WriteLine("Passed signature test");
             return true;
         }
@@ -128,5 +109,26 @@ namespace PBFT.Messages
             return true;
         }
         
+        public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+        {
+            stateToSerialize.Set(nameof(ServID), ServID);
+            stateToSerialize.Set(nameof(SeqNr), SeqNr);
+            stateToSerialize.Set(nameof(ViewNr), ViewNr);
+            stateToSerialize.Set(nameof(Status), Status);
+            stateToSerialize.Set(nameof(Result), Result); 
+            stateToSerialize.Set(nameof(Timestamp), Timestamp);
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
+        }
+
+        private static Reply Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new Reply(
+                sd.Get<int>(nameof(ServID)),
+                sd.Get<int>(nameof(SeqNr)),
+                sd.Get<int>(nameof(ViewNr)),
+                sd.Get<bool>(nameof(Status)),
+                sd.Get<string>(nameof(Result)),
+                sd.Get<string>(nameof(Timestamp)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
+            );
     }
 }

@@ -30,7 +30,7 @@ namespace PBFT.Tests.Replica
             var (_pri, _) = Crypto.InitializeKeyPairs();
             var req = new Request(1, "Test Digest", "12:00");
             var testdig = Crypto.CreateDigest(req);
-            var ccert = new CheckpointCertificate(1,testdig,null);
+            var ccert = new CheckpointCertificate(1, testdig,null);
             Assert.IsFalse(ccert.ProofsAreValid());
             var check1 = new Checkpoint(1, 1, testdig);
             var check2 = new Checkpoint(2, 1, testdig);

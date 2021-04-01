@@ -56,7 +56,7 @@ namespace PBFT.Replica
                     //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
-                    preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
+                    Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
                     Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
                 }else{ //Replicas
@@ -72,7 +72,7 @@ namespace PBFT.Replica
                     curSeq = qcertpre.SeqNr; 
                     Serv.InitializeLog(curSeq);
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
-                    prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
+                    Serv.SignMessage(prepare, MessageType.PhaseMessage);
                     qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
                     //Serv.EmitPhaseMessageLocally(prepare);
                     Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
@@ -108,7 +108,7 @@ namespace PBFT.Replica
                 Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
-                commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
+                Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
                 //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
@@ -142,9 +142,9 @@ namespace PBFT.Replica
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");
-                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,DateTime.Now.ToString());
-                rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
+                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
+                //Serv.SignMessage(rep, MessageType.Reply);
                 Serv.ReplyLog[curSeq] = rep;
                 Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
@@ -176,7 +176,7 @@ namespace PBFT.Replica
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.PrePrepare);
-                    preprepare = (PhaseMessage) Serv.SignMessage(preprepare, MessageType.PhaseMessage);
+                    Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared,
                         preprepare); //Log preprepare as Prepare
                 }
@@ -201,7 +201,7 @@ namespace PBFT.Replica
                     Serv.InitializeLog(curSeq);
                     PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.Prepare);
-                    prepare = (PhaseMessage) Serv.SignMessage(prepare, MessageType.PhaseMessage);
+                    Serv.SignMessage(prepare, MessageType.PhaseMessage);
                     qcertpre.ProofList.Add(prepare);
                 }
 
@@ -244,7 +244,7 @@ namespace PBFT.Replica
                 //Commit phase
                 //Commit:
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
-                commitmes = (PhaseMessage) Serv.SignMessage(commitmes, MessageType.PhaseMessage);
+                Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for Commit messages");
                 //await committed.Where(_ => qcertcom.ValidateCertificate(FailureNr)).Next();
@@ -256,10 +256,9 @@ namespace PBFT.Replica
                 Console.WriteLine("Commit phase finished");
                 //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");
-                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,
-                    DateTime.Now.ToString());
-                rep = (Reply) Serv.SignMessage(rep, MessageType.Reply);
+                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message, clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
+                //Serv.SignMessage(rep, MessageType.Reply);
                 //await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
                 
@@ -308,7 +307,8 @@ namespace PBFT.Replica
                 else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
                 int high = Serv.CurSeqNr + 1;
                 var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
-                foreach (var prepre in prepares) Serv.SignMessage(prepre, MessageType.PhaseMessage);
+                for (var idx=0; idx<prepares.Count; idx++)
+                    Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
                 var nvmes = new NewView(Serv.CurView, vcc, prepares);
                 Serv.SignMessage(nvmes, MessageType.NewView);
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);

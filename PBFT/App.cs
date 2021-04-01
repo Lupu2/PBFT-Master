@@ -61,7 +61,7 @@ namespace PBFT
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
                     //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 2, ipaddr, sh, serversInfo);
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);

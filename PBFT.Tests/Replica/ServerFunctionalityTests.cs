@@ -52,7 +52,7 @@ namespace PBFT.Tests.Replica
             req.SignMessage(_prikey);
             var phasemes = new PhaseMessage(0, 1, 1, digest, PMessageType.Prepare);
             Assert.IsFalse(Crypto.VerifySignature(phasemes.Signature,phasemes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
-            phasemes = (PhaseMessage) server.SignMessage(phasemes, MessageType.PhaseMessage);
+            server.SignMessage(phasemes, MessageType.PhaseMessage);
             Assert.IsTrue(Crypto.VerifySignature(phasemes.Signature, phasemes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
 
@@ -64,7 +64,7 @@ namespace PBFT.Tests.Replica
            
             var replymes = new Reply(server.ServID, 1, server.CurView, true, "Result", DateTime.Now.ToString());
             Assert.IsFalse(Crypto.VerifySignature(replymes.Signature,replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
-            replymes = (Reply) server.SignMessage(replymes, MessageType.Reply);
+            server.SignMessage(replymes, MessageType.Reply);
             Assert.IsTrue(Crypto.VerifySignature(replymes.Signature, replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
         
@@ -76,7 +76,7 @@ namespace PBFT.Tests.Replica
            
             var viewmes = new ViewChange(0, 0, 1, null, null);
             Assert.IsFalse(Crypto.VerifySignature(viewmes.Signature,viewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
-            viewmes = (ViewChange) server.SignMessage(viewmes, MessageType.ViewChange);
+            server.SignMessage(viewmes, MessageType.ViewChange);
             Assert.IsTrue(Crypto.VerifySignature(viewmes.Signature, viewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
 
@@ -88,7 +88,7 @@ namespace PBFT.Tests.Replica
             
             var newviewmes = new NewView(1, null, null);
             Assert.IsFalse(Crypto.VerifySignature(newviewmes.Signature,newviewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
-            newviewmes = (NewView) server.SignMessage(newviewmes, MessageType.NewView);
+            server.SignMessage(newviewmes, MessageType.NewView);
             Assert.IsTrue(Crypto.VerifySignature(newviewmes.Signature, newviewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
         
@@ -99,7 +99,7 @@ namespace PBFT.Tests.Replica
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             var checkmes = new Checkpoint(server.ServID, 20, null);
             Assert.IsFalse(Crypto.VerifySignature(checkmes.Signature,checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
-            checkmes = (Checkpoint) server.SignMessage(checkmes, MessageType.Checkpoint);
+            server.SignMessage(checkmes, MessageType.Checkpoint);
             Assert.IsTrue(Crypto.VerifySignature(checkmes.Signature, checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
         }
         
