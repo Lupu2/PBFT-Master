@@ -1,0 +1,60 @@
+\chapter{Practical Byzantine Fault Tolerance}
+\label{chapter:PBFT}
+%version 1
+
+Practical Byzantine Fault Tolerance(PBFT) is a consensus algorithm specifically designed to handle Byzantine fault's in an asynchronous distributed network. The algorithm was originally published in 1999 by Miguel Castro and Barbara Liskov~\cite{PAPER:OGPBFT}.
+Notably the Linux foundation's open source blockchain by the name of Hyperledger~\cite{WEB:PBFTGeeks, SLIDES:PBFT} uses PBFT.
+
+The problems derived from byzantine faults originally came to light through a well-known problem known as the Byzantine Generals Problem~\cites{WEB:BFTInfo}{ART:lamportByzGenProb}[p.~240-253]{BOOK:BuildDepDistSyst}.
+The byzantine generals problem can be shortly summarized as a couple of army generals leading different armies and have to reach a common decision. The most common scenario is for the armies to coordinate an attack on a surrounded city. The armies can only survive if all of the generals agree to either attack the city together or all agree to retreat. There are also traitor generals that actively attempts to sabotage the order. The decision is also irreversible regardless of the action performed by the other armies. A byzantine fault tolerant system is a system can handle the issue introduced by the byzantine generals problem and is the main goal for consensus algorithm to achieve this state. This includes the PBFT algorithm~\cite{WEB:BFTInfo, ART:lamportByzGenProb}.
+
+The PBFT algorithm focuses on creating a state machine network that can withstand Byzantine failures~\cite[p.~456]{BOOK:MVstandver3}. The protocol achieves this by providing two main properties for the network. These properties are referred to as safety and the liveness.
+To summarize these properties:\\
+\textbf{Safety} is the property that ensures that the total ordering of requests are equal for all the non-faulty participating servers. In other words the system state should be similar to a synchronous system, operating one operation at the time, despite the fact that the system is operated over multiple remote machines.\\ 
+\textbf{Liveness} is the property that ensures that the correct result is eventually agreed upon and returned by the system~\cites[p~456]{BOOK:MVstandver3}{WEB:ConsesAlgo}[p.~2]{PAPER:OGPBFT}{SLIDES:PBFT}[p.~403]{PAPER:PBFTRecovery}[p.~257]{BOOK:BuildDepDistSyst}.
+
+\input{sections/systemModel}
+
+\section{Detailed Protocol Operations}
+The PBFT consensus protocol is divided into three phases. The Pre-Prepare, Prepare and the Commit phase. If the PBFT protocol operations are executed properly, consensus has been achieved for an operation once all three phases are transpired on $3f+1$ replicas~\cite[p.~257-259]{BOOK:BuildDepDistSyst}. Role of the pre-prepare phase and prepare phase is to propose an ordering for request delivered to the system, while the combination of prepare phase and the commit phase establishes the execution order for the replicas in the system~\cite[p.~4]{PAPER:OGPBFT}. 
+
+The PBFT protocol starts once a client send a request containing their desired operation to the primary~\cite[p.~4]{PAPER:OGPBFT}. Sometimes the client will also multicast their request to the other replicas in the system as well, which is the model that we followed in our implementation~\cites[p.~2]{PAPER:DPBFT}[p.~406]{PAPER:PBFTRecovery}[p.~258]{BOOK:BuildDepDistSyst}. Regardless of which of these models you use for the request message, the primary is the one responsible for starting the PBFT algorithm to handle the client's request. The primary will create a Pre-Prepare message and assign the request with a sequence number which is then multicasted to the other replicas in the network with the same view number as the primary. Once a replica receives the Pre-Prepare message it will validate the Pre-Prepare message. The validation process consist of the following~\cites[p.~4]{PAPER:OGPBFT} {SLIDES:PBFT}[p.~259]{BOOK:BuildDepDistSyst}
+\begin{itemize}
+	\item[-]Validating the Signature in the message.
+	\item[-]Checking that the view number in the message match the current view number.
+	\item[-]The message sequence number is not out of bounds with the current checkpoint interval~\cites{SLIDES:PBFT}[p.~4]{PAPER:OGPBFT}.
+	\item[-]Make sure the replica has not already received another Pre-Prepare message with the same sequence number, but with different request.
+\end{itemize} 
+Once the validation process is finished the replica will officially start the prepare phase by creating a prepare message and multicast it over the network. The prepare phase ends for a replica once its stored up to $2f+1$ validated pre-prepare/prepare messages from different replicas. After this condition is met, the replica enters the state known as prepared, in this state it will log the message data so far in what is called a prepare certificate. A prepare certificate is essentially a proof that the prepared phase is finished and is properly executed. The proof of a prepare certificate is a list of the valid prepare messages, basically confirming that quorum has been reached if the number is above the previously mentioned desired limit~\cites[p.~408]{PAPER:PBFTRecovery}[p.~457]{BOOK:MVstandver3}. 
+The last phase is the commit phase which functions very similar to the prepare phase. Each replica that is finished with the prepare phase will start the commit phase by multicasting commit messages to the other replicas in the system\cite~[p.~4]{PAPER:OGPBFT}. This time the primary functions the same as every other replica. The validation process is the same as it was for the prepare messages. The goal is to receive $2f+1$ commit messages, including its own, just like in the prepare phase~\cite[p.~5]{PAPER:OGPBFT}. Once a replica has received enough commit messages, then the protocol reaches the committed phase for the replica. This essentially means that a commit certificate is created and is logged similar to a prepare certificate~\cites[p.~409]{PAPER:PBFTRecovery}[p.~457]{BOOK:MVstandver3}. When a replica has finished both a prepare certificate and a commit certificate, then consensus has been achieved and each replica will perform the operation requested by the client~\cites[p.~409]{PAPER:PBFTRecovery}[p.~5]{PAPER:OGPBFT}. After the operation is executed each replica sends back a reply containing appropriate identification values as well as the result of the request. The last request performed by the client is also stored in memory, in case something where to occur with the reply messages. In this case the client will retransmit the same request to the system and the replicas will re-transmit their reply for that following request~\cite[p.~409]{PAPER:PBFTRecovery}. A client will accept the result if it gets $f+1$ replies back from the replicas.
+
+\section{View changes}
+%TODO rewrite after implementing the basics of view change for app
+In the scenario where the primary is the faulty replica a view change occurs. A view change increments the view number for all participating replicas, which in turn chooses as a new primary replica for the network following the formula mention in \autoref{section:systemModel}. 
+Normally each replica starts a timeout operation whenever it receives a request from a client~\cite[p.~415]{PAPER:PBFTRecovery}. 
+If the replica does not receive a pre-prepare message before the timeout expires, then the replica deems the primary to be faulty and desires a view change. The replica will multicast a view-change message to the other replicas in the view, including the potentially faulty primary, and will ignore any new incoming messages with the exception of view-change, new view and checkpoint messages~\cites[p.~5-6]{PAPER:OGPBFT}[p.~263]{BOOK:BuildDepDistSyst}. 
+A replica receiving a view change will reply with a view-change-ack.  The new primary chosen will collect view-change messages and view-change-ack messages to create a view-change certificate. Once the certificate is valid and has reached $2f+1$ unique messages a new-view message is multicasted to every replica in the network, officially starting the new view~\cites[p.~412-414]{PAPER:PBFTRecovery}[p.~263-p.265]{BOOK:BuildDepDistSyst}[p.~458]{BOOK:MVstandver3}.
+
+\section{Checkpointing}
+PBFT also incorporates checkpointing, which is a mechanism used for garbage collecting the saved logs. Without checkpoints, the replica would eventually use up all of its memory for logging protocol messages~\cite{BOOK:BuildDepDistSyst}. 
+Checkpoints are essentially a proof where the replicas have agreed on a stable state for the system after a specified interval of requests has been processed~\cite[p.~5]{PAPER:OGPBFT}. For instance, if the checkpoint interval was set to 50, then the system would only allow sequence numbers 0 to 50 to be performed in the first interval. Once the checkpoint interval is reached the log data is hashed and saved as a checkpoint message. The message is then multicasted over the network. Consensus is reached when a replica receives $2f+1$ checkpoint messages with different identifiers, but they all have same checkpoint hash value. The checkpoint is then saved on the replica and all the protocol messages with lower or equal sequence number to the checkpoint interval will be deleted from the log. As an example, if the checkpoint interval was 50, then certificates saved up for requests 0 to 50 are deleted. Then the interval is updated to be $[checkpointinterval+1-2*checkpointinterval]$, so for the last example the new interval would be between 51 to 100~\cites[p.~3]{PAPER:DPBFT}[p.~5]{PAPER:OGPBFT}[p.~409-410]{PAPER:PBFTRecovery}[p.~p.261-262]{BOOK:BuildDepDistSyst}.
+New source, put it where it belongs:~\cite{WEB:SawtoothPBFT}
+%\cite{WEB:PBFTGeeks}
+%\cite{WEB:ImpPBFTBlock} %not used
+%\cite{WEB:UnderpBFT} %not used
+%\cite{WEB:PBFTConSeries} %not used
+%\cite{SLIDES:PBFT}
+%\cite{VIDEO:YPBFT}
+%\cite{BOOK:MVstandver3}
+%\cite{BOOK:BuildDepDistSyst}
+%\cite{PAPER:OGPBFT}
+%\cite{PAPER:DPBFT}
+%\cite{PAPER:PBFTRecovery}
+%\lstset{style=sharpc}
+%\begin{lstlisting}
+%Your c# code here
+%class Request
+%{
+%	private m string;
+%} 
+%\end{lstlisting}

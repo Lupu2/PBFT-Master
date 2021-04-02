@@ -1,0 +1,171 @@
+\chapter{Cleipnir}
+\label{chapter:Cleipnir}
+
+Cleipnir is a .Net framework primarily designed to be used for aiding in implementing consensus algorithms. Specifically, the framework main contribution is aiding developers with creating persistent distributed systems. Prior to this thesis, Cleipnir and its predecessor Corums, have been used to implement two consensus algorithms, namely Paxos~\cite[p.~32-38]{PAPER:EivindPaper} and Raft~\cite[p.~13-15]{PAPER:PaxosCleipnir}. 
+Cleipnir is designed to support and work with the three following programming paradigms~\cite[p.~5]{PAPER:PaxosCleipnir}: 
+\begin{itemize}
+\item {Reactive Programming}
+\item {The Async/Await Model}
+\item {Persistent Programming}
+\end{itemize}
+
+Two of these programming paradigms were already presented in \autoref{chapter:ProgrammingModels}, therefore only the Persistent Programming paradigm will be introduced in this chapter. The async/await model used in Cleipnir is the official implementation from the .Net framework~\cite{DOC:AsyncAwait}. As mention in \autoref{section:reactive}, Cleipnir uses its own customized reactive framework and will be discussed in detail in this chapter.
+
+The information that are presented in this chapter is based on the Cleipnir paper~\cite{PAPER:PaxosCleipnir}, its current documentation~\cite{DOC:Cleipnir} and from informative conversations with the frameworks creator Thomas Stidsborg Sylvest.
+
+%Motivation
+\section{Cleipnir Overview}
+
+There are three main tools that Cleipnir provide developers to help design their application.
+These three tools are:
+\begin{itemize}
+	\item{Persistent Synchronous Scheduler}
+	\item{Storage Engine}
+	\item{Object Store}
+	\item{Reactive Programming Layer}
+\end{itemize}
+%Scheduler
+Cleipnir uses an inbuilt event-driven scheduler which follows a single threaded structure similar to the JavaScript scheduler\cites[p.~7]{PAPER:PaxosCleipnir}{WEB:CleipnirScheduler}. The scheduler schedules incoming tasks in a queue structure, meaning the ordering follows a first-come first-serve(FCFS)\cite{WEB:FIFO} approach. Each task in the queue will be executed sequentially using only a single thread, which in theory will allow the program to avoid common threading issues\cite[p.~7]{PAPER:PaxosCleipnir}. %find the actual phrase for this
+
+The storage engine is responsible for the actual storage procedure. It is responsible for performing both the serialization and the deserialization process to each of state object that is to be persisted. The details in regards to setting up object information for the serialization and deserialization process that the storage engine uses is presented in \autoref{section:PersistentProgramming}. Cleipnir uses different types of storage engines that are correlated to which storage is used to store the data. Cleipnir currently supports these three storage engines:
+\begin{itemize}
+	\item{Memory Storage}
+	\item{Simple File Storage}
+	\item{Relation Database Storage}
+\end{itemize}
+\cites[p.~10,12]{PAPER:PaxosCleipnir}
+The memory storage stores the persisted data directly into memory.
+The simple file storage stores the persisted data in a single text file(.txt).
+The relation database storage stores the persisted data into a Microsoft SQL Server\cite{WEB:MSSQL}.
+
+The Cleipnir serialization process follows a graph structure like structure. The original object graph that is to be serialized is called a \code{Roots} object. If the object that is to be serialized has references to other objects that are also going to be serialized, then the graph object has pathways leading from the \code{Roots} object to the other objects graph object\cite[p.~10]{PAPER:PaxosCleipnir}.
+
+The object store is responsible for accessing the storage engine. The object store uses the storage engine whenever the application needs to restore some data that was previously persisted, using the storage engine to persist a new object, or to update existing object records in the persisted memory. The object store is also responsible for detecting changes done to any state variables that are set be persisted. 
+The object store uses a statemap to keep track of records for each of the states variables that are to be persisted and stored by the storage engine\cite[p.~11]{PAPER:PaxosCleipnir}. 
+
+In \autoref{code:objectstore} shows a short example of how to use the object store to cache an object into the storage engine and then restore the object after the data is lost in the application. First both the storage engine and the object store is first initialized, where the type of storage engine used for this example is the simple file storage. Then the object store uses the \code{Attach} function to register the request object to the object store. Object store now has a \code{Roots} entry for the request object. In this example the \code{Persist} function is used to serialize and store any objects currently registered in the object store that has either not been cached before or if any changes has affected the object. In this case it is only the request object. The object is then renewed and loads back the storage engine used earlier and calls the \code{Resolve} function to restore the request object and assign it to a new variable. This means that the first request and the second request will be equal. Most of the functionality shown in \autoref{code:objectstore} is performed behind the scenes and a developer rarely has to attach an object to the object store directly.  
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:objectstore, caption=Object Store example, captionpos=b, basicstyle=\scriptsize]
+_storage = new SimpleFileStorageEngine("PersistentStorage.txt");
+_objectStore = ObjectStore.New(_storage);
+(_pri, _pub) = Crypto.InitializeKeyPairs();	
+var currentTime = DateTime.Now.ToString();
+Request req1 = new Request(1, "Hello World!", currentTime);
+req.SignMessage(_pri);
+           
+_objectStore.Attach(req1);
+_objectStore.Persist();
+_objectStore = null;
+_objectStore = ObjectStore.Load(_storage, false);
+Request req2 = _objectStore.Resolve<Request>();
+	\end{lstlisting}
+\end{figure}
+
+%Objectstore + Storage engine
+%Execution engine
+The scheduler and the object store operates independently from each other. In order for an application to take advantage of both of these tools, Cleipnir has an execution engine tool which uses both the scheduler and the object store to the best of their abilities.
+The Cleipnir execution engines overall architecture is constructed so that the scheduler and the object store can be used together and can collaborate within a single mechanism. Using the execution engine the developer can specify the task's that are to be executed by the scheduler and use the object store to persist the state of the application during certain parts of the execution. The execution engine uses what are known as \code{Sync} points in order to determine when to call the \code{Persist} function in the object store. The these points have to be added manually by the developer in areas where the state can potentially become corrupt if not the state is persistent after a crash. This is important for implementing a consensus algorithm since interrupting a process mid execution while also lose vital information to the execution can cause major issues with the state of the distributed system. By default, if the scheduler does not have any tasks in its queue and is not working on any existing task, then it should also call the \code{Persist} function so that the state can be saved during a silent period. \autoref{code:executionEngine} shows an example of how to initialize the execution engine and how to schedule an operation\cite[p.~11]{PAPER:PaxosCleipnir}.
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:executionEngine, caption=Execution engine example, captionpos=b, basicstyle=\scriptsize]
+var storageEngine = new SimpleFileStorageEngine(".PBFTStorage"+paramid+".txt", false);
+scheduler = ExecutionEngineFactory.StartNew(storageEngine);
+scheduler.Schedule(() => 
+{
+ ...
+});
+	\end{lstlisting}
+\end{figure}
+
+\section{Cleipnir Reactive Programming}
+%TODO rewrite this segment, it is basically all wrong!
+The Cleipnir framework has a custom-made reactive layer that follows most of the functionality provided by the Reactive X API. However, the basic functionality introduced in \autoref{section:reactive} is mostly hidden and the overall workflow is simplified for use. This implementation uses a \code{Stream} object in order to replicate the data returned by the respective observers and operators. The \code{Stream} is similar to an observable object.
+Cleipnir reactive layer support less reactive operators compared to most other current reactive implementations. However, the current operators that exist also support persistent programming, meaning the data stream and the scheduled operations are not lost in if the system crashes during the operation. Traditional LINQ commands do not work on the \code{Stream} object. Instead inbuilt LINQ statements are available for the reactive \code{Stream} object to use. Cleipnir reactive operators can by design be chained together just like majority of reactive operators. The main difference being that the Cleipnir's reactive operators and Linq operators results in a new \code{Stream} object instead of a new observable or an new enumerable. Using reactive operator chains, it is possible to create a lot of the consensus algorithms workflow within a few lines of code. \autoref{code:operatorreq} shows an example of operator chaining using Cleipnir reactive framework. The objective here is to get the first valid Preprepare message emitted to the observable. In order for a message to be considered valid, it must pass the first two \code{Where} clause. The \code{Next} function returns the resulting prepare message~\cites[p.~6,8,13]{PAPER:PaxosCleipnir, WEB:ReactiveOperator}.
+
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:operatorreq, caption=Chaining Cleipnir Operators, captionpos=b, basicstyle=\scriptsize]
+var preprepared = await MesBridge
+                  .Where(pm => pm.PhaseType == PMessageType.PrePrepare) 
+                  .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], 
+                                           Serv.CurView, 
+                                           Serv.CurSeqRange)
+                  )
+                  .Next();
+\end{lstlisting}
+\end{figure}
+Cleipnir supports reactive subject functionality, and it is called a \code{Source} object. The user can emit items to the \code{Source} object, and any observer linked to it will receive the response item. The \code{Source} object needs to be used in order for the developer to access and interact with the reactive layer in Cleipnir. \autoref{code:sourcereq} shows an example on how to initialize, emit and wait for incoming events in regards to the \code{Source} object. The \code{await reqbridge.Next()} makes sure that the resulting variable \code{req} receives the \code{Request} emitted to the \code{Source} object~\cite[p.~8]{PAPER:PaxosCleipnir}.
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:sourcereq, caption=Source object example, captionpos=b, basicstyle=\scriptsize]
+Source<Request> reqbridge = new Source<Request>();
+reqbridge.Emit(new Request(1, "Hello World!", DateTime.Now.ToString());
+
+var req = await reqbridge.Next();
+	\end{lstlisting}
+\end{figure}
+
+\section{Cleipnir Persistent Programming}
+%Define Persistent Programming
+\label{section:PersistentProgramming}
+A system which follows the persistent programming paradigm will regularly save the information from the program state while the program is running. Persistent programming makes it possible to design systems which can easily restore its program state in the case of a system reboot~\cites[p.~6]{PAPER:PaxosCleipnir}{DOC:Cleipnir}. Consensus algorithm can take great advantage of this programming paradigm as systems in the network are likely to eventually crash. With persistent programming, it is simple for a system to recover its data and rejoin the distributed network. Unfortunately, the state of the system is likely to still be somewhat behind the other systems when compared directly to the other working systems, even if all the of the previous data is recovered.
+
+Cleipnir supports easy to use hybrid persistent programming. Hybrid persistent programming allows the developer can choose freely which of the data is to be persistable. In this way it is possible to avoid storing unnecessary information that would slow down the process immensely. \autoref{code:interfaceexample} and \autoref{code:seriadeseria} shows an example of the workflow needed for an object to be serialized and deserialized to and from persistent memory. In order for an object to become visible to the storage engine, it needs to first inherit either the \code{IPersistable} or the \code{IPropertyPersistable} interface. \code{IPersistable} is usually the common choice as it can support hybrid persistency programming. The IPersistable allows the user to choose which data in the object is to be serialized and which constructor to use for the deserialize operation. The IPropertyPersistable can only use the default inbuilt constructor for a .Net object, which is why it does not support hybrid persistency and is therefore not the recommended interface. 
+When inheriting the \code{IPersistable} interface the program will inherit the \code{Serialize} function as shown in \autoref{code:seriadeseria}. In this function you use the object stores statemap to set the desirable object to a designated key, like a normal map workflow. The storage engine internally references to different graph objects for each object stored. It is therefore possible for a key in the statemap to have the same key for multiple objects as the objects are treated as different graph objects in the storage engine. Meaning a developer does not need to worry about duplicate keys over different objects. However, the storage engine cannot store all types of data. The storage engine can handle the basic data types like int, string, boolean etc. The storage engine does not support inbuilt data structures like arrays, dictionaries, etc. Storage engine does also not support any objects or data types outside of the basic ones. This means data types like enum are not supported. However, Cleipnir supports inbuilt versions of common data structures like array, dictionary and list that can in fact be persisted by the storage engine. Therefore, a easy work around is to simply substitute normal data structures for the inbuilt Cleipnir versions of the data structure. For instance, a dictionary object can be substituted for Cleipnirs \code{Cdictionary} object. For objects that has a datatype which is not supported by Cleipnir, a common workaround is to type cast it into another format which Cleipnir can persist. An example of this can be seen in \autoref{code:seriadeseria} where the object \code{Phasetype} is of enum type and Cleipnir cannot persist enum type objects. Therefore, it is type casted to int while stored in memory. Then in the deserialize process, the correct enum type can be chosen based on the int value that was stored. For the deserialize process a private static function called \code{Deserialize} is needed which uses the state map as inparameter. Even if the content of the function must be a unique for each object’s constructor, the format of the function follows the same format shown in \autoref{code:seriadeseria}. The deserialize function simply initializes the object through a constructor and then return the new instance of the specified object based on the info which was currently stored in the statemap.
+
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:interfaceexample, caption=Persistent initialize process, captionpos=b, basicstyle=\scriptsize]
+public class PhaseMessage : IPersistable %inherit interface
+		
+%Construtor to Deserialize process
+public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase, byte[] sign)
+{
+    ServID = id;
+    SeqNr = seq;
+    ViewNr = view;
+    Digest = dig;
+    PhaseType = phase;
+    Signature = sign;
+}
+	\end{lstlisting}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:seriadeseria, caption=Serialize/Deserialize code example, captionpos=b, basicstyle=\scriptsize]
+public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
+{
+    stateToSerialize.Set(nameof(ServID), ServID);
+    stateToSerialize.Set(nameof(SeqNr), SeqNr);
+    stateToSerialize.Set(nameof(ViewNr), ViewNr);
+    stateToSerialize.Set(nameof(Digest), Serializer.SerializeHash(Digest));
+    stateToSerialize.Set(nameof(PhaseType), (int)PhaseType);
+    stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
+}
+
+private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
+{
+    return new PhaseMessage(
+        sd.Get<int>(nameof(ServID)),
+        sd.Get<int>(nameof(SeqNr)),
+        sd.Get<int>(nameof(ViewNr)),
+        Deserializer.DeserializeHash(sd.Get<string>(nameof(Digest))),
+        Enums.ToEnumPMessageType(sd.Get<int>(nameof(PhaseType))),
+        Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
+        );
+}
+	\end{lstlisting}
+\end{figure}

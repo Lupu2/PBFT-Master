@@ -1,0 +1,205 @@
+\documentclass[12pt, a4paper]{report}
+
+% Legger inn pakker som skal brukes:	
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[export]{adjustbox}
+\usepackage[hidelinks]{hyperref}
+\numberwithin{figure}{section}
+\numberwithin{table}{section}	
+\usepackage{graphicx,color,boxedminipage}
+\usepackage{subcaption}
+\usepackage{verbatim,amsmath}
+\graphicspath{{bilder/}}
+\usepackage{etoolbox}
+\usepackage{tabularx}
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[british]{babel}
+\usepackage[backend=biber, style=ieee, dashed=false]{biblatex}
+\bibliography{references.bib}
+\usepackage{setspace}
+\usepackage{csquotes}
+\usepackage[titletoc]{appendix}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{environ}
+\usepackage{fancyhdr,fancyvrb}
+\usepackage{ragged2e,colortbl,appendix}
+\usepackage{here,multirow,pdfpages}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{lipsum,todonotes} 
+
+\usepackage{hyperref} % for autoref command
+\def\chapterautorefname{Chapter}
+\def\sectionautorefname{Section}
+\def\subsectionautorefname{Section}
+\def\subsubsectionautorefname{Section}
+\def\paragraphautorefname{Paragraph}
+\def\tableautorefname{Table}
+\def\equationautorefname{Equation}
+
+%\definecolor{dkgreen}{rgb}{0,0.6,0}
+%\definecolor{gray}{rgb}{0.5,0.5,0.5}
+%\definecolor{mauve}{rgb}{0.58,0,0.82}
+%\lstset{frame=tb,
+%  language=Python,
+%  aboveskip=3mm,
+%  belowskip=3mm,
+%  showstringspaces=false,
+%  columns=flexible,
+%  basicstyle={\small\ttfamily},
+%  numbers=none,
+%  numberstyle=\tiny\color{gray},
+%  keywordstyle=\color{blue},
+%  commentstyle=\color{dkgreen},
+%  stringstyle=\color{mauve},
+%  breaklines=true,
+%  breakatwhitespace=true,
+%  tabsize=3
+%}
+
+\lstdefinestyle{sharpc}{language=[Sharp]C, rulecolor=\color{blue!80!black}}
+%C# listings https://tex.stackexchange.com/questions/30657/lkistings-package-for-c
+%for å sette på ramme, frame=single
+
+% Makro definisjoner
+\newcommand{\code}[1]{\texttt{#1}}
+
+%Fra rapport malen, tuller helt med centering
+% kan definere bredere tekstbredde og -høyde 
+%\textwidth125mm
+%\textheight190mm
+%\parindent0mm  % ingen innrykk ved begynnelsen av avsnitt
+
+\setlength{\marginparwidth}{3cm}
+
+%Usermanual setup found on this page: https://tex.stackexchange.com/a/130099 URL visited 10.05.2019
+%code starts here
+%\newlength\widest
+%\makeatletter
+
+%\NewEnviron{userManualItemlist}{%
+%  \vbox{%
+%    \global\setlength\widest{0pt}%
+ %   \def\item[##1]{%
+%     \settowidth\@tempdima{\textbf{##1}}%
+%      \ifdim\@tempdima>\widest\global\setlength\widest{\@tempdima}\fi%
+%    }%
+%    \setbox0=\hbox{\BODY}%
+%  }
+%  \begin{description}[
+%    leftmargin=\dimexpr\widest+0.5em\relax,
+%    labelindent=0pt,
+%    labelwidth=\widest]
+%  \BODY
+%  \end{description}%
+%}
+\makeatother
+%code ends here
+
+\begin{document}
+	\setlength{\parskip}{0.5cm}   % denne lager 5mm avstand ved avsnitt
+	
+	\pagestyle{fancyplain}
+	\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}}
+	\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+	\lhead[\fancyplain{}{\bfseries\thepage}]{\fancyplain{}{\bfseries\rightmark}}
+	\rhead{}
+	\chead{}
+	\cfoot{\bfseries\thepage}
+	\lfoot{}
+	\rfoot{}	
+	
+	%FrontPage
+	\iffalse	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{figures/frontpageproto.pdf}
+		\caption{FrontPage prototype!!!, write in info and write your signature before sending in master report.}
+		\label{fig:multithread}
+	\end{figure}
+	\fi
+	
+	\hspace*{-7mm}\scalebox{0.80}{\includegraphics{figures/frontpageproto.pdf}}
+	\vspace*{-15mm}
+	\thispagestyle{empty}
+	\newpage
+
+	% romerske tall før kap.1
+	\pagenumbering{roman}	
+	
+	
+	\title{Implementing PBFT using Reactive programming and asynchronous workflows}
+	\author{Jørgen Melstveit}
+	\date{June 2021}
+	\maketitle
+	\tableofcontents
+	\newpage
+	
+	%Content
+	\abstract{Test abstract... This is a message from Lord Nergal! I await you at the dread islands.}
+	\section*{Acknowledgement}
+	I acknowledge that I have gotten massive amount of support as I would not possibly be able to this by my lonely self. 	
+	NB, can't copy titles in verbatim, change name that fit you thesis better
+	\newpage
+	
+	\setlength{\parindent}{0em} 
+	\pagenumbering{arabic}
+	\input{sections/introduction}
+	
+	\input{sections/background}
+	
+	\input{sections/Cleipnir}
+	
+	\input{sections/PBFT}	
+	
+	\input{sections/relatedWorks}	
+	
+	\input{sections/design}	
+	
+	\input{sections/implementation}	
+	
+	\input{sections/evaluation}	
+	
+	\input{sections/conclusion}
+	
+	%Old bachelor references
+	% Front page
+	%\include{sections/frontpage/frontpage}
+
+	%\begin{spacing}{1.25}
+		% Table of contents
+		%\include{sections/tableOfContents/tableOfContents}
+	
+		% Introduction
+		%\include{sections/introduction/introduction}
+		
+		% Background
+		%\include{sections/background/backgroundMain}
+
+		% Construction
+		%\include{sections/construction/constructionMain}
+		
+		% Evaluation
+		%\include{sections/evaluation/evaluation}
+		
+		%Conclusion
+		%\include{sections/conclusion/conclusion}
+	
+		% References
+		%\include{sections/references/references}
+
+		% List of figures
+		%\include{sections/listOfFigures/listOfFigures}
+	
+		% Appendix
+		%\include{sections/appendix/appendixMain}
+	%\end{spacing}
+\printbibliography[heading=bibintoc]
+\end{document}

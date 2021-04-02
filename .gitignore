@@ -390,3 +390,16 @@ FodyWeavers.xsd
 /.idea/.idea.Cleipnir/.idea/indexLayout.xml
 /.idea/.idea.Cleipnir/.idea/projectSettingsUpdater.xml
 /.idea/.idea.Cleipnir/.idea/vcs.xml
+
+#Latex
+*.aux
+*.fdb_latexmk
+*.fls
+*.bbl
+*.bcf
+*.blg
+*.out
+*.pdf
+*.run.xml
+*.synctex.gz
+*.toc
