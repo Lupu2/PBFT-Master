@@ -93,7 +93,9 @@ namespace PBFT.Messages
                 if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                     return false;
                 if (ViewNr != cviewNr) return false;
+                Console.WriteLine("Passed view check");
                 if (SeqNr < seqLow || SeqNr > seqHigh) return false;
+                Console.WriteLine("Passed Range check");
                 if (cert != null && cert.ProofList.Count > 0)
                     if (PhaseType == PMessageType.PrePrepare
                     ) //check if already exist a stored prepare with seqnr = to this message

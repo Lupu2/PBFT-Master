@@ -61,7 +61,7 @@ namespace PBFT
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
                     //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
-                    server = new Server(id, 0, serversInfo.Count, scheduler, 2, ipaddr, sh, serversInfo);
+                    server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);
@@ -112,7 +112,8 @@ namespace PBFT
             {
                 //TODO redesign to operate based on seqNr instead of req!
                 var req = await requestMessage.Next();
-                if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]))
+                Console.WriteLine("Received Client Request");
+                if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]) && serv.CurSeqNr < serv.CurSeqRange.End.Value)
                 {
                     if (execute.Active)
                     {
@@ -130,6 +131,7 @@ namespace PBFT
                                     execute.Serv.ChangeClientStatus(req.ClientID);
                                     if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                         serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                    Console.WriteLine("FINISHED TASK");
                                 });
                             
 
@@ -166,7 +168,6 @@ namespace PBFT
             {
                 serv.CreateCheckpoint(serv.CurSeqNr, PseudoApp);
             });
-
         }
         
         public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute)
@@ -174,8 +175,8 @@ namespace PBFT
             var reply = await execute.HandleRequest(req);
             serv.CurSeqNr = reply.SeqNr;
             PseudoApp.Add(reply.Result);
-            Console.WriteLine(PseudoApp.Count);
-            Console.WriteLine(reply);
+            Console.WriteLine("AppCount:" + PseudoApp.Count);
+            //Console.WriteLine(reply);
                         /*reply.OnCompleted(() =>
                         {
                             execute.Serv.ChangeClientStatus(req.ClientID);

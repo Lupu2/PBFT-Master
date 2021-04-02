@@ -186,9 +186,9 @@ namespace PBFT.Replica
         public bool IsPrimary()
         {
             Start:
-            Console.WriteLine("Isprimary");
-            Console.WriteLine(CurView);
-            Console.WriteLine(CurPrimary.ViewNr);
+            //Console.WriteLine("Isprimary");
+            //Console.WriteLine(CurView);
+            //Console.WriteLine(CurPrimary.ViewNr);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
@@ -350,7 +350,7 @@ namespace PBFT.Replica
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    Console.WriteLine("Emitting"); //protocol, emit
+                                    Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
                                     await _scheduler.Schedule(() =>
                                     {
                                         Subjects.ProtocolSubject.Emit(pesmes);
@@ -411,36 +411,51 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.Checkpoint:
                                 Checkpoint check = (Checkpoint) mes;
-                                Console.WriteLine(check);
-                                Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                //Console.WriteLine("Checkpoint:" + check);
+                                //Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                //foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
                                 if (CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
-                                    if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
-                                        //await _scheduler.Schedule(() =>
-                                        //{
-                                            CheckpointLog[check.StableSeqNr].AppendProof(
-                                                check,
-                                                ServPubKeyRegister[check.ServID],
-                                                Quorum.CalculateFailureLimit(TotalReplicas)
-                                            );
-                                        //});
+                                    //Console.WriteLine(StableCheckpointsCertificate != null && StableCheckpointsCertificate.LastSeqNr == check.StableSeqNr);
+                                    Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
+                                    //if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Console.WriteLine("Adding to existing Checkpoint log");
+                                            Console.WriteLine("Checkpoint:" + check);
+                                            Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                            foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
+                                            if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                                CheckpointLog[check.StableSeqNr].AppendProof(
+                                                    check,
+                                                    ServPubKeyRegister[check.ServID],
+                                                    Quorum.CalculateFailureLimit(TotalReplicas)
+                                                );
+                                        });
                                 }
                                 else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
-                                    //await _scheduler.Schedule(() =>
-                                    //{
-                                        CheckpointCertificate cert = new CheckpointCertificate(
-                                            check.StableSeqNr,
-                                            check.StateDigest, EmitCheckpoint
+                                    Console.WriteLine("Adding new Checkpoint to checkpoint log");
+                                    await _scheduler.Schedule(() =>
+                                    {
+                                        if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                        {
+                                            CheckpointCertificate cert = new CheckpointCertificate
+                                            (
+                                                check.StableSeqNr,
+                                                check.StateDigest, 
+                                                EmitCheckpoint
                                             );
-                                        cert.AppendProof(
-                                            check, 
-                                            ServPubKeyRegister[check.ServID],
-                                            Quorum.CalculateFailureLimit(TotalReplicas)
+                                            cert.AppendProof
+                                            (
+                                                check, 
+                                                ServPubKeyRegister[check.ServID],
+                                                Quorum.CalculateFailureLimit(TotalReplicas)
                                             );
-                                        CheckpointLog[check.StableSeqNr] = cert;
-                                        App.CreateCheckpoint(_scheduler, this);
-                                    //});
+                                            CheckpointLog[check.StableSeqNr] = cert;     
+                                        }
+                                        //App.CreateCheckpoint(_scheduler, this);
+                                    });
                                 }
                                 break;
                             default:
@@ -598,6 +613,10 @@ namespace PBFT.Replica
             SeeLog();
         }
 
+        public void UpdateRange(int stableSeq)
+            => CurSeqRange = new Range(stableSeq+ 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
+        
+
         public void SeeLog()
         {
             foreach (var (seqNr,proofs) in Log)
@@ -657,11 +676,12 @@ namespace PBFT.Replica
             {
                 var stablecheck = await Subjects.CheckpointSubject.Next();
                 Console.WriteLine("Update Checkpoint State");
+                Console.WriteLine(stablecheck);
                 StableCheckpointsCertificate = stablecheck;
                 GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
                 GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
-                GarbageCollectCheckpoints(StableCheckpointsCertificate.LastSeqNr);
-                Console.WriteLine(StableCheckpointsCertificate);
+                GarbageCollectCheckpointLog(StableCheckpointsCertificate.LastSeqNr);
+                UpdateRange(stablecheck.LastSeqNr);
             }
         }
 
@@ -698,12 +718,16 @@ namespace PBFT.Replica
         {
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
             {
-                Console.WriteLine("Create checkpoint");
+                Console.WriteLine("Calling Create checkpoint");
                 //var statedig = MakeStateDigest(limseqNr);
                 var statedig = Crypto.MakeStateDigest(appstate);
                 CheckpointCertificate checkcert;
                 if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
-                else checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
+                else
+                {
+                    checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
+                    CheckpointLog[limseqNr] = checkcert;
+                }
                 var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
                 checkpointmes.SignMessage(_prikey);
                 Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint); //wait for multicast to finish
@@ -725,13 +749,11 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
-        private void GarbageCollectCheckpoints(int seqNr)
+        private void GarbageCollectCheckpointLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
-            {
                 if (entrySeqNr <= seqNr)
                     CheckpointLog.Remove(entrySeqNr);
-            }
         }
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)

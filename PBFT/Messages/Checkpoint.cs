@@ -77,7 +77,7 @@ namespace PBFT.Messages
         
         public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, StableSeqNr, StateDigest);
 
-        public override string ToString() => $"ServID: {ServID}, SeqNumber:{StableSeqNr}, Digest:{StateDigest}, Signature:{Signature} ";
+        public override string ToString() => $"ServID: {ServID}, SeqNumber: {StableSeqNr}, Digest: {StateDigest}, Signature: {Signature} ";
         
         public bool Compare(Checkpoint check)
         {

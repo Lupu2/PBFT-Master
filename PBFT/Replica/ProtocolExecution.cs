@@ -8,6 +8,8 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 
@@ -44,30 +46,27 @@ namespace PBFT.Replica
                 ProtocolCertificate qcertpre;
                 digest = Crypto.CreateDigest(clireq);
                 int curSeq; //change later
-                
-                //Prepare:
+
                 if (Serv.IsPrimary()) //Primary
                 {
-                    /*lock (_sync)
-                    {
-                        curSeq = Serv.CurSeqNr++; //<-causes problems for multiple request 
-                    }*/
                     curSeq = ++Serv.CurSeqNr;
                     //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
+                    Thread.Sleep(1000);
                     Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
                 }else{ //Replicas
-                    // await incomming PhaseMessages Where = MessageType.PrePrepar
-                    
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                        .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange))
+                        .Where(pm => {
+                                Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
+                                return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
+                            })
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
-                    
+                    Console.WriteLine("GOT PRE-PREPARE");
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr; 
                     Serv.InitializeLog(curSeq);
@@ -82,7 +81,12 @@ namespace PBFT.Replica
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
-                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
+                    .Where(pm =>
+                    {
+                        Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
+                        return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
+                                qcertpre);
+                    })
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
                     {
                         prooflist.Add(message);

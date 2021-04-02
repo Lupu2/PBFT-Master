@@ -143,7 +143,7 @@ namespace PBFT.Client
             Request req = CreateRequest(op);
             Req:
             await SendRequest(req);
-            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(5000)).Result;
+            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(6000)).Result;
             //bool val = await ValidateRequest(req);
             Console.WriteLine("Finished await");
             if (val) return;
