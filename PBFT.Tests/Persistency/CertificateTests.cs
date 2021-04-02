@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Threading;
 using Cleipnir.ExecutionEngine;
@@ -159,7 +160,7 @@ namespace PBFT.Tests.Persistency
             }).Wait();
         }
 
-        [TestMethod]
+        /*[TestMethod]
         public void CheckpointCertificateSchedulerTest()
         {
             var scheduler = ExecutionEngineFactory.StartNew(_storage);
@@ -207,16 +208,18 @@ namespace PBFT.Tests.Persistency
                 check3.SignMessage(_prikey);
                 copycert.AppendProof(check3, _pubkey, 1);
                 Assert.IsTrue(copycert.ValidateCertificate(1));
-                
-                var res = copysource.Next().GetAwaiter().GetResult();
-                Assert.IsTrue(res.Stable);
-                Assert.AreEqual(res.ProofList.Count, 3);
-                Assert.AreNotEqual(res.StateDigest,null);
-                Assert.IsTrue(res.ProofList[0].Compare(check1));
+                Assert.AreNotEqual(copyserv.StableCheckpointsCertificate, null);
+                Assert.AreEqual(copyserv.StableCheckpointsCertificate.LastSeqNr, copycert.LastSeqNr);
+                Assert.IsTrue(copyserv.StableCheckpointsCertificate.StateDigest.SequenceEqual(copycert.StateDigest));
+                //var res = copysource.Next().GetAwaiter().GetResult();
+                //Assert.IsTrue(res.Stable);
+                //Assert.AreEqual(res.ProofList.Count, 3);
+                //Assert.AreNotEqual(res.StateDigest,null);
+                //Assert.IsTrue(res.ProofList[0].Compare(check1));
             }).GetAwaiter().GetResult();
             Thread.Sleep(2000);
             scheduler.Sync().Wait();
-        }
+        }*/
         
         public async CTask<CheckpointCertificate> ListenforCheckpointMessage(Source<CheckpointCertificate> checkbridge)
         {

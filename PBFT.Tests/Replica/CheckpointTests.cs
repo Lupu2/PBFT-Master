@@ -173,7 +173,7 @@ namespace PBFT.Tests.Replica
         {
             var checksource = new Source<CheckpointCertificate>();
             var sh = new SourceHandler(null, null, null, null, null, checksource);
-            var testserv = new Server(1,1,4,_scheduler,5,"127.0.0.1:9001", sh, new CDictionary<int, string>());
+            var testserv = new Server(1,1,4, _scheduler,5,"127.0.0.1:9001", sh, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
             testserv.InitializeLog(2);
@@ -226,8 +226,8 @@ namespace PBFT.Tests.Replica
             cert1.Stable = true;
             Assert.AreEqual(testserv.StableCheckpointsCertificate, null);
             Assert.IsTrue(cert1.ValidateCertificate(1));
-            cert1.AppendProof(cp, testserv.Pubkey,1);
-            Thread.Sleep(1000);
+            //cert1.AppendProof(cp, testserv.Pubkey,1);
+            cert1.EmitCheckpoint(cert1);
             Assert.AreEqual(testserv.NrOfLogEntries(),0);
             Assert.AreEqual(testserv.CheckpointLog.Count,0);
             Console.WriteLine(testserv.StableCheckpointsCertificate);
