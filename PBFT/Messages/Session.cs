@@ -3,6 +3,7 @@ using System.Text;
 using Newtonsoft.Json;
 using System.Security.Cryptography;
 using PBFT.Helper;
+
 namespace PBFT.Messages
 {
     
@@ -11,7 +12,7 @@ namespace PBFT.Messages
         public DeviceType Devtype {get; set;}
         public RSAParameters Publickey{get; set;}
         public int DevID {get; set;}
-
+        
         public Session(DeviceType type, RSAParameters pubkey, int devid) 
         {
             Devtype = type;

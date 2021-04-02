@@ -75,6 +75,7 @@ namespace PBFT.Replica
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
+            //Console.WriteLine(BitConverter.ToString(Pubkey.Modulus));
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -147,11 +148,10 @@ namespace PBFT.Replica
         }
 
         [JsonConstructor]
-        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, ViewPrimary lead, int replicas,
-            SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
+        public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, Engine sche, ViewPrimary lead, 
+            int replicas, SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
-            CDictionary<int, string> contactList,
-            CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints, Engine sche)
+            CDictionary<int, string> contactList, CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
             ServID = id;
             CurView = curview;
@@ -186,9 +186,9 @@ namespace PBFT.Replica
         public bool IsPrimary()
         {
             Start:
-            Console.WriteLine("Isprimary");
-            Console.WriteLine(CurView);
-            Console.WriteLine(CurPrimary.ViewNr);
+            //Console.WriteLine("Isprimary");
+            //Console.WriteLine(CurView);
+            //Console.WriteLine(CurPrimary.ViewNr);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
@@ -199,7 +199,7 @@ namespace PBFT.Replica
             goto Start;
         }
 
-        public IProtocolMessages SignMessage(IProtocolMessages mes, MessageType type)
+        public void SignMessage(IProtocolMessages mes, MessageType type)
         {
             switch (type)
             {
@@ -231,8 +231,6 @@ namespace PBFT.Replica
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-
-            return mes;
         }
 
         public void Start()
@@ -327,12 +325,16 @@ namespace PBFT.Replica
                                 if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
                                     ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
                                 {
-                                    if (!ClientActive[reqmes.ClientID]) 
-                                        await _scheduler.Schedule(() => 
-                                        {
-                                            Subjects.RequestSubject.Emit(reqmes);
-                                        });
-
+                                    int idx = OperationInMemory(reqmes);
+                                    if (idx == -1)
+                                    {
+                                        if (!ClientActive[reqmes.ClientID]) 
+                                            await _scheduler.Schedule(() => 
+                                            {
+                                                Subjects.RequestSubject.Emit(reqmes);
+                                            });
+                                    }
+                                    else SendMessage(ReplyLog[idx].SerializeToBuffer(), conn.Socket, MessageType.Reply);
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -348,7 +350,7 @@ namespace PBFT.Replica
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    Console.WriteLine("Emitting"); //protocol, emit
+                                    Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
                                     await _scheduler.Schedule(() =>
                                     {
                                         Subjects.ProtocolSubject.Emit(pesmes);
@@ -388,7 +390,6 @@ namespace PBFT.Replica
                                         ViewMessageRegister[vc.NextViewNr].Add(vc);
                                     }
                                 }
-
                                 break;
                             case MessageType.NewView:
                                 NewView nvmes = (NewView) mes;
@@ -407,31 +408,53 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
-
                                 break;
                             case MessageType.Checkpoint:
                                 Checkpoint check = (Checkpoint) mes;
+                                //Console.WriteLine("Checkpoint:" + check);
+                                //Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                //foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
                                 if (CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
-                                    if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                    //Console.WriteLine(StableCheckpointsCertificate != null && StableCheckpointsCertificate.LastSeqNr == check.StableSeqNr);
+                                    Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
+                                    //if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
                                         await _scheduler.Schedule(() =>
                                         {
-                                            CheckpointLog[check.StableSeqNr].AppendProof(check,
-                                                ServPubKeyRegister[check.ServID],
-                                                Quorum.CalculateFailureLimit(TotalReplicas)
-                                            );
+                                            Console.WriteLine("Adding to existing Checkpoint log");
+                                            Console.WriteLine("Checkpoint:" + check);
+                                            Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                            foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
+                                            if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                                CheckpointLog[check.StableSeqNr].AppendProof(
+                                                    check,
+                                                    ServPubKeyRegister[check.ServID],
+                                                    Quorum.CalculateFailureLimit(TotalReplicas)
+                                                );
                                         });
                                 }
                                 else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
                                 {
+                                    Console.WriteLine("Adding new Checkpoint to checkpoint log");
                                     await _scheduler.Schedule(() =>
                                     {
-                                        CheckpointCertificate cert = new CheckpointCertificate(check.StableSeqNr,
-                                            check.StateDigest, EmitCheckpoint);
-                                        cert.AppendProof(check, ServPubKeyRegister[check.ServID],
-                                            Quorum.CalculateFailureLimit(TotalReplicas));
-                                        CheckpointLog[check.StableSeqNr] = cert;
-                                        App.CreateCheckpoint(_scheduler, this);
+                                        if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                        {
+                                            CheckpointCertificate cert = new CheckpointCertificate
+                                            (
+                                                check.StableSeqNr,
+                                                check.StateDigest, 
+                                                EmitCheckpoint
+                                            );
+                                            cert.AppendProof
+                                            (
+                                                check, 
+                                                ServPubKeyRegister[check.ServID],
+                                                Quorum.CalculateFailureLimit(TotalReplicas)
+                                            );
+                                            CheckpointLog[check.StableSeqNr] = cert;     
+                                        }
+                                        //App.CreateCheckpoint(_scheduler, this);
                                     });
                                 }
                                 break;
@@ -590,6 +613,10 @@ namespace PBFT.Replica
             SeeLog();
         }
 
+        public void UpdateRange(int stableSeq)
+            => CurSeqRange = new Range(stableSeq+ 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
+        
+
         public void SeeLog()
         {
             foreach (var (seqNr,proofs) in Log)
@@ -599,6 +626,18 @@ namespace PBFT.Replica
             }
         }
 
+        public int OperationInMemory(Request req)
+        {
+            Console.WriteLine("OperationInMemory");
+            foreach (var (seqNr, rep) in ReplyLog)
+            {
+                //Console.WriteLine(rep);
+                //Console.WriteLine(req);
+                if (req.Message.Equals(rep.Result) && req.Timestamp.Equals(rep.Timestamp)) return seqNr;
+            }
+            return -1;
+        }
+        
         public CList<ProtocolCertificate> GetProtocolCertificate(int seqNr)
         {
             if (Log.ContainsKey(seqNr))
@@ -627,7 +666,6 @@ namespace PBFT.Replica
                             prepdict[seqNr] = cert;
                 }
             }
-
             return prepdict;
         }
 
@@ -638,9 +676,12 @@ namespace PBFT.Replica
             {
                 var stablecheck = await Subjects.CheckpointSubject.Next();
                 Console.WriteLine("Update Checkpoint State");
+                Console.WriteLine(stablecheck);
                 StableCheckpointsCertificate = stablecheck;
                 GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
-                GarbageCollectCheckpoints(StableCheckpointsCertificate.LastSeqNr);
+                GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
+                GarbageCollectCheckpointLog(StableCheckpointsCertificate.LastSeqNr);
+                UpdateRange(stablecheck.LastSeqNr);
             }
         }
 
@@ -677,11 +718,16 @@ namespace PBFT.Replica
         {
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
             {
+                Console.WriteLine("Calling Create checkpoint");
                 //var statedig = MakeStateDigest(limseqNr);
                 var statedig = Crypto.MakeStateDigest(appstate);
                 CheckpointCertificate checkcert;
                 if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
-                else checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
+                else
+                {
+                    checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
+                    CheckpointLog[limseqNr] = checkcert;
+                }
                 var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
                 checkpointmes.SignMessage(_prikey);
                 Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint); //wait for multicast to finish
@@ -696,13 +742,18 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
-        private void GarbageCollectCheckpoints(int seqNr)
+        private void GarbageCollectReplyLog(int seqNr)
+        {
+            foreach (var (entrySeqNr, _) in ReplyLog)
+                if (entrySeqNr <= seqNr)
+                    Log.Remove(entrySeqNr);
+        }
+
+        private void GarbageCollectCheckpointLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
-            {
                 if (entrySeqNr <= seqNr)
                     CheckpointLog.Remove(entrySeqNr);
-            }
         }
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
@@ -731,6 +782,7 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(CurSeqNr)),
                 sd.Get<int>(nameof(CheckpointConstant)),
                 new Range(sd.Get<int>("CurSeqRangeLow"), sd.Get<int>("CurSeqRangeHigh")),
+                Engine.Current,
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
                 sd.Get<SourceHandler>(nameof(Subjects)),
@@ -739,8 +791,7 @@ namespace PBFT.Replica
                 sd.Get<CDictionary<int, Reply>>(nameof(ReplyLog)),
                 sd.Get<CDictionary<int, string>>(nameof(ServerContactList)),
                 sd.Get<CheckpointCertificate>(nameof(StableCheckpointsCertificate)),
-                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog)),
-                Engine.Current
-            );
+                sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
+        );
         }
 }

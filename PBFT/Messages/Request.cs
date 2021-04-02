@@ -76,7 +76,7 @@ namespace PBFT.Messages
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = this.SerializeToBuffer();
+                    var serareq = SerializeToBuffer();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);

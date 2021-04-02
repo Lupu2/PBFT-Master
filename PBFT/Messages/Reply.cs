@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ObjectDB.Persistency;
@@ -57,7 +57,58 @@ namespace PBFT.Messages
             var jsonobj = Encoding.ASCII.GetString(buffer);
             return JsonConvert.DeserializeObject<Reply>(jsonobj);
         }
+        
+        public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
+        {
+            using (var rsa = RSA.Create())
+            {
+                byte[] hashmes;
+                using (var shaalgo = SHA256.Create())
+                {
+                    var serareq = SerializeToBuffer();
+                    hashmes = shaalgo.ComputeHash(serareq);
+                }
+                rsa.ImportParameters(prikey);
+                RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
+                rsaFormatter.SetHashAlgorithm(haspro);
+                rsaFormatter.SetKey(rsa);
+                Signature = rsaFormatter.CreateSignature(hashmes);
+            }
+        }
 
+        public bool Validate(RSAParameters pubkey, Request orgreq)
+        {
+            //Console.WriteLine("Pubkey: " + BitConverter.ToString(pubkey.Modulus));
+            Console.WriteLine("Validating");
+            Console.WriteLine(this);
+            Console.WriteLine(orgreq.Timestamp);
+            if(!Timestamp.Equals(orgreq.Timestamp)) return false;
+            Console.WriteLine("Passed Timeout test");
+            var copy = CreateCopyTemplate();
+            Console.WriteLine("COPY:");
+            Console.WriteLine(copy);
+            if (!Crypto.VerifySignature(Signature, copy.SerializeToBuffer(), pubkey)) return false;
+            Console.WriteLine("Passed signature test");
+            return true;
+        }
+            
+        public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
+        
+        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
+
+        public bool Compare(Reply rep)
+        {
+            if (rep.ServID != ServID) return false;
+            if (rep.SeqNr != SeqNr) return false;
+            if (rep.ViewNr != ViewNr) return false;
+            if (rep.Status != Status) return false;
+            if (!rep.Result.Equals(Result)) return false;
+            if (!rep.Timestamp.Equals(Timestamp)) return false;
+            if (rep.Signature == null && Signature != null || rep.Signature != null && Signature == null) return false;
+            if (rep.Signature != null && Signature != null && !rep.Signature.SequenceEqual(Signature)) return false;
+            return true;
+        }
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -79,41 +130,5 @@ namespace PBFT.Messages
                 sd.Get<string>(nameof(Timestamp)),
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(Signature)))
             );
-
-            public void SignMessage(RSAParameters prikey, string haspro = "SHA256") 
-        {
-            using (var rsa = RSA.Create())
-            {
-                byte[] hashmes;
-                using (var shaalgo = SHA256.Create())
-                {
-                    var serareq = this.SerializeToBuffer();
-                    hashmes = shaalgo.ComputeHash(serareq);
-                }
-                rsa.ImportParameters(prikey);
-                RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
-                rsaFormatter.SetHashAlgorithm(haspro);
-                rsaFormatter.SetKey(rsa);
-                Signature = rsaFormatter.CreateSignature(hashmes);
-            }
-        }
-
-        public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
-        
-        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
-
-        public bool Compare(Reply rep)
-        {
-            if (rep.ServID != ServID) return false;
-            if (rep.SeqNr != SeqNr) return false;
-            if (rep.ViewNr != ViewNr) return false;
-            if (rep.Status != Status) return false;
-            if (!rep.Result.Equals(Result)) return false;
-            if (!rep.Timestamp.Equals(Timestamp)) return false;
-            if (rep.Signature == null && Signature != null || rep.Signature != null && Signature == null) return false;
-            if (rep.Signature != null && Signature != null && !rep.Signature.SequenceEqual(Signature)) return false;
-            return true;
-        }
-        
     }
 }

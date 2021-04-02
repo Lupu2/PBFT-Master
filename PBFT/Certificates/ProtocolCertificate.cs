@@ -161,14 +161,19 @@ namespace PBFT.Certificates
         
         public bool ValidateCertificate(int fNodes)
         {
-            if (!Valid)
+            /*if (!Valid)
             {
                 Console.WriteLine("Current Proofs:");
-                foreach (var proof in ProofList) Console.WriteLine(proof);    
-            }
-            if (!Valid) 
+                foreach (var proof in proofs) Console.WriteLine(proof);    
+            }*/
+            if (!Valid)
                 if (QReached(fNodes) && ProofsAreValid()) Valid = true;
                 else Console.WriteLine("Certificate is not valid!");
+            if (Valid)
+            {
+                Console.WriteLine("Proofs:");
+                foreach (var proof in ProofList) Console.WriteLine(proof);    
+            }
             return Valid;
         }
 

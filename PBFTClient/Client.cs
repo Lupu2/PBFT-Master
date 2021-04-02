@@ -6,9 +6,11 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.StorageEngine.InMemory;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
@@ -30,6 +32,8 @@ namespace PBFT.Client
         public Dictionary<int, ServerInfo> ServerInformation;
 
         public Source<Reply> ReplySource;
+
+        public Engine _scheduler;
         
         public int FNumber { get; set; }
 
@@ -41,6 +45,7 @@ namespace PBFT.Client
             FinishedRequest = new Dictionary<Request, ReplyCertificate>();
             ServerInformation = new Dictionary<int, ServerInfo>();
             ReplySource = new Source<Reply>();
+            _scheduler = ExecutionEngineFactory.StartNew(new InMemoryStorageEngine());
         }
         
         public void LoadServerInfo(string filename)
@@ -97,7 +102,6 @@ namespace PBFT.Client
                 if (String.IsNullOrEmpty(op)) continue;
                 done = true;
             }
-
             return op;
         }
         
@@ -139,7 +143,8 @@ namespace PBFT.Client
             Request req = CreateRequest(op);
             Req:
             await SendRequest(req);
-            bool val = await ValidateRequest(req);
+            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(6000)).Result;
+            //bool val = await ValidateRequest(req);
             Console.WriteLine("Finished await");
             if (val) return;
             goto Req;
@@ -156,7 +161,6 @@ namespace PBFT.Client
 
         private async Task SendSessionMessage(Session ses)
         {
-            
             foreach (var (id, servinfo) in ServerInformation)
             {
                 Console.WriteLine(id);
@@ -219,7 +223,10 @@ namespace PBFT.Client
                                 var replymes = (Reply) mes;
                                 //ServerInformation[replymes.ServID].AddReply(replymes);
                                 Console.WriteLine("Emitting reply");
-                                ReplySource.Emit(replymes);
+                                await _scheduler.Schedule(() =>
+                                {
+                                    ReplySource.Emit(replymes);
+                                });
                                 break;
                             default:
                                 Console.WriteLine("Unrecognized message!");
@@ -229,8 +236,8 @@ namespace PBFT.Client
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("ERROR");
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine("ERROR Listen Response");
+                    Console.WriteLine(e);
                     ServerInformation[id].Active = false;
                     return;
                 }
@@ -239,28 +246,33 @@ namespace PBFT.Client
 
         public async Task<bool> ValidateRequest(Request req)
         {
-            var repCert = new ReplyCertificate(req);
-            
-            //Set timeout for validateRequest and return false if it occurs
-            Console.WriteLine("Validating");
+            try
+            {
+                var repCert = new ReplyCertificate(req, true); //most reply certificates are set to f+1 validation
+
+                //Set timeout for validateRequest and return false if it occurs
+                //Console.WriteLine("Validating");
                 await ReplySource
-                .Where(rep =>
-                {
-                    Console.WriteLine(rep.Timestamp);
-                    Console.WriteLine(rep.Timestamp);
-                    return rep.Timestamp == req.Timestamp;
-                })
-                .Scan(repCert.ProofList, (prooflist, message) =>
-                {
-                    prooflist.Add(message);
-                    return prooflist;
-                })
-                .Where(_ => repCert.ValidateCertificate(FNumber))
-                .Next();
-            Console.WriteLine("Received appropriate number of replies");
-            Console.WriteLine(repCert.ProofList[0].Result);
-            FinishedRequest[req] = repCert;
-            return true;
+                    .Where(rep => rep.Validate(ServerInformation[rep.ServID].GetPubkeyInfo(), req))
+                    .Scan(repCert.ProofList, (prooflist, message) =>
+                    {
+                        prooflist.Add(message);
+                        return prooflist;
+                    })
+                    .Where(_ => repCert.ValidateCertificate(FNumber))
+                    .Next();
+                Console.WriteLine("Received appropriate number of replies");
+                Console.WriteLine(repCert.ProofList[0].Result);
+                FinishedRequest[req] = repCert;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Error ValidateRequest");
+                Console.WriteLine(e);
+                return false;
+            }
+            
         }
     }
 }

@@ -9,15 +9,26 @@ namespace PBFT.Helper
 {
     public static class TimeoutOps
     {
-        public static async CTask TimeoutOperation(Source<ViewChangeCertificate> shutdown, int length)
+        //Client
+        public static async Task<bool> TimeoutOperation(int length)
+        {
+            await Task.Delay(length);
+            return false;
+        } 
+        
+        //Server
+        public static async CTask ProtocolTimeoutOperation(Source<ViewChangeCertificate> shutdown, int length)
         {
             await Task.Delay(length);
             Console.WriteLine("Timeout occurred");
             shutdown.Emit(null);
         }
 
-        public static async CTask AbortableTimeoutOperation(Source<ViewChangeCertificate> shutdown, int length,
-            CancellationToken cancel)
+        public static async CTask AbortableProtocolTimeoutOperation(
+            Source<ViewChangeCertificate> shutdown, 
+            int length,
+            CancellationToken cancel
+            )
         {
             try
             {

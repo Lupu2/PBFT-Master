@@ -74,6 +74,9 @@ namespace PBFT.Certificates
 
         public bool ValidateCertificate(int nodes)
         {
+            //Console.WriteLine("Validate Checkpoint Certficate");
+            //Console.WriteLine("QReached: " + QReached(nodes));
+            //Console.WriteLine("ProofsAreValid: " + ProofsAreValid());
             if (QReached(nodes) && ProofsAreValid()) Stable = true;
             return Stable;
         }
@@ -89,10 +92,23 @@ namespace PBFT.Certificates
             //validate message
             //validate certificate
             //if certificate becomes stable call emit CheckpointCertificate
-            if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest)) 
-                ProofList.Add(check);
-            Stable = ValidateCertificate(failureNr);
-            if (Stable) EmitCertificate();
+            if (!Stable)
+            {
+                //Console.WriteLine(BitConverter.ToString(check.StateDigest));
+                //Console.WriteLine(BitConverter.ToString(StateDigest));
+                //Console.WriteLine(LastSeqNr);
+                if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest))
+                {
+                    Console.WriteLine("ADDING CHECKPOINT");
+                    ProofList.Add(check); 
+                    //Console.WriteLine("FailureNr: " + failureNr);
+                    //Console.WriteLine($"Proof Count: {ProofList.Count}");
+                    //Console.WriteLine($"Valid Proof Count: {ProofList.Count-AccountForDuplicates()}");
+                    Stable = ValidateCertificate(failureNr);
+                    //Console.WriteLine("Stable: " + Stable);
+                    if (Stable) EmitCertificate();    
+                }
+            }
         }
 
         public bool CompareAndValidate(CheckpointCertificate ccert)
@@ -109,6 +125,13 @@ namespace PBFT.Certificates
             EmitCheckpoint(this);
         }
 
+        public override string ToString()
+        {
+            
+            var toString = $"StableSeq: {LastSeqNr}, Stable: {Stable}, Proofs: {ProofList.Count - AccountForDuplicates()}\n";
+            foreach (var proof in ProofList) toString += proof + ", ";
+            return toString;
+        }
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {

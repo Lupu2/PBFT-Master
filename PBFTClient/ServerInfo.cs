@@ -10,6 +10,7 @@ namespace PBFT.Client
     {
         public int ServID {get;}
         public string IPAddress { get; }
+
         private RSAParameters _pubKey;
         //private CDictionary<int, Reply> _finishedRequests;
         public Socket Socket { get; set; }
@@ -23,6 +24,9 @@ namespace PBFT.Client
         }
         
         public void AddPubKeyInfo(RSAParameters pubkey) => _pubKey = pubkey;
+
+        public RSAParameters GetPubkeyInfo() => _pubKey;
+
         //public void AddReply(Reply rep) => _finishedRequests[rep.SeqNr] = rep;
     }
     
