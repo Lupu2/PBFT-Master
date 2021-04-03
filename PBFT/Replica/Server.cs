@@ -364,18 +364,23 @@ namespace PBFT.Replica
                                 }
 
                                 break;
+                            //TODO redesign this shit, it makes 0 sense:
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
                                 {
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
-                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
-                                    ) //will already have a view-change message for view n, therefore count = 2
+                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
                                     {
                                         ViewMessageRegister[vc.NextViewNr].Add(vc);
                                         ViewChangeCertificate vcc = new ViewChangeCertificate(
-                                            new ViewPrimary(ServID, vc.NextViewNr, TotalReplicas), StableCheckpointsCertificate);
+                                            new ViewPrimary(
+                                                ServID, 
+                                                vc.NextViewNr, 
+                                                TotalReplicas), 
+                                            StableCheckpointsCertificate
+                                        );
                                         foreach (var vctemp in ViewMessageRegister[vc.NextViewNr])
                                             vcc.AppendViewChange(vctemp, ServPubKeyRegister[vc.ServID]);
                                         await _scheduler.Schedule(() =>
@@ -506,6 +511,15 @@ namespace PBFT.Replica
             });
         }
 
+        public void EmitViewChangeLocally(ViewChange vc)
+        {
+            Console.WriteLine("Emitting ViewChange Locally!");
+            _scheduler.Schedule(() =>
+            {
+
+            });
+        }
+        
         public void EmitCheckpoint(CheckpointCertificate cpc)
         {
             Console.WriteLine("Receieved stable checkpoint certificate, emitting");

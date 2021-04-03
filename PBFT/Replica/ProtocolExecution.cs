@@ -23,6 +23,7 @@ namespace PBFT.Replica
         public bool Active { get; set; }
         private readonly object _sync = new object();
         private Source<PhaseMessage> MesBridge;
+        //private Source<ViewChange> ViewChange;
         private Source<ViewChangeCertificate> ShutdownBridge;
         private Source<NewView> NewViewBridge;
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
@@ -255,6 +256,7 @@ namespace PBFT.Replica
         {
             Active = false;
             ViewChange:
+            //Step 1.
             Serv.CurPrimary.NextPrimary();
             Serv.CurView++;
             //Serv.CurView = Serv.CurPrimary.ViewNr;
@@ -273,13 +275,19 @@ namespace PBFT.Replica
                 preps = Serv.CollectPrepareCertificates(stableseq);
                 vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
             }
+            //TODO change to make validating nr of view change messages easier!
+            //Step 2.
             Serv.SignMessage(vc, MessageType.ViewChange);
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
             
+            //Step 3 -->.
+            bool val = await Task.WhenAny(ViewChangeProtocol(preps, vcc), TimeoutOps.TimeoutOperation(15000)).Result;
+            if (!val) goto ViewChange;
+            Active = true;
             //Start timeout
             //await View Change message validation/ have enough, need referanse to existing View Certificate
             //if timeout --> goto ViewChange;
-            if (Serv.IsPrimary())
+            /*if (Serv.IsPrimary())
             {
                 //startval is first entry after last checkpoint, lastval is the last sequence number performed, which could be either CurSeq or CurSeq+1 depending on where the system called for view-change
                 int low;
@@ -317,11 +325,65 @@ namespace PBFT.Replica
                 if (check) await RedoMessage(newviewmes.PrePrepMessages);
                 else goto ViewChange;
                 Active = true;
+            }*/
+        }
+
+        public async CTask<bool> ListenForViewChange()
+        {
+            await ShutdownBridge.Next();
+            return true;
+        }
+        
+        public async Task<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
+        {
+            if (Serv.IsPrimary())
+            {
+                //startval is first entry after last checkpoint, lastval is the last sequence number performed, which could be either CurSeq or CurSeq+1 depending on where the system called for view-change
+                //Step 3.
+                int low;
+                if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
+                else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
+                int high = Serv.CurSeqNr + 1;
+                var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
+                for (var idx=0; idx<prepares.Count; idx++)
+                    Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
+                var nvmes = new NewView(Serv.CurView, vcc, prepares);
+                Serv.SignMessage(nvmes, MessageType.NewView);
+                //Step 4.
+                Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
+                await RedoMessage(prepares);
+                return true;
+            }
+            else
+            {
+                //Step 4-2.
+                var leaderpubkey = Serv.ServPubKeyRegister[Serv.CurPrimary.ServID];
+                var newviewmes = await NewViewBridge
+                    .Where(newview => newview.Validate(leaderpubkey, Serv.CurView))
+                    .Next();
+                var check = true;
+                foreach (var prepre in newviewmes.PrePrepMessages)
+                {
+                    if (!Crypto.VerifySignature(
+                        prepre.Signature, 
+                        prepre.CreateCopyTemplate().SerializeToBuffer(),
+                        leaderpubkey)
+                    )
+                    {
+                        check = false;
+                        break;
+                    }
+                }
+
+                if (check) await RedoMessage(newviewmes.PrePrepMessages);
+                else return false;
+                return true;
             }
         }
 
         public async CTask RedoMessage(CList<PhaseMessage> oldpreList)
         {
+            //Step 5.
             foreach (var prepre in oldpreList)
             {
                 var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre); //need a way to know request digest and request message
