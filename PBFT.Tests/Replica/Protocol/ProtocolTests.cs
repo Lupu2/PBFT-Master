@@ -59,7 +59,7 @@ namespace PBFT.Tests
         public async Task<Reply> PerformTestFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
-            var protocol = exec.HandleRequestTest(req); //Protocol starting
+            var protocol = exec.HandleRequestTest(req, 1); //Protocol starting
             
             //Key initialization
             var (prikey1, pubkey1) = Crypto.InitializeKeyPairs();
@@ -128,7 +128,7 @@ namespace PBFT.Tests
         public async Task<Reply> PerformTestWrongOrderFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
-            var protocol = exec.HandleRequestTest(req); //Protocol starting
+            var protocol = exec.HandleRequestTest(req, 1); //Protocol starting
             
             //Key initialization
             var (prikey1, pubkey1) = Crypto.InitializeKeyPairs();
@@ -187,7 +187,7 @@ namespace PBFT.Tests
         public async CTask<Reply> PerformTestFunctionTimeout(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
-            var protocol = exec.HandleRequestTest(req); //Protocol starting
+            var protocol = exec.HandleRequestTest(req, 1); //Protocol starting
             
             //Key initialization
             var (prikey1, pubkey1) = Crypto.InitializeKeyPairs();

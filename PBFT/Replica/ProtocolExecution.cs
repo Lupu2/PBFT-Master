@@ -8,6 +8,7 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
@@ -36,7 +37,7 @@ namespace PBFT.Replica
             ShutdownBridge = shutbridge;
         }
 
-        public async CTask<Reply> HandleRequest(Request clireq)
+        public async CTask<Reply> HandleRequest(Request clireq, int leaderseq)
         {
 
             //await Sync.Next();
@@ -49,7 +50,7 @@ namespace PBFT.Replica
 
                 if (Serv.IsPrimary()) //Primary
                 {
-                    curSeq = ++Serv.CurSeqNr;
+                    curSeq = leaderseq;
                     //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
@@ -87,6 +88,7 @@ namespace PBFT.Replica
                         return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
                                 qcertpre);
                     })
+                    .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
                     {
                         prooflist.Add(message);
@@ -98,6 +100,7 @@ namespace PBFT.Replica
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
+                    .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                     .Scan(qcertcom.ProofList, (prooflist, message) =>
                     {
                         prooflist.Add(message);
@@ -109,8 +112,9 @@ namespace PBFT.Replica
                 
                 Console.WriteLine("Waiting for prepares");
                 await prepared;
-                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 
+                //Commit phase
+                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
@@ -119,36 +123,11 @@ namespace PBFT.Replica
                 Console.WriteLine("Waiting for commits");
                 await committed;
                 
-                //validate
-                //add list
-                //if not quorum -> continue in await
-                //else break out continue with rest of the code
-                //WAITFORALL()
-                
-                //Commit phase
-                //Commit:
-                
-                /*await MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-                    .Where(pm => pm.PhaseType == PMessageType.Commit)
-                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
-                    .Scan(qcertcom.ProofList, (prooflist, message) =>
-                    {
-                        prooflist.Add(message);
-                        return prooflist;
-                    })
-                    .Where(pm => qcertcom.ValidateCertificate(FailureNr))
-                    .Next();
-                */
-                
                 //Reply
-                //Save the 2 Certificates
-                Console.WriteLine(qcertcom);
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
-                //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");
                 var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
-                //Serv.SignMessage(rep, MessageType.Reply);
                 Serv.ReplyLog[curSeq] = rep;
                 Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
@@ -162,8 +141,9 @@ namespace PBFT.Replica
             }
         }
 
+        //TODO change the test version to fit the new version 
         //Function that performs all the operations in HandleRequest but without sending anything. Used for testing the operations performed in the function..
-        public async CTask<Reply> HandleRequestTest(Request clireq)
+        public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq)
         {
             try
             {
@@ -176,7 +156,7 @@ namespace PBFT.Replica
                 if (Serv.IsPrimary()) //Primary
                 {
                     Console.WriteLine("Server is primary");
-                    curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
+                    curSeq = leaderseq; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
                         PMessageType.PrePrepare);
@@ -216,6 +196,7 @@ namespace PBFT.Replica
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
+                    .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
                     {
                         prooflist.Add(message);
@@ -229,7 +210,7 @@ namespace PBFT.Replica
                         .Where(pm => pm.PhaseType == PMessageType.Commit)
                         .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
                             qcertcom))
-                        //.Do(pm => qcertcom.ProofList.Add(pm))
+                        .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                         .Scan(qcertcom.ProofList, (prooflist, message) =>
                         {
                             prooflist.Add(message);
@@ -246,24 +227,19 @@ namespace PBFT.Replica
                 Console.WriteLine("Prepare phase finished");
 
                 //Commit phase
-                //Commit:
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for Commit messages");
-                //await committed.Where(_ => qcertcom.ValidateCertificate(FailureNr)).Next();
                 await committed;
                 
                 //Reply
                 //Save the 2 Certificates
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 Console.WriteLine("Commit phase finished");
-                //Need to move or insert await for curSeqNr to be the next request to be handled
                 Console.WriteLine($"Completing operation: {clireq.Message}");
                 var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message, clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
-                //Serv.SignMessage(rep, MessageType.Reply);
-                //await Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
                 
             }

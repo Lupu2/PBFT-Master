@@ -228,6 +228,7 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(cert1.ValidateCertificate(1));
             //cert1.AppendProof(cp, testserv.Pubkey,1);
             cert1.EmitCheckpoint(cert1);
+            Thread.Sleep(1000);
             Assert.AreEqual(testserv.NrOfLogEntries(),0);
             Assert.AreEqual(testserv.CheckpointLog.Count,0);
             Console.WriteLine(testserv.StableCheckpointsCertificate);

@@ -85,8 +85,6 @@ namespace PBFT.Messages
             if(!Timestamp.Equals(orgreq.Timestamp)) return false;
             Console.WriteLine("Passed Timeout test");
             var copy = CreateCopyTemplate();
-            Console.WriteLine("COPY:");
-            Console.WriteLine(copy);
             if (!Crypto.VerifySignature(Signature, copy.SerializeToBuffer(), pubkey)) return false;
             Console.WriteLine("Passed signature test");
             return true;

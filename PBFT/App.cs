@@ -122,19 +122,17 @@ namespace PBFT
                         //serv.ChangeClientStatus(req.ClientID);
                         await scheduler.Schedule(() =>
                         {
+                            int seq = ++serv.CurSeqNr;
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                                var operation = AppOperation(req, serv, execute).GetAwaiter();
+                                var operation = AppOperation(req, serv, execute, seq).GetAwaiter();
                                 operation.OnCompleted(() =>
                                 {
-                                    Console.WriteLine("It worked!");
-                                    Console.WriteLine(serv.CurSeqNr);
                                     execute.Serv.ChangeClientStatus(req.ClientID);
-                                    if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                         serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                                     Console.WriteLine("FINISHED TASK");
                                 });
                             
-
                             /*serv.ChangeClientStatus(req.ClientID);
 
                             var reply = execute.HandleRequest(req)
@@ -170,10 +168,9 @@ namespace PBFT
             });
         }
         
-        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute)
+        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq)
         {
-            var reply = await execute.HandleRequest(req);
-            serv.CurSeqNr = reply.SeqNr;
+            var reply = await execute.HandleRequest(req, curSeq);
             PseudoApp.Add(reply.Result);
             Console.WriteLine("AppCount:" + PseudoApp.Count);
             //Console.WriteLine(reply);

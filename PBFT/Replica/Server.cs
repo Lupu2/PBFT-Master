@@ -603,7 +603,7 @@ namespace PBFT.Replica
 
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
-            Console.WriteLine("Certificate saved!");
+            Console.WriteLine("Saving Certificate: ");
             Console.WriteLine("SeqNr:" + seqNr);
             Console.WriteLine($"Cert: {cert}");
             lock (_sync)
@@ -619,6 +619,7 @@ namespace PBFT.Replica
 
         public void SeeLog()
         {
+            Console.WriteLine("Current Log: ");
             foreach (var (seqNr,proofs) in Log)
             {
                 Console.WriteLine("SeqNr: "+ seqNr);
