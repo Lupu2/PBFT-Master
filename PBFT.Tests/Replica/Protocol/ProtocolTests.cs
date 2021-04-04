@@ -34,7 +34,7 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, null, new Source<ViewChangeCertificate>());
+            ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, new Source<bool>(), new Source<NewView>());
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
@@ -49,7 +49,7 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, new Source<bool>() ,new Source<NewView>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
@@ -103,7 +103,7 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge, null, new Source<ViewChangeCertificate>());
+            ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge,  new Source<bool>(), new Source<NewView>());
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
@@ -118,7 +118,7 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, new Source<bool>(), new Source<NewView>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
@@ -175,7 +175,7 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, new Source<ViewChangeCertificate>(), null, null);
             Server testserv = new Server(1,0,4,_scheduler,20,"127.0.0.1:9000",sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, new Source<ViewChangeCertificate>());
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, new Source<bool>(), new Source<NewView>());
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             PerformTestFunctionTimeout(exec, testserv, req, pesbridge).GetAwaiter().OnCompleted(() => Console.WriteLine("Test"));

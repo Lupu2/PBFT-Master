@@ -15,14 +15,14 @@ namespace PBFT.Helper
     {
         public Source<Request> RequestSubject { get; set; }
         public Source<PhaseMessage> ProtocolSubject { get; set; }
-        public Source<ViewChange> ViewChangeSubject { get; set; }
+        public Source<bool> ViewChangeSubject { get; set; }
         public Source<ViewChangeCertificate> ShutdownSubject { get; set; }
         public Source<NewView> NewViewSubject { get; set; }
         
         public Source<CheckpointCertificate> CheckpointSubject { get; set; }
 
         [JsonConstructor]
-        public SourceHandler(Source<Request> reqbr, Source<PhaseMessage> protbr, Source<ViewChange> viewbr, Source<ViewChangeCertificate> shbr, Source<NewView> nvbr, Source<CheckpointCertificate> cpbr)
+        public SourceHandler(Source<Request> reqbr, Source<PhaseMessage> protbr, Source<bool> viewbr, Source<ViewChangeCertificate> shbr, Source<NewView> nvbr, Source<CheckpointCertificate> cpbr)
         {
             RequestSubject = reqbr;
             ProtocolSubject = protbr;
@@ -46,7 +46,7 @@ namespace PBFT.Helper
             => new SourceHandler(
                     sd.Get<Source<Request>>(nameof(RequestSubject)),
                     sd.Get<Source<PhaseMessage>>(nameof(ProtocolSubject)),
-                    sd.Get<Source<ViewChange>>(nameof(ViewChangeSubject)),
+                    sd.Get<Source<bool>>(nameof(ViewChangeSubject)),
                     sd.Get<Source<ViewChangeCertificate>>(nameof(ShutdownSubject)),
                     sd.Get<Source<NewView>>(nameof(NewViewSubject)),
                     sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointSubject))

@@ -37,7 +37,7 @@ namespace PBFT.Tests.Replica
             var sh = new SourceHandler(
                 new Source<Request>(),
                 new Source<PhaseMessage>(),
-                new Source<ViewChange>(),
+                new Source<bool>(),
                 new Source<ViewChangeCertificate>(),
                 new Source<NewView>(), new
                     Source<CheckpointCertificate>()

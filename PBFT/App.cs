@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
@@ -50,7 +51,7 @@ namespace PBFT
                 Server server = null;
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
-                Source<ViewChange> viewSource = new Source<ViewChange>();
+                Source<bool> viewSource = new Source<bool>();
                 Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
                 Source<NewView> newviewSource = new Source<NewView>();
                 Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
@@ -87,7 +88,7 @@ namespace PBFT
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, newviewSource ,shutdownSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, viewSource, newviewSource);
                 server.InitializeConnections()
                     .GetAwaiter()
                     .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
@@ -120,68 +121,95 @@ namespace PBFT
                         Console.WriteLine("Handling client request");
                         //await scheduler.Schedule(() => execute.HandleRequest(req));
                         //serv.ChangeClientStatus(req.ClientID);
-                        await scheduler.Schedule(() =>
-                        {
-                            int seq = ++serv.CurSeqNr;
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                                var operation = AppOperation(req, serv, execute, seq).GetAwaiter();
+                        CancellationTokenSource cancel = new CancellationTokenSource();
+                        _ = TimeoutOps.AbortableProtocolTimeoutOperation(serv.Subjects.ShutdownSubject, 10000,
+                            cancel.Token);
+                        //await Task.WhenAny(scheduler.Schedule(() =>
+                        var a = await Task.WhenAny(scheduler.Schedule<int>(() =>
+                            {
+                                int seq = ++serv.CurSeqNr;
+                                execute.Serv.ChangeClientStatus(req.ClientID);
+                                //var timeout = TimeoutOps.;
+                                var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                                 operation.OnCompleted(() =>
                                 {
                                     execute.Serv.ChangeClientStatus(req.ClientID);
-                                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                                    ) //really shouldn't call this at seq nr 0, but just incase
                                         serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                                     Console.WriteLine("FINISHED TASK");
                                 });
-                            
-                            /*serv.ChangeClientStatus(req.ClientID);
-
-                            var reply = execute.HandleRequest(req)
-                                .GetAwaiter();
-                            /*    .GetResult();
-                            serv.CurSeqNr = reply.SeqNr;
+                                return 0;
+                            })
+                        );
+                        //does not work fsr, assume its because of the scheduler not liking GetAwaiter().GetResult()
+                        /*int a = await scheduler.Schedule<int>(() =>
+                        {
+                            int seq = ++serv.CurSeqNr;
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                            Console.WriteLine("It worked!");
-                            Console.WriteLine(serv.CurSeqNr);
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                            reply.OnCompleted(() =>
+                            //var timeout = TimeoutOps.;
+                            var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
+                            operation.OnCompleted(() =>
                             {
                                 execute.Serv.ChangeClientStatus(req.ClientID);
-                                Console.WriteLine("It worked!");
-                                Console.WriteLine(serv.CurSeqNr);
-                                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                            });*/
-                        });
-                        //serv.ChangeClientStatus(req.ClientID);
+                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                                ) //really shouldn't call this at seq nr 0, but just incase
+                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                Console.WriteLine("FINISHED TASK");
+                            });
+                            return 0;
+                        });*/
+
+                        //return 0;
+                        //})//, ListenForShutdown(serv.Subjects.ShutdownSubject))
+
+
+                        /*if (res == 1)
+                        {
+                            await scheduler.Schedule(() =>
+                            {
+                                serv.ResetClientStatus();
+                                execute.Active = false;
+                                var vcop = ViewChangeOperation(execute).GetAwaiter();
+                                vcop.OnCompleted(() =>
+                                {
+                                    execute.Active = true;
+                                    Console.WriteLine("ViewChange Completed!");
+                                });
+                            });
+                        }*/
+
+
                     }
                 }
-                
             }
         }
 
-        public static void CreateCheckpoint(Engine eng, Server serv)
+        /*public static void CreateCheckpoint(Engine eng, Server serv)
         {
             eng.Schedule(() =>
             {
                 serv.CreateCheckpoint(serv.CurSeqNr, PseudoApp);
             });
+        }*/
+
+        public static async Task<int> ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        {
+            Console.WriteLine("Shutting down");
+            await shutdown.Next();
+            return 1;
         }
         
-        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq)
+        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
         {
-            var reply = await execute.HandleRequest(req, curSeq);
+            var reply = await execute.HandleRequest(req, curSeq, cancel);
             PseudoApp.Add(reply.Result);
             Console.WriteLine("AppCount:" + PseudoApp.Count);
-            //Console.WriteLine(reply);
-                        /*reply.OnCompleted(() =>
-                        {
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            Console.WriteLine("It worked!");
-                            Console.WriteLine(serv.CurSeqNr);
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                        });*/
+        }
+
+        public static async CTask ViewChangeOperation(ProtocolExecution execute)
+        {
+            await execute.HandlePrimaryChange();
         }
     }
 }

@@ -38,7 +38,7 @@ namespace PBFT.Replica
         public CDictionary<int, bool> ClientActive;
         public CDictionary<int, Reply> ReplyLog;
         public CDictionary<int, string> ServerContactList;
-        public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
+        public CDictionary<int, ViewChangeCertificate> ViewMessageRegister;
         public CDictionary<int, CheckpointCertificate> CheckpointLog;
 
         //NON-Persitent
@@ -68,7 +68,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -101,7 +101,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -132,7 +132,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -167,8 +167,7 @@ namespace PBFT.Replica
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
             ServerContactList = contactList;
-            ViewMessageRegister =
-                new CDictionary<int, CArray<ViewChange>>(); //possibly change this to get stored view messages?
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();; //possibly change this to get stored view messages?
             StableCheckpointsCertificate = stablecheck;
             CheckpointLog = checkpoints;
 
@@ -373,7 +372,7 @@ namespace PBFT.Replica
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
                                     {
-                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
+                                        /*ViewMessageRegister[vc.NextViewNr].Add(vc);
                                         ViewChangeCertificate vcc = new ViewChangeCertificate(
                                             new ViewPrimary(
                                                 ServID, 
@@ -386,13 +385,44 @@ namespace PBFT.Replica
                                         await _scheduler.Schedule(() =>
                                         {
                                             Subjects.ShutdownSubject.Emit(vcc);
+                                        });*/
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                                if (!ViewMessageRegister[vc.NextViewNr].Valid)
+                                                {
+                                                    ViewMessageRegister[vc.NextViewNr].AppendViewChange(
+                                                    vc, 
+                                                    ServPubKeyRegister[vc.ServID], 
+                                                    Quorum.CalculateFailureLimit(TotalReplicas)
+                                                    );    
+                                                }
                                         });
                                     }
                                     else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //does not already have any view-change messages for view n
                                     {
-                                        ViewMessageRegister[vc.NextViewNr] = new CArray<ViewChange>();
-                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            ViewMessageRegister[vc.NextViewNr] = new ViewChangeCertificate(
+                                                new ViewPrimary(vc.ServID,vc.NextViewNr, TotalReplicas), 
+                                                vc.CertProofs,
+                                                EmitShutdown, 
+                                                EmitViewChange
+                                            );
+                                            ViewMessageRegister[vc.NextViewNr].AppendViewChange(
+                                                vc, 
+                                                ServPubKeyRegister[vc.ServID], 
+                                                Quorum.CalculateFailureLimit(TotalReplicas)
+                                            );
+                                        });
+                                    }
+                                    else
+                                    {
+                                        /*
+                                         * Console.WriteLine("Connection terminated, rules were broken");
+                                         * conn.Dispose();
+                                         * return;
+                                         */
                                     }
                                 }
                                 break;
@@ -511,12 +541,30 @@ namespace PBFT.Replica
             });
         }
 
-        public void EmitViewChangeLocally(ViewChange vc)
+        /*public void EmitViewChangeLocally(ViewChange vc)
         {
             Console.WriteLine("Emitting ViewChange Locally!");
             _scheduler.Schedule(() =>
             {
 
+            });
+        }*/
+
+        public void EmitShutdown(ViewChangeCertificate vcc)
+        {
+            Console.WriteLine("Received shutdown, emitting");
+            _scheduler.Schedule(() =>
+            {
+                Subjects.ShutdownSubject.Emit(vcc);
+            });
+        }
+
+        public void EmitViewChange()
+        {
+            Console.WriteLine("Received viewchange, emitting to start new view");
+            _scheduler.Schedule(() =>
+            {
+                Subjects.ViewChangeSubject.Emit(true);
             });
         }
         
@@ -596,6 +644,11 @@ namespace PBFT.Replica
             //Assuming Client Already added during client initialization
             if (ClientActive[cid]) ClientActive[cid] = false;
             else ClientActive[cid] = true;
+        }
+
+        public void ResetClientStatus()
+        {
+            foreach (var (cid, _) in ClientActive) ClientActive[cid] = false;
         }
 
         public void AddPubKeyClientRegister(int id, RSAParameters key)
@@ -764,13 +817,20 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
+        public void GarbageViewChangeRegistry(int viewNr)
+        {
+            foreach (var (entryViewNr, _) in ViewMessageRegister)
+                if (entryViewNr <= viewNr)
+                    ViewMessageRegister.Remove(entryViewNr);
+        }
+
         private void GarbageCollectCheckpointLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
                 if (entrySeqNr <= seqNr)
                     CheckpointLog.Remove(entrySeqNr);
         }
-
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
