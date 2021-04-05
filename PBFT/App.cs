@@ -101,6 +101,27 @@ namespace PBFT
             }
         }
 
+        public static async Task RunProtocol(Engine scheduler, Server serv, ProtocolExecution execute, Request req, CancellationTokenSource cancel)
+        {
+            //await scheduler.Schedule(() =>
+            //{
+                int seq = ++serv.CurSeqNr;
+                execute.Serv.ChangeClientStatus(req.ClientID);
+                //var timeout = TimeoutOps.;
+                await AppOperation(req, serv, execute, seq, cancel);
+                //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
+                //operation.OnCompleted(() =>
+                //{
+                    Console.WriteLine("APP OPERATION FINISHED");
+                    execute.Serv.ChangeClientStatus(req.ClientID);
+                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                    ) //really shouldn't call this at seq nr 0, but just incase
+                        serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                    Console.WriteLine("FINISHED TASK");
+                //});
+            //});
+        }
+        
         public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
         {
             _ = RequestHandler(execute, requestMessage, scheduler);
@@ -125,23 +146,28 @@ namespace PBFT
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(serv.Subjects.ShutdownSubject, 10000,
                             cancel.Token);
                         //await Task.WhenAny(scheduler.Schedule(() =>
-                        var a = await Task.WhenAny(scheduler.Schedule<int>(() =>
+                        //var apprun = Task.WhenAny(RunProtocol(scheduler, serv, execute, req, cancel)
+                        await scheduler.Schedule(() =>
+                        {
+                            int seq = ++serv.CurSeqNr;
+                            execute.Serv.ChangeClientStatus(req.ClientID);
+                            //var timeout = TimeoutOps.;
+                            var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
+                            operation.OnCompleted(() =>
                             {
-                                int seq = ++serv.CurSeqNr;
                                 execute.Serv.ChangeClientStatus(req.ClientID);
-                                //var timeout = TimeoutOps.;
-                                var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                                operation.OnCompleted(() =>
-                                {
-                                    execute.Serv.ChangeClientStatus(req.ClientID);
-                                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                                    ) //really shouldn't call this at seq nr 0, but just incase
-                                        serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                    Console.WriteLine("FINISHED TASK");
-                                });
-                                return 0;
-                            })
-                        );
+                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                                ) //really shouldn't call this at seq nr 0, but just incase
+                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                Console.WriteLine("FINISHED TASK");
+                            });
+                        });
+                        //).GetAwaiter();
+                        Console.WriteLine("HELLO PUPPIES!");
+                        //apprun.OnCompleted(() =>
+                        //{
+                        //Console.WriteLine("APPRUN COMPLETED :)");
+                        //});
                         //does not work fsr, assume its because of the scheduler not liking GetAwaiter().GetResult()
                         /*int a = await scheduler.Schedule<int>(() =>
                         {
@@ -193,11 +219,10 @@ namespace PBFT
             });
         }*/
 
-        public static async Task<int> ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        public static async Task ListenForShutdown(Source<ViewChangeCertificate> shutdown)
         {
             Console.WriteLine("Shutting down");
             await shutdown.Next();
-            return 1;
         }
         
         public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
