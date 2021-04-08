@@ -327,11 +327,17 @@ namespace PBFT.Replica
                                     int idx = OperationInMemory(reqmes);
                                     if (idx == -1)
                                     {
+                                        Console.WriteLine("Checking if client already has a working request");
                                         if (!ClientActive[reqmes.ClientID]) 
                                             await _scheduler.Schedule(() => 
                                             {
+                                                Console.WriteLine("Emitting request!");
                                                 Subjects.RequestSubject.Emit(reqmes);
                                             });
+                                        else
+                                        {
+                                            Console.WriteLine("Client request denied!");
+                                        }
                                     }
                                     else SendMessage(ReplyLog[idx].SerializeToBuffer(), conn.Socket, MessageType.Reply);
                                 }

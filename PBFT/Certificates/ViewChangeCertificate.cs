@@ -47,7 +47,8 @@ namespace PBFT.Certificates
         }
         
         public bool QReached(int nodes) => CalculateNrOfValidProofs() >= 2 * nodes + 1;
-        
+
+        public bool ShutdownReached(int nodes) => CalculateNrOfValidProofs() >= 2 * nodes;
         private int AccountForDuplicates()
         {
             //Source: https://stackoverflow.com/questions/53512523/count-of-duplicate-items-in-a-c-sharp-list/53512576
@@ -66,7 +67,7 @@ namespace PBFT.Certificates
         {
             if (!Valid)
             {
-                if (CalculateNrOfValidProofs() >= 2 && !CalledShutdown && ProofsAreValid()) EmitShutdownHandler();
+                if (ShutdownReached(nodes) && ProofsAreValid() && !CalledShutdown) EmitShutdownHandler();
                 bool res = ValidateCertificate(nodes);
                 if (Valid && res) EmitViewChangeHandler();    //res and Valid should always be true together
             }
@@ -74,16 +75,9 @@ namespace PBFT.Certificates
         
         public bool ProofsAreValid()
         {
-            Console.WriteLine("PROOFS ARE VALID");
+            Console.WriteLine("Checking proofs");
             foreach (var vc in ProofList)
             {
-                /*
-                public int StableSeqNr { get; set; }
-                public int ServID { get; set; }
-                public CheckpointCertificate CertProofs { get; set; }
-                public CDictionary<int, ProtocolCertificate> RemPreProofs { get; set;}
-                */
-                
                 if (vc.NextViewNr != ViewInfo.ViewNr) 
                     return false;
                 if (CurSystemState == null && vc.CertProofs != null || CurSystemState != null && vc.CertProofs == null)
@@ -95,6 +89,7 @@ namespace PBFT.Certificates
                 if (vc.CertProofs != null && !vc.CertProofs.Stable) 
                     return false;
             }
+            Console.WriteLine("PROOFS ARE VALID");
             return true;
         }
 

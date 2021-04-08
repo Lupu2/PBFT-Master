@@ -3,10 +3,9 @@ using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
 using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
-using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 
-namespace Playground
+namespace Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables
 {
     public class WhenAny<T> : IPersistable
     {

@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
@@ -88,7 +89,7 @@ namespace PBFT
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, viewSource, newviewSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, viewSource, newviewSource, shutdownSource);
                 server.InitializeConnections()
                     .GetAwaiter()
                     .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
@@ -108,12 +109,13 @@ namespace PBFT
                 int seq = ++serv.CurSeqNr;
                 execute.Serv.ChangeClientStatus(req.ClientID);
                 //var timeout = TimeoutOps.;
-                await scheduler.Schedule(() =>
-                {
+                //await scheduler.Schedule(() =>
+                //{
                     //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                     var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                     operation.OnCompleted(() =>
                     {
+                    //await AppOperation(req, serv, execute, seq, cancel);
                         Console.WriteLine("APP OPERATION FINISHED");
                         execute.Serv.ChangeClientStatus(req.ClientID);
                         if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
@@ -121,8 +123,8 @@ namespace PBFT
                             serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                         Console.WriteLine("FINISHED TASK");
                     });
-                });
-                Console.WriteLine("RunProtocol");
+                //});
+                //Console.WriteLine("RunProtocol");
                 /*AppOperation(req, serv, execute, seq, cancel);
                 //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                 //operation.OnCompleted(() =>
@@ -158,14 +160,27 @@ namespace PBFT
                         //await scheduler.Schedule(() => execute.HandleRequest(req));
                         //serv.ChangeClientStatus(req.ClientID);
                         CancellationTokenSource cancel = new CancellationTokenSource();
-                        _ = TimeoutOps.AbortableProtocolTimeoutOperation(serv.Subjects.ShutdownSubject, 10000,
-                            cancel.Token);
+                        _ = TimeoutOps.AbortableProtocolTimeoutOperation(
+                            serv.Subjects.ShutdownSubject, 
+                            10000,
+                            cancel.Token,
+                            scheduler);
                         //await Task.WhenAny(scheduler.Schedule(() =>
-                        var apprun = Task.WhenAny(
+                        /*var apprun = Task.WhenAny(
                             RunProtocol(scheduler, serv, execute, req, cancel)
                             //HandleShutdown(execute.Serv.Subjects.ShutdownSubject)
-                        );
-                        
+                        );*/
+                        int seq = ++serv.CurSeqNr;
+                        execute.Serv.ChangeClientStatus(req.ClientID);
+                        bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
+                            ListenForShutdown(serv.Subjects.ShutdownSubject));
+                        Console.WriteLine("Result: " + res);
+                        Console.WriteLine("APP OPERATION FINISHED");
+                        execute.Serv.ChangeClientStatus(req.ClientID);
+                        if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                        ) //really shouldn't call this at seq nr 0, but just incase
+                            serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                        Console.WriteLine("FINISHED TASK");
                         /*await scheduler.Schedule(() =>
                         {
                             int seq = ++serv.CurSeqNr;
@@ -180,7 +195,7 @@ namespace PBFT
                             });
                         });*/
                         
-                        Console.WriteLine("HELLO PUPPIES!");
+                        
                         //apprun.OnCompleted(() =>
                         //{
                         //Console.WriteLine("APPRUN COMPLETED :)");
@@ -242,17 +257,20 @@ namespace PBFT
             await ListenForShutdown(shutdown);
         }
 
-        public static async CTask ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        public static async CTask<bool> ListenForShutdown(Source<ViewChangeCertificate> shutdown)
         {
             Console.WriteLine("ListenForShutdown");
             await shutdown.Next();
+            return false;
         }
         
-        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
+        public static async CTask<bool> AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
         {
             var reply = await execute.HandleRequest(req, curSeq, cancel);
             PseudoApp.Add(reply.Result);
             Console.WriteLine("AppCount:" + PseudoApp.Count);
+            return true;
+            
         }
 
         public static async CTask ViewChangeOperation(ProtocolExecution execute)

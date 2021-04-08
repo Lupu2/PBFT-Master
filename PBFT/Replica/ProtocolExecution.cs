@@ -25,11 +25,11 @@ namespace PBFT.Replica
         private readonly object _sync = new object();
         private Source<PhaseMessage> MesBridge;
         private Source<bool> ViewChangeBridge;
-        //private Source<ViewChangeCertificate> ShutdownBridge;
+        private Source<ViewChangeCertificate> ShutdownBridge;
         private Source<NewView> NewViewBridge;
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
 
-        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<bool> viewchangebridge, Source<NewView> newviewbridge) 
+        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<ViewChangeCertificate> shutbridge) 
         {
             Serv = server;
             FailureNr = fnodes;
@@ -37,7 +37,7 @@ namespace PBFT.Replica
             MesBridge = mesbridge;
             ViewChangeBridge = viewchangebridge;
             NewViewBridge = newviewbridge;
-            //ShutdownBridge = shutbridge;
+            ShutdownBridge = shutbridge;
         }
 
         public async CTask<Reply> HandleRequest(Request clireq, int leaderseq, CancellationTokenSource cancel)
@@ -68,6 +68,7 @@ namespace PBFT.Replica
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                             })
+                        //.DisposeOn(ShutdownBridge.Next())
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                     Console.WriteLine("GOT PRE-PREPARE");
@@ -98,6 +99,7 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
@@ -111,6 +113,7 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 Console.WriteLine("Waiting for prepares");
@@ -144,61 +147,59 @@ namespace PBFT.Replica
             }
         }
 
-        //TODO change the test version to fit the new version 
+        
         //Function that performs all the operations in HandleRequest but without sending anything. Used for testing the operations performed in the function..
-        public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq)
-        {
+        public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq, CancellationTokenSource cancel)
+        { 
             try
             {
+                Console.WriteLine("HANDLEREQUESTTEST");
                 byte[] digest;
                 ProtocolCertificate qcertpre;
                 digest = Crypto.CreateDigest(clireq);
-                int curSeq;
+                int curSeq; //change later
 
-                //Prepare:
                 if (Serv.IsPrimary()) //Primary
                 {
-                    Console.WriteLine("Server is primary");
-                    curSeq = leaderseq; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
+                    curSeq = leaderseq;
+                    //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
-                    PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
-                        PMessageType.PrePrepare);
+                    PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
-                    qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared,
-                        preprepare); //Log preprepare as Prepare
-                }
-                else
-                {
-                    //Replicas
-                    Console.WriteLine("Server is not primary");
-                    // await incomming PhaseMessages Where = MessageType.PrePrepare
-                    //_ = TimeoutOps.ProtocolTimeoutOperation(ShutdownBridge, 1000);
+                    qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
+                    Thread.Sleep(1000);
+                    //Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
+                }else{ //Replicas
                     var preprepared = await MesBridge
-                        //.DisposeOn(ShutdownBridge.Next())
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                        .Where(pm =>
-                            pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView,
-                                Serv.CurSeqRange))
+                        .Where(pm => {
+                                Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
+                                return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
+                            })
+                        .DisposeOn(ShutdownBridge.Next())
                         .Next();
-                    Console.WriteLine("Finished Preprepare");
-                    Console.WriteLine(preprepared);
-                    qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared,
-                        preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
-                    curSeq = qcertpre.SeqNr;
+                    //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
+                    Console.WriteLine("GOT PRE-PREPARE");
+                    qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
+                    curSeq = qcertpre.SeqNr; 
                     Serv.InitializeLog(curSeq);
-                    PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest,
-                        PMessageType.Prepare);
+                    PhaseMessage prepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Prepare); //Send async message Prepare
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
-                    qcertpre.ProofList.Add(prepare);
+                    qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
+                    //Serv.EmitPhaseMessageLocally(prepare);
+                    //Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
-
+                cancel.Cancel();
                 //Prepare phase
-                //await incoming PhaseMessages Where = MessageType.Prepare Add to Certificate Until Consensus Reached
-                ProtocolCertificate qcertcom =
-                    new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);
+                ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
-                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertpre))
+                    .Where(pm =>
+                    {
+                        Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
+                        return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
+                                qcertpre);
+                    })
                     .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
                     {
@@ -206,51 +207,51 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    .Next(); //probably won't work
+                    .DisposeOn(ShutdownBridge.Next())
+                    .Next();
                 
-                //CList<PhaseMessage> eks = new CList<PhaseMessage>();
-                var committed= MesBridge //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
-                        .Where(pm => pm.PhaseType == PMessageType.Commit)
-                        .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
-                            qcertcom))
-                        .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
-                        .Scan(qcertcom.ProofList, (prooflist, message) =>
-                        {
-                            prooflist.Add(message);
-                            return prooflist;
-                        })
-                        .Where(_ => qcertcom.ValidateCertificate(FailureNr))
-                        .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                        //.DisposeOn(ShutdownBridge.Next())
-                        .Next();
-                //qcertcom.ProofList = eks;
-                Console.WriteLine("Waiting for Prepare messages");
+                var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
+                    .Where(pm => pm.PhaseType == PMessageType.Commit)
+                    .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
+                    .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
+                    .Scan(qcertcom.ProofList, (prooflist, message) =>
+                    {
+                        prooflist.Add(message);
+                        return prooflist;
+                    })
+                    .Where(_ => qcertcom.ValidateCertificate(FailureNr))
+                    .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                    .DisposeOn(ShutdownBridge.Next())
+                    .Next();
+                
+                Console.WriteLine("Waiting for prepares");
                 await prepared;
-                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
-                Console.WriteLine("Prepare phase finished");
-
+                
                 //Commit phase
+                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
+                //Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
+                //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
-                Console.WriteLine("Waiting for Commit messages");
+                Console.WriteLine("Waiting for commits");
                 await committed;
                 
                 //Reply
-                //Save the 2 Certificates
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
-                Console.WriteLine("Commit phase finished");
                 Console.WriteLine($"Completing operation: {clireq.Message}");
-                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message, clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
+                Serv.ReplyLog[curSeq] = rep;
+                //Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
-                
             }
             catch (Exception e)
             {
                 Console.WriteLine("Error in ProtocolExecution!");
                 Console.WriteLine(e);
-                throw;
+                var rep = new Reply(Serv.ServID, Serv.CurSeqNr++, Serv.CurView, false, "Failure", clireq.Timestamp);
+                return rep;
             }
         }
 
@@ -385,7 +386,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(MesBridge), MesBridge);
             stateToSerialize.Set(nameof(NewViewBridge), NewViewBridge);
             stateToSerialize.Set(nameof(ViewChangeBridge), ViewChangeBridge);
-            //stateToSerialize.Set(nameof(ShutdownBridge), ShutdownBridge);
+            stateToSerialize.Set(nameof(ShutdownBridge), ShutdownBridge);
         }
 
         public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -394,8 +395,8 @@ namespace PBFT.Replica
                 sd.Get<int>(nameof(FailureNr)),
                 sd.Get<Source<PhaseMessage>>(nameof(MesBridge)),
                 sd.Get<Source<bool>>(nameof(ViewChangeBridge)),
-                sd.Get<Source<NewView>>(nameof(NewViewBridge))
-                //sd.Get<Source<ViewChangeCertificate>>(nameof(ShutdownBridge))
+                sd.Get<Source<NewView>>(nameof(NewViewBridge)),
+                sd.Get<Source<ViewChangeCertificate>>(nameof(ShutdownBridge))
                 );
     }
 }
