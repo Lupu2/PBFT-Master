@@ -10,8 +10,8 @@ namespace Playground
             //SocketIPExample.IPHostListExample.GetIpAddressList(Dns.GetHostName());
             //SocketIPExample.asyncserversockettut.P();
             //SimpleNetwork.P.Do();
-            PersonExample.P.Do();
-            
+            //PersonExample.P.Do();
+            TestTimeout.P.Do();
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
         }
