@@ -108,7 +108,22 @@ namespace PBFT
                 int seq = ++serv.CurSeqNr;
                 execute.Serv.ChangeClientStatus(req.ClientID);
                 //var timeout = TimeoutOps.;
-                await AppOperation(req, serv, execute, seq, cancel);
+                await scheduler.Schedule(() =>
+                {
+                    //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
+                    var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
+                    operation.OnCompleted(() =>
+                    {
+                        Console.WriteLine("APP OPERATION FINISHED");
+                        execute.Serv.ChangeClientStatus(req.ClientID);
+                        if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                        ) //really shouldn't call this at seq nr 0, but just incase
+                            serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                        Console.WriteLine("FINISHED TASK");
+                    });
+                });
+                Console.WriteLine("RunProtocol");
+                /*AppOperation(req, serv, execute, seq, cancel);
                 //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                 //operation.OnCompleted(() =>
                 //{
@@ -117,9 +132,9 @@ namespace PBFT
                     if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
                     ) //really shouldn't call this at seq nr 0, but just incase
                         serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                    Console.WriteLine("FINISHED TASK");
+                    Console.WriteLine("FINISHED TASK");*/
                 //});
-            //});
+                //});
         }
         
         public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
@@ -146,23 +161,25 @@ namespace PBFT
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(serv.Subjects.ShutdownSubject, 10000,
                             cancel.Token);
                         //await Task.WhenAny(scheduler.Schedule(() =>
-                        //var apprun = Task.WhenAny(RunProtocol(scheduler, serv, execute, req, cancel)
-                        await scheduler.Schedule(() =>
+                        var apprun = Task.WhenAny(
+                            RunProtocol(scheduler, serv, execute, req, cancel)
+                            //HandleShutdown(execute.Serv.Subjects.ShutdownSubject)
+                        );
+                        
+                        /*await scheduler.Schedule(() =>
                         {
                             int seq = ++serv.CurSeqNr;
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                            //var timeout = TimeoutOps.;
                             var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
                             operation.OnCompleted(() =>
                             {
                                 execute.Serv.ChangeClientStatus(req.ClientID);
-                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                                ) //really shouldn't call this at seq nr 0, but just incase
+                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                     serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                Console.WriteLine("FINISHED TASK");
+                                Console.WriteLine("FINISHED TASK");    
                             });
-                        });
-                        //).GetAwaiter();
+                        });*/
+                        
                         Console.WriteLine("HELLO PUPPIES!");
                         //apprun.OnCompleted(() =>
                         //{
@@ -219,9 +236,15 @@ namespace PBFT
             });
         }*/
 
-        public static async Task ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        public static async Task HandleShutdown(Source<ViewChangeCertificate> shutdown)
         {
             Console.WriteLine("Shutting down");
+            await ListenForShutdown(shutdown);
+        }
+
+        public static async CTask ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        {
+            Console.WriteLine("ListenForShutdown");
             await shutdown.Next();
         }
         
