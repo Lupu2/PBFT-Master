@@ -411,7 +411,7 @@ namespace PBFT.Replica
                                         {
                                             ViewMessageRegister[vc.NextViewNr] = new ViewChangeCertificate(
                                                 new ViewPrimary(vc.ServID,vc.NextViewNr, TotalReplicas), 
-                                                vc.CertProofs,
+                                                vc.CertProof,
                                                 EmitShutdown, 
                                                 EmitViewChange
                                             );
@@ -730,6 +730,7 @@ namespace PBFT.Replica
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
+            Console.WriteLine("CollectPrepareCertificates");
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
             foreach (var (seqNr, certList) in Log)
             {

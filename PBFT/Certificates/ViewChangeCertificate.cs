@@ -80,13 +80,13 @@ namespace PBFT.Certificates
             {
                 if (vc.NextViewNr != ViewInfo.ViewNr) 
                     return false;
-                if (CurSystemState == null && vc.CertProofs != null || CurSystemState != null && vc.CertProofs == null)
+                if (CurSystemState == null && vc.CertProof != null || CurSystemState != null && vc.CertProof == null)
                     return false;
-                if (CurSystemState != null && vc.CertProofs != null && !CurSystemState.StateDigest.SequenceEqual(vc.CertProofs.StateDigest)) 
+                if (CurSystemState != null && vc.CertProof != null && !CurSystemState.StateDigest.SequenceEqual(vc.CertProof.StateDigest)) 
                     return false;
-                if (CurSystemState != null && vc.CertProofs != null && CurSystemState.LastSeqNr != vc.StableSeqNr)
+                if (CurSystemState != null && vc.CertProof != null && CurSystemState.LastSeqNr != vc.StableSeqNr)
                     return false;
-                if (vc.CertProofs != null && !vc.CertProofs.Stable) 
+                if (vc.CertProof != null && !vc.CertProof.Stable) 
                     return false;
             }
             Console.WriteLine("PROOFS ARE VALID");

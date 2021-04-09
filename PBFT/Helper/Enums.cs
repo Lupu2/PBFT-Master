@@ -24,8 +24,6 @@ namespace PBFT.Helper
         Commit = 2,
     }
     
-    
-    
     public enum MessageType
     {
         SessionMessage = 0,

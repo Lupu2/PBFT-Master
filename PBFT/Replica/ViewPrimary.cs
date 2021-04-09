@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ObjectDB.Persistency;
@@ -36,6 +37,7 @@ namespace PBFT.Replica
         
         public void NextPrimary()
         {
+            Console.WriteLine("Next Primary Called");
             ViewNr++;
             ServID = ViewNr % NrOfNodes;
         }

@@ -8,6 +8,7 @@ using PBFT.Messages;
 using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,11 +65,11 @@ namespace PBFT.Replica
                 }else{ //Replicas
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                        //.DisposeOn(ShutdownBridge.Next())
                         .Where(pm => {
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                             })
-                        //.DisposeOn(ShutdownBridge.Next())
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                     Console.WriteLine("GOT PRE-PREPARE");
@@ -81,11 +82,22 @@ namespace PBFT.Replica
                     //Serv.EmitPhaseMessageLocally(prepare);
                     Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
-                cancel.Cancel();
+
+                if (Active)
+                {
+                    Console.WriteLine("Active");
+                    cancel.Cancel();
+                }
+                else
+                {
+                    Console.WriteLine("Not Active");
+                    throw new TimeoutException("Timeout Occurred! System is no longer active!");
+                }
                 //Prepare phase
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Where(pm =>
                     {
                         Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
@@ -99,11 +111,12 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    //.DisposeOn(ShutdownBridge.Next())
+                    .DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                     .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                     .Scan(qcertcom.ProofList, (prooflist, message) =>
@@ -113,11 +126,12 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    //.DisposeOn(ShutdownBridge.Next())
+                    .DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 Console.WriteLine("Waiting for prepares");
-                await prepared;
+                if (Active) await prepared;
+                else throw new ConstraintException("System is no longer active!");
                 
                 //Commit phase
                 Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
@@ -127,11 +141,13 @@ namespace PBFT.Replica
                 //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for commits");
-                await committed;
+                if (Active) await committed;
+                else throw new ConstraintException("System is no longer active!");
                 
                 //Reply
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 Console.WriteLine($"Completing operation: {clireq.Message}");
+                
                 var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
                 Serv.ReplyLog[curSeq] = rep;
@@ -172,11 +188,11 @@ namespace PBFT.Replica
                 }else{ //Replicas
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                        .DisposeOn(ShutdownBridge.Next())
                         .Where(pm => {
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                             })
-                        .DisposeOn(ShutdownBridge.Next())
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                     Console.WriteLine("GOT PRE-PREPARE");
@@ -189,11 +205,13 @@ namespace PBFT.Replica
                     //Serv.EmitPhaseMessageLocally(prepare);
                     //Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
-                cancel.Cancel();
+                if (Active) cancel.Cancel();
+                else throw new TimeoutException("Timeout Occurred! System is no longer active!");
                 //Prepare phase
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
+                    .DisposeOn(ShutdownBridge.Next())
                     .Where(pm =>
                     {
                         Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
@@ -207,11 +225,11 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    .DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
+                    .DisposeOn(ShutdownBridge.Next())
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                     .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                     .Scan(qcertcom.ProofList, (prooflist, message) =>
@@ -225,7 +243,8 @@ namespace PBFT.Replica
                     .Next();
                 
                 Console.WriteLine("Waiting for prepares");
-                await prepared;
+                if (Active) await prepared;
+                else throw new ConstraintException("System is no longer active!");
                 
                 //Commit phase
                 Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
@@ -235,7 +254,8 @@ namespace PBFT.Replica
                 //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for commits");
-                await committed;
+                if (Active) await committed;
+                else throw new ConstraintException("System is no longer active!");
                 
                 //Reply
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
@@ -257,21 +277,26 @@ namespace PBFT.Replica
 
         public async Task HandlePrimaryChange()
         {
+            Console.WriteLine("HandlePrimaryChange");
             ViewChange:
             //Step 1.
             Serv.CurPrimary.NextPrimary();
             Serv.CurView++;
             //Serv.CurView = Serv.CurPrimary.ViewNr;
             ViewChangeCertificate vcc;
-            if (Serv.ViewMessageRegister.ContainsKey(Serv.CurView))
+            Console.WriteLine("Initialize ViewChangeCertificate");
+            if (!Serv.ViewMessageRegister.ContainsKey(Serv.CurView))
             {
                 vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpointsCertificate, Serv.EmitShutdown, Serv.EmitViewChange);
+                Console.WriteLine("Adding viewcert to registry");
                 Serv.ViewMessageRegister[Serv.CurView] = vcc;
             }
             else vcc = Serv.ViewMessageRegister[Serv.CurView];
+            Console.WriteLine("Starting listener");
             var listener = ListenForViewChange();
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
+            Console.WriteLine("Creating ViewChange");
             if (Serv.StableCheckpointsCertificate == null)
             {
                 preps = Serv.CollectPrepareCertificates(-1);
@@ -282,7 +307,7 @@ namespace PBFT.Replica
                 int stableseq = Serv.StableCheckpointsCertificate.LastSeqNr;
                 preps = Serv.CollectPrepareCertificates(stableseq);
                 vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
-            }
+            } 
             //Step 2.
             Serv.SignMessage(vc, MessageType.ViewChange);
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
@@ -316,7 +341,9 @@ namespace PBFT.Replica
                 Serv.SignMessage(nvmes, MessageType.NewView);
                 //Step 4.
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
+                Console.WriteLine("RedoMessage");
                 await RedoMessage(prepares);
+                Console.WriteLine("RedoMessage fin");
                 return true;
             }
             else
@@ -339,7 +366,6 @@ namespace PBFT.Replica
                         break;
                     }
                 }
-
                 if (check) await RedoMessage(newviewmes.PrePrepMessages);
                 else return false;
                 return true;

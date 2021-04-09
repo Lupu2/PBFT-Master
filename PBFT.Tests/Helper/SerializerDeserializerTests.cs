@@ -1,8 +1,11 @@
 using System;
 using System.Linq;
+using Cleipnir.ObjectDB.PersistentDataStructures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
+using PBFT.Replica;
 
 namespace PBFT.Tests.Helper
 {
@@ -70,13 +73,41 @@ namespace PBFT.Tests.Helper
         [TestMethod]
         public void SerializeDeserializeViewChange()
         {
-           //TODO implement after finishing the code for ViewChange struct
+            //TODO implement after finishing the code for ViewChange struct
+           var viewmes = new ViewChange(1,1,1,null,new CDictionary<int, ProtocolCertificate>());
+           var req = new Request(1, "12:00");
+           var protocert = new ProtocolCertificate(1, 1,  Crypto.CreateDigest(new Request(1, "12:00")), CertType.Prepared);
+           viewmes.RemPreProofs[1] = protocert;
+           byte[] serpmes = viewmes.SerializeToBuffer();
+           byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.ViewChange);
+           Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
+           var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
+           Assert.IsTrue(mestype == 4);
+           ViewChange viewmesde = (ViewChange) demes;
+           Console.WriteLine(viewmes);
+           Console.WriteLine(viewmesde);
+           Assert.IsTrue(viewmes.Compare(viewmesde));
         }
         
         [TestMethod]
         public void SerializeDeserializeNewView()
         {
+            /*ViewPrimary info, CheckpointCertificate state, Action<ViewChangeCertificate> shutdown, Action viewchange*/
+            
             //TODO Write test after finishing code for NewView
+            ViewPrimary vp = new ViewPrimary(1, 1, 4);
+            CList<PhaseMessage> preparemes = new CList<PhaseMessage>();
+            ViewChangeCertificate viewproof = new ViewChangeCertificate(vp, null, null, null);
+            var newviewmes = new NewView(1, viewproof, preparemes);
+            byte[] serpmes = newviewmes.SerializeToBuffer();
+            byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.NewView);
+            Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));
+            var (mestype,demes) = Deserializer.ChooseDeserialize(readybuff);
+            Assert.IsTrue(mestype == 4);
+            NewView newviewmesde = (NewView) demes;
+            Console.WriteLine(newviewmes);
+            Console.WriteLine(newviewmesde);
+            Assert.IsTrue(newviewmes.Compare(newviewmesde));
         }
         
         [TestMethod]

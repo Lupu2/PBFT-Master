@@ -40,6 +40,12 @@ namespace PBFT.Messages
         
         public byte[] SerializeToBuffer()
         {
+            var copy = (NewView) CreateCopyTemplate();
+            if (copy.ViewProof != null)
+            {
+                copy.ViewProof.EmitShutdown = null;
+                copy.ViewProof.EmitViewChange = null;
+            }
             string jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
         }
@@ -76,6 +82,18 @@ namespace PBFT.Messages
         
         public IProtocolMessages CreateCopyTemplate() => new NewView(NewViewNr, ViewProof, PrePrepMessages);
         
+        public override string ToString()
+        {
+            //TODO implement
+            return "";
+        }
+
+        public bool Compare(NewView nvc2)
+        {
+            //TODO implement
+            return true;
+        }
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(NewViewNr),NewViewNr);

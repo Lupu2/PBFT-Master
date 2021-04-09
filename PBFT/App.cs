@@ -162,7 +162,7 @@ namespace PBFT
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
                             serv.Subjects.ShutdownSubject, 
-                            10000,
+                            1000,
                             cancel.Token,
                             scheduler);
                         //await Task.WhenAny(scheduler.Schedule(() =>
@@ -175,12 +175,25 @@ namespace PBFT
                         bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
                             ListenForShutdown(serv.Subjects.ShutdownSubject));
                         Console.WriteLine("Result: " + res);
-                        Console.WriteLine("APP OPERATION FINISHED");
-                        execute.Serv.ChangeClientStatus(req.ClientID);
-                        if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                        ) //really shouldn't call this at seq nr 0, but just incase
-                            serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                        Console.WriteLine("FINISHED TASK");
+                        if (res)
+                        {
+                            Console.WriteLine("APP OPERATION FINISHED");
+                            execute.Serv.ChangeClientStatus(req.ClientID);
+                            if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                            ) //really shouldn't call this at seq nr 0, but just incase
+                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                            Console.WriteLine("FINISHED TASK");    
+                        }
+                        else
+                        {
+                            Console.WriteLine("View-Change commence :)");
+                            execute.Active = false;
+                            await scheduler.Schedule(() =>
+                            {
+                                var viewops = ViewChangeOperation(execute).GetAwaiter();
+                                viewops.OnCompleted(() => execute.Active = true);
+                            });
+                        }
                         /*await scheduler.Schedule(() =>
                         {
                             int seq = ++serv.CurSeqNr;
@@ -194,69 +207,11 @@ namespace PBFT
                                 Console.WriteLine("FINISHED TASK");    
                             });
                         });*/
-                        
-                        
-                        //apprun.OnCompleted(() =>
-                        //{
-                        //Console.WriteLine("APPRUN COMPLETED :)");
-                        //});
-                        //does not work fsr, assume its because of the scheduler not liking GetAwaiter().GetResult()
-                        /*int a = await scheduler.Schedule<int>(() =>
-                        {
-                            int seq = ++serv.CurSeqNr;
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            //var timeout = TimeoutOps.;
-                            var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                            operation.OnCompleted(() =>
-                            {
-                                execute.Serv.ChangeClientStatus(req.ClientID);
-                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                                ) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                Console.WriteLine("FINISHED TASK");
-                            });
-                            return 0;
-                        });*/
-
-                        //return 0;
-                        //})//, ListenForShutdown(serv.Subjects.ShutdownSubject))
-
-
-                        /*if (res == 1)
-                        {
-                            await scheduler.Schedule(() =>
-                            {
-                                serv.ResetClientStatus();
-                                execute.Active = false;
-                                var vcop = ViewChangeOperation(execute).GetAwaiter();
-                                vcop.OnCompleted(() =>
-                                {
-                                    execute.Active = true;
-                                    Console.WriteLine("ViewChange Completed!");
-                                });
-                            });
-                        }*/
-
-
                     }
                 }
             }
         }
-
-        /*public static void CreateCheckpoint(Engine eng, Server serv)
-        {
-            eng.Schedule(() =>
-            {
-                serv.CreateCheckpoint(serv.CurSeqNr, PseudoApp);
-            });
-        }*/
-
-        public static async Task HandleShutdown(Source<ViewChangeCertificate> shutdown)
-        {
-            Console.WriteLine("Shutting down");
-            await ListenForShutdown(shutdown);
-        }
-
+        
         public static async CTask<bool> ListenForShutdown(Source<ViewChangeCertificate> shutdown)
         {
             Console.WriteLine("ListenForShutdown");
@@ -267,15 +222,10 @@ namespace PBFT
         public static async CTask<bool> AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
         {
             var reply = await execute.HandleRequest(req, curSeq, cancel);
-            PseudoApp.Add(reply.Result);
+            if (reply.Status && execute.Active) PseudoApp.Add(reply.Result);
             Console.WriteLine("AppCount:" + PseudoApp.Count);
             return true;
-            
         }
-
-        public static async CTask ViewChangeOperation(ProtocolExecution execute)
-        {
-            await execute.HandlePrimaryChange();
-        }
+        public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
     }
 }
