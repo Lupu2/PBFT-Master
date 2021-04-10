@@ -4,6 +4,7 @@ using System.Data.SqlTypes;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 
@@ -495,7 +496,72 @@ namespace Cleipnir.Rx
                 sd.Set(nameof(_inner), _inner);
             }
         }
+        
+        // ** MERGE OPERATOR ** //
+        public static Stream<T> Merge<T>(this Stream<T> s1, Stream<T> s2)
+            => new MergeOperator<T>(s1, s2);
 
+        private class MergeOperator<T> : Stream<T>
+        {
+            private readonly Stream<T> _inner1;
+            private readonly Stream<T> _inner2;
+            
+            public MergeOperator(Stream<T> inner1, Stream<T> inner2)
+            {
+                _inner1 = inner1;
+                _inner2 = inner2;
+            }
+            
+            internal MergeOperator(Stream<T> inner1, Stream<T> inner2, IReadOnlyDictionary<string, object> sd) : base(sd)
+            {
+                _inner1 = inner1;
+                _inner2 = inner2;
+            }
+
+            internal override void Subscribe(object subscriber, Action<T> onNext)
+            {
+                if (NumberOfObservers == 0)
+                {
+                    _inner1.Subscribe(this, Notify);
+                    _inner2.Subscribe(this, Notify);
+                }
+                
+                base.Subscribe(subscriber, onNext);
+            }
+
+            internal override void Unsubscribe(object subscriber)
+            {
+                base.Unsubscribe(subscriber);
+
+                if (NumberOfObservers == 0)
+                {
+                    _inner1.Unsubscribe(subscriber);
+                    _inner2.Unsubscribe(subscriber);
+                }
+            }           
+
+            public override void Dispose()
+            {
+                _inner1.Unsubscribe(this);
+                _inner2.Unsubscribe(this);
+            }
+
+            public override void Serialize(StateMap sd, SerializationHelper helper)
+            {
+                sd[nameof(_inner1)] = _inner1;
+                sd[nameof(_inner2)] = _inner2;
+                
+                base.Serialize(sd, helper);
+            }
+
+            private static MergeOperator<T> Deserialize(IReadOnlyDictionary<string, object> sd)
+                => new MergeOperator<T>(
+                    sd.Get<Stream<T>>(nameof(_inner1)),
+                    sd.Get<Stream<T>>(nameof(_inner2)),
+                    sd
+                );
+        }
+        
         
         /*ALL operator does not work! issue in regards to generics, keeping track of previous events as well as not really doing what All is supposed to.*/
         public static Stream<bool> All<T,CList>(this Stream<T> s, Func<T, CList<T>, bool> criteria) => s.DecorateStream(new AllOperator<T,CList>(criteria));

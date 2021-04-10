@@ -17,8 +17,7 @@ namespace Playground
             //SimpleNetwork.P.Do();
             //PersonExample.P.Do();
             //TestTimeout.P.Do();
-            var engine = ExecutionEngineFactory.StartNew(new InMemoryStorageEngine());
-            engine.Schedule(() => _ = WhenAnyTest());
+            MergeOperatorExample.Do();
 
             Console.WriteLine("PRESS ENTER TO EXIT");
             Console.ReadLine();
