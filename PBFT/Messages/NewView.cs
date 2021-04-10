@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using Newtonsoft.Json;
 using System.Text;
@@ -9,17 +11,15 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Certificates;
 using PBFT.Helper;
+using PBFT.Helper.JsonObjects;
 
 namespace PBFT.Messages
 {
     public class NewView : IProtocolMessages, SignedMessage, IPersistable
     {
         public int NewViewNr { get; set; }
-
         public ViewChangeCertificate ViewProof { get; set; }
-        
         public CList<PhaseMessage> PrePrepMessages { get; set; }
-        
         public byte[] Signature { get; set; }
 
         public NewView(int viewnr, ViewChangeCertificate vProof, CList<PhaseMessage> preprepmes)
@@ -40,20 +40,17 @@ namespace PBFT.Messages
         
         public byte[] SerializeToBuffer()
         {
-            var copy = (NewView) CreateCopyTemplate();
-            if (copy.ViewProof != null)
-            {
-                copy.ViewProof.EmitShutdown = null;
-                copy.ViewProof.EmitViewChange = null;
-            }
-            string jsonval = JsonConvert.SerializeObject(this);
+            var jsonnv = JsonNewView.ConvertToJsonNewViewCertificate(this);
+            string jsonval = JsonConvert.SerializeObject(jsonnv);
             return Encoding.ASCII.GetBytes(jsonval);
         }
         public static NewView DeSerializeToObject(byte[] buffer)
         {
             var jsonobj = Encoding.ASCII.GetString(buffer);
-            return JsonConvert.DeserializeObject<NewView>(jsonobj);
+            var jsonnv = JsonConvert.DeserializeObject<JsonNewView>(jsonobj);
+            return jsonnv.ConvertToNewView();
         }
+        
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
             using (var rsa = RSA.Create())
@@ -73,10 +70,17 @@ namespace PBFT.Messages
         }
 
         public bool Validate(RSAParameters pubkey, int nextview)
-        {
-            //TODO add validation cases
+        { 
             var copymes = CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, copymes.SerializeToBuffer(), pubkey)) return false;
+            if (NewViewNr != nextview) return false;
+            foreach (var prepre in PrePrepMessages)
+            {
+                var copypre = prepre.CreateCopyTemplate();
+                if (!Crypto.VerifySignature(prepre.Signature, copypre.SerializeToBuffer(), pubkey)) return false;
+            }
+            if (ViewProof == null) return false;
+            if (!ViewProof.IsValid()) return false;
             return true;
         }
         
@@ -84,13 +88,46 @@ namespace PBFT.Messages
         
         public override string ToString()
         {
-            //TODO implement
-            return "";
+            bool sign;
+            if (Signature != null) sign = true;
+            else sign = false;
+            string text = $"NewViewNr: {NewViewNr}, is Signed: {sign}\n";
+            if (ViewProof != null)
+            {
+                text += $"ViewChange Certificate: ViewPrimary: {ViewProof.ViewInfo}, Proofs: \n";
+                foreach (var proof in ViewProof.ProofList)
+                {
+                    text += $"{proof}, ";
+                }
+            }
+            text += "Prepare messages:\n";
+            foreach (var prep in PrePrepMessages)
+            {
+                text += $"{prep}, ";
+            }
+            return text;
         }
 
         public bool Compare(NewView nvc2)
         {
-            //TODO implement
+            if (nvc2.NewViewNr != NewViewNr) return false;
+            if (nvc2.PrePrepMessages.Count != PrePrepMessages.Count) return false;
+            for (int i=0; i<PrePrepMessages.Count; i++)
+            {
+                if (!nvc2.PrePrepMessages[i].Compare(PrePrepMessages[i])) return false;
+            }
+            if (nvc2.ViewProof == null && ViewProof != null || nvc2.ViewProof != null && ViewProof == null) return false;
+            if (nvc2.ViewProof != null && ViewProof != null)
+            {
+                if (nvc2.ViewProof.IsValid() != ViewProof.IsValid()) return false;
+                if (nvc2.ViewProof.CalledShutdown != ViewProof.CalledShutdown) return false;
+                for(int j=0; j<ViewProof.ProofList.Count; j++)
+                {
+                    if (nvc2.ViewProof.ProofList[j].Compare(ViewProof.ProofList[j])) return false;
+                }
+            }
+            if (nvc2.Signature == null && Signature != null || nvc2.Signature != null && Signature == null) return false;
+            if (nvc2.Signature != null && Signature != null && !nvc2.Signature.SequenceEqual(Signature)) return false;
             return true;
         }
 

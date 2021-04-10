@@ -270,7 +270,10 @@ namespace Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables
         public void SignalCompletion(T result)
         {
             if (Completed)
+            {
+                //Console.WriteLine(_thrownException.GetValue);
                 throw new InvalidOperationException("Completion or Exception has already been set for the awaitable");
+            }
 
             _result = result;
             IsSuccessfullyCompleted = true;
@@ -279,7 +282,14 @@ namespace Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables
                 awaiter.SignalCompletion(result);
 
             foreach (var awaiter in _ephemeralAwaiters)
+            {
+                if (awaiter.IsCompleted)
+                {
+                    Console.WriteLine("ISCOMPLETED");
+                }
                 awaiter.SignalCompletion(result);
+            }
+                
 
             _awaiters = null;
             _ephemeralAwaiters = null;
@@ -288,7 +298,10 @@ namespace Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables
         public void SignalThrownException(Exception e)
         {
             if (Completed)
+            {
+                Console.WriteLine(_thrownException.GetValue);
                 throw new InvalidOperationException("Completion or Exception has already been set for the awaitable");
+            }
 
             _thrownException = Option.Some(e);
 

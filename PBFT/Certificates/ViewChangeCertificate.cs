@@ -16,7 +16,7 @@ namespace PBFT.Certificates
     public class ViewChangeCertificate : IQCertificate, IPersistable
     {
         public ViewPrimary ViewInfo { get; set; }
-        public bool Valid { get; set; }
+        private bool Valid { get; set; }
         public bool CalledShutdown { get; set; }
         public CheckpointCertificate CurSystemState { get; set; }
         public CList<ViewChange> ProofList { get; set; }
@@ -35,7 +35,7 @@ namespace PBFT.Certificates
         }
 
         [JsonConstructor]
-        public ViewChangeCertificate(ViewPrimary info, bool valid, bool shutdown, Action<ViewChangeCertificate> shutdownac, Action viewchange ,CheckpointCertificate state, CList<ViewChange> proofs)
+        public ViewChangeCertificate(ViewPrimary info, bool valid, bool shutdown, Action<ViewChangeCertificate> shutdownac, Action viewchange, CheckpointCertificate state, CList<ViewChange> proofs)
         {
             ViewInfo = info;
             Valid = valid;
@@ -99,6 +99,8 @@ namespace PBFT.Certificates
             return Valid;
         }
         
+        public bool IsValid() => Valid;
+        
         public void ResetCertificate()
         {
             CalledShutdown = false;
@@ -146,7 +148,5 @@ namespace PBFT.Certificates
                     sd.Get<CheckpointCertificate>(nameof(CurSystemState)),
                     sd.Get<CList<ViewChange>>(nameof(ProofList))
                 );
-
-
     }
 }

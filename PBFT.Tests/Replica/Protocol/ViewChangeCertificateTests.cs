@@ -21,7 +21,7 @@ namespace PBFT.Tests.Replica.Protocol
             var digestpseudostate = Crypto.CreateDigest(new Request(1, "Pseudo", "12:00"));
             var checkstate = new CheckpointCertificate(5, digestpseudostate, null);
             ViewChangeCertificate vc = new ViewChangeCertificate(vp, checkstate, null, null);
-            Assert.IsFalse(vc.Valid);
+            Assert.IsFalse(vc.IsValid());
             Assert.AreEqual(vc.ProofList.Count, 0);
             Assert.IsTrue(vc.CurSystemState.StateDigest.SequenceEqual(digestpseudostate));
             Assert.AreEqual(vc.ViewInfo.ViewNr, vp.ViewNr);
@@ -59,7 +59,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vcmes3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert.ValidateCertificate(1));
             viewcert.ResetCertificate();
-            Assert.IsFalse(viewcert.Valid);
+            Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
 
@@ -74,7 +74,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert2.AppendViewChange(vcmesn3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert2.ValidateCertificate(1));
             viewcert2.ResetCertificate();
-            Assert.IsFalse(viewcert2.Valid);
+            Assert.IsFalse(viewcert2.IsValid());
             Assert.AreEqual(viewcert2.ProofList.Count, 0);
             Assert.IsFalse(viewcert2.ValidateCertificate(1));
             
@@ -89,7 +89,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vcmes3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert.ValidateCertificate(1));
             viewcert.ResetCertificate();
-            Assert.IsFalse(viewcert.Valid);
+            Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
 
@@ -100,7 +100,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vwviewnrmes, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsFalse(viewcert.ValidateCertificate(1)); //wrong view nr
             viewcert.ResetCertificate();
-            Assert.IsFalse(viewcert.Valid);
+            Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
 
@@ -112,7 +112,7 @@ namespace PBFT.Tests.Replica.Protocol
             Assert.IsFalse(viewcert.ValidateCertificate(1)); //wrong checkpoint state
             Assert.AreEqual(viewcert.ProofList.Count,3);
             viewcert.ResetCertificate();
-            Assert.IsFalse(viewcert.Valid);
+            Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
         }

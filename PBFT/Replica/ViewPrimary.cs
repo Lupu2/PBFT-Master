@@ -18,7 +18,7 @@ namespace PBFT.Replica
         public int ServID {get; set;}
         public int ViewNr {get; set;}
 
-        private int NrOfNodes {get; set;}
+        public int NrOfNodes {get; set;}
         
         public ViewPrimary(int numberofReplicas)
         {
@@ -67,7 +67,9 @@ namespace PBFT.Replica
             }
             return premessages;
         }
-        
+
+        public override string ToString() => $"Primary ServID: {ServID}, ViewNr: {ViewNr}, NrOfNodes: {NrOfNodes}";
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);

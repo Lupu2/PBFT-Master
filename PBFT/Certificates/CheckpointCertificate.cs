@@ -19,10 +19,8 @@ namespace PBFT.Certificates
         public byte[] StateDigest {get; set;}
         public bool Stable {get; set;}
         public CList<Checkpoint> ProofList {get; set;}
-
-        //public Source<CheckpointCertificate> CheckpointBridge {get; set;}
-
-        public Action<CheckpointCertificate> EmitCheckpoint;
+        
+        public Action<CheckpointCertificate> EmitCheckpoint { get; set; }
 
         public CheckpointCertificate(int seqLimit, byte[] digest, Action<CheckpointCertificate> emitCheckpoint)
         {
@@ -30,7 +28,6 @@ namespace PBFT.Certificates
             StateDigest = digest;
             Stable = false;
             ProofList = new CList<Checkpoint>();
-            //CheckpointBridge = check;
             EmitCheckpoint = emitCheckpoint;
         }
         
@@ -41,7 +38,6 @@ namespace PBFT.Certificates
             StateDigest = digest;
             Stable = stable;
             ProofList = proofs;
-            //CheckpointBridge = check;
             EmitCheckpoint = emitCheckpoint;
         }
         
@@ -74,9 +70,6 @@ namespace PBFT.Certificates
 
         public bool ValidateCertificate(int nodes)
         {
-            //Console.WriteLine("Validate Checkpoint Certficate");
-            //Console.WriteLine("QReached: " + QReached(nodes));
-            //Console.WriteLine("ProofsAreValid: " + ProofsAreValid());
             if (QReached(nodes) && ProofsAreValid()) Stable = true;
             return Stable;
         }
@@ -89,23 +82,13 @@ namespace PBFT.Certificates
 
         public void AppendProof(Checkpoint check, RSAParameters pubkey, int failureNr)
         {
-            //validate message
-            //validate certificate
-            //if certificate becomes stable call emit CheckpointCertificate
             if (!Stable)
             {
-                //Console.WriteLine(BitConverter.ToString(check.StateDigest));
-                //Console.WriteLine(BitConverter.ToString(StateDigest));
-                //Console.WriteLine(LastSeqNr);
                 if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest))
                 {
                     Console.WriteLine("ADDING CHECKPOINT");
-                    ProofList.Add(check); 
-                    //Console.WriteLine("FailureNr: " + failureNr);
-                    //Console.WriteLine($"Proof Count: {ProofList.Count}");
-                    //Console.WriteLine($"Valid Proof Count: {ProofList.Count-AccountForDuplicates()}");
+                    ProofList.Add(check);
                     Stable = ValidateCertificate(failureNr);
-                    //Console.WriteLine("Stable: " + Stable);
                     if (Stable) EmitCertificate();    
                 }
             }
@@ -121,7 +104,6 @@ namespace PBFT.Certificates
         private void EmitCertificate()
         {
             Console.WriteLine("calling callback function");
-            //CheckpointBridge.Emit(this);
             EmitCheckpoint(this);
         }
 
@@ -140,7 +122,6 @@ namespace PBFT.Certificates
             stateToSerialize.Set(nameof(Stable), Stable);
             stateToSerialize.Set(nameof(EmitCheckpoint), EmitCheckpoint);
             stateToSerialize.Set(nameof(ProofList), ProofList);
-            //stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
         }
         
         private static CheckpointCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -149,7 +130,6 @@ namespace PBFT.Certificates
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                 sd.Get<bool>(nameof(Stable)),
                 sd.Get<Action<CheckpointCertificate>>(nameof(EmitCheckpoint)),
-                //sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointBridge)),
                 sd.Get<CList<Checkpoint>>(nameof(ProofList))
             );
     }

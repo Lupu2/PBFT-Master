@@ -191,7 +191,11 @@ namespace PBFT
                             await scheduler.Schedule(() =>
                             {
                                 var viewops = ViewChangeOperation(execute).GetAwaiter();
-                                viewops.OnCompleted(() => execute.Active = true);
+                                viewops.OnCompleted(() =>
+                                {
+                                    execute.Active = true;
+                                    serv.ResetClientStatus();
+                                });
                             });
                         }
                         /*await scheduler.Schedule(() =>
@@ -226,6 +230,7 @@ namespace PBFT
             Console.WriteLine("AppCount:" + PseudoApp.Count);
             return true;
         }
+        
         public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
     }
 }

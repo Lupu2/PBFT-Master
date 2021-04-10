@@ -367,9 +367,7 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
-
                                 break;
-                            //TODO redesign this shit, it makes 0 sense:
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
@@ -394,7 +392,7 @@ namespace PBFT.Replica
                                         });*/
                                         await _scheduler.Schedule(() =>
                                         {
-                                                if (!ViewMessageRegister[vc.NextViewNr].Valid)
+                                                if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                                 {
                                                     ViewMessageRegister[vc.NextViewNr].AppendViewChange(
                                                     vc, 
@@ -459,8 +457,7 @@ namespace PBFT.Replica
                                 {
                                     //Console.WriteLine(StableCheckpointsCertificate != null && StableCheckpointsCertificate.LastSeqNr == check.StableSeqNr);
                                     Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
-                                    //if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
-                                        await _scheduler.Schedule(() =>
+                                    await _scheduler.Schedule(() =>
                                         {
                                             Console.WriteLine("Adding to existing Checkpoint log");
                                             Console.WriteLine("Checkpoint:" + check);
@@ -495,7 +492,6 @@ namespace PBFT.Replica
                                             );
                                             CheckpointLog[check.StableSeqNr] = cert;     
                                         }
-                                        //App.CreateCheckpoint(_scheduler, this);
                                     });
                                 }
                                 break;
@@ -546,16 +542,7 @@ namespace PBFT.Replica
                 Subjects.ProtocolSubject.Emit(mes);
             });
         }
-
-        /*public void EmitViewChangeLocally(ViewChange vc)
-        {
-            Console.WriteLine("Emitting ViewChange Locally!");
-            _scheduler.Schedule(() =>
-            {
-
-            });
-        }*/
-
+        
         public void EmitShutdown(ViewChangeCertificate vcc)
         {
             Console.WriteLine("Received shutdown, emitting");
@@ -638,13 +625,7 @@ namespace PBFT.Replica
                 }
             }
         }*/
-
-        /*public async CTask InitializeSession(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
-        {
-            var sessionmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-            await Multicast(sessionmes.SerializeToBuffer());
-        }*/
-
+        
         public void ChangeClientStatus(int cid)
         {
             //Assuming Client Already added during client initialization

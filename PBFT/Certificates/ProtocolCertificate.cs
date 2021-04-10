@@ -12,8 +12,6 @@ using PBFT.Helper;
 
 namespace PBFT.Certificates
 {
- 
- 
     public class ProtocolCertificate : IQCertificate, IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
         public CertType CType {get; set;}
@@ -21,8 +19,8 @@ namespace PBFT.Certificates
         public int ViewNr {get; set;}
         public byte[] CurReqDigest {get; set;}
         private bool Valid{get; set;}
-
         public CList<PhaseMessage> ProofList {get; set;}
+        
         public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType)
         {
                 SeqNr = seq;
@@ -84,11 +82,10 @@ namespace PBFT.Certificates
 
         //Checks that the Proofs are valid for PhaseMessages
         public bool ProofsAreValid()
-        {//TODO add comparing digest into the ProofsAreValid
+        {
             int preparenr = 0;
             if (ProofList.Count < 1) return false;
-            //bool proofvalid = true;
-         
+
             foreach (var proof in ProofList)
             {
                 if (proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr) return false;

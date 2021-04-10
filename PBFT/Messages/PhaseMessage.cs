@@ -19,14 +19,10 @@ namespace PBFT.Messages
     public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
     {
         public int ServID {get; set;}
-
         public int SeqNr {get; set;}
-        
         public int ViewNr{get; set;}
         public byte[] Digest{get; set;}
-        
         public byte[] Signature{get; set;}
-
         public PMessageType PhaseType{get; set;}
 
         public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase)
