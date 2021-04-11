@@ -15,6 +15,7 @@ using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 
 namespace PBFT.Replica
 {
@@ -26,11 +27,12 @@ namespace PBFT.Replica
         private readonly object _sync = new object();
         private Source<PhaseMessage> MesBridge;
         private Source<bool> ViewChangeBridge;
-        private Source<ViewChangeCertificate> ShutdownBridge;
+        private Source<PhaseMessage> ShutdownBridgePhase;
+        private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
 
-        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<ViewChangeCertificate> shutbridge) 
+        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
         {
             Serv = server;
             FailureNr = fnodes;
@@ -39,6 +41,7 @@ namespace PBFT.Replica
             ViewChangeBridge = viewchangebridge;
             NewViewBridge = newviewbridge;
             ShutdownBridge = shutbridge;
+            ShutdownBridgePhase = shutdownphase;
         }
 
         public async CTask<Reply> HandleRequest(Request clireq, int leaderseq, CancellationTokenSource cancel)
@@ -70,8 +73,11 @@ namespace PBFT.Replica
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                             })
+                        .Merge(ShutdownBridgePhase)
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
+                    if (preprepared.ServID == -1 && preprepared.PhaseType == PMessageType.End) 
+                        throw new TimeoutException("Timeout Occurred! System is no longer active!");
                     Console.WriteLine("GOT PRE-PREPARE");
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr; 
@@ -111,7 +117,7 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    .DisposeOn(ShutdownBridge.Next())
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
@@ -126,7 +132,7 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    .DisposeOn(ShutdownBridge.Next())
+                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 Console.WriteLine("Waiting for prepares");
@@ -188,13 +194,14 @@ namespace PBFT.Replica
                 }else{ //Replicas
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                        .DisposeOn(ShutdownBridge.Next())
                         .Where(pm => {
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                             })
+                        .Merge(ShutdownBridgePhase)
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
+                    if (preprepared.ServID == -1 && preprepared.PhaseType == PMessageType.End) throw new TimeoutException("Timeout Occurred! System is no longer active!");
                     Console.WriteLine("GOT PRE-PREPARE");
                     qcertpre = new ProtocolCertificate(preprepared.SeqNr, Serv.CurView, digest, CertType.Prepared, preprepared); //note Serv.CurView == prepared.ViewNr which is checked in t.Validate //Add Prepare to Certificate
                     curSeq = qcertpre.SeqNr; 
@@ -208,15 +215,14 @@ namespace PBFT.Replica
                 if (Active) cancel.Cancel();
                 else throw new TimeoutException("Timeout Occurred! System is no longer active!");
                 //Prepare phase
-                ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
+                ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
-                    .DisposeOn(ShutdownBridge.Next())
                     .Where(pm =>
                     {
                         Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
                         return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
-                                qcertpre);
+                            qcertpre);
                     })
                     .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
                     .Scan(qcertpre.ProofList, (prooflist, message) =>
@@ -226,7 +232,7 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                     .Next();
-                
+
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     .DisposeOn(ShutdownBridge.Next())
@@ -274,8 +280,8 @@ namespace PBFT.Replica
                 return rep;
             }
         }
-
-        public async Task HandlePrimaryChange()
+        
+        public async CTask HandlePrimaryChange()
         {
             Console.WriteLine("HandlePrimaryChange");
             ViewChange:
@@ -287,13 +293,14 @@ namespace PBFT.Replica
             Console.WriteLine("Initialize ViewChangeCertificate");
             if (!Serv.ViewMessageRegister.ContainsKey(Serv.CurView))
             {
-                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpointsCertificate, Serv.EmitShutdown, Serv.EmitViewChange);
+                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpointsCertificate, null, Serv.EmitViewChange);
                 Console.WriteLine("Adding viewcert to registry");
                 Serv.ViewMessageRegister[Serv.CurView] = vcc;
             }
             else vcc = Serv.ViewMessageRegister[Serv.CurView];
             Console.WriteLine("Starting listener");
             var listener = ListenForViewChange();
+            var shutdownsource = new Source<bool>();
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
             Console.WriteLine("Creating ViewChange");
@@ -311,20 +318,25 @@ namespace PBFT.Replica
             //Step 2.
             Serv.SignMessage(vc, MessageType.ViewChange);
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
-            bool vcs = await Task.WhenAny(ListenTaskHandler(listener), TimeoutOps.TimeoutOperation(10000)).Result;
+            _ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource, 10000);
+            bool vcs = await WhenAny<bool>.Of(ListenForViewChange(), ListenForShutdown(shutdownsource)); //TODO change to CTASK version
+            Console.WriteLine("vcs: " + vcs);
             if (!vcs) goto ViewChange;
-                //Step 3 -->.
-            bool val = await Task.WhenAny(ViewChangeProtocol(preps, vcc), TimeoutOps.TimeoutOperation(15000)).Result;
+            //Step 3 -->.
+            Source<bool> shutdownsource2 = new Source<bool>();
+            _= TimeoutOps.ProtocolTimeoutOperation(shutdownsource2, 15000);
+            bool val = await WhenAny<bool>.Of(ViewChangeProtocol(preps, vcc), ListenForShutdown(shutdownsource2)); //TODO change to CTASK version
+            Console.WriteLine("val: " + val);
             if (!val) goto ViewChange;
-            Active = true;
-            Serv.GarbageViewChangeRegistry(Serv.CurView);
+            //Active = true;
+            //Serv.GarbageViewChangeRegistry(Serv.CurView);
         }
         
-        public async Task<bool> ListenTaskHandler(CTask<bool> listener) => await listener;
-        
         public async CTask<bool> ListenForViewChange() => await ViewChangeBridge.Next();
+
+        public async CTask<bool> ListenForShutdown(Source<bool> shutemit) => await shutemit.Next();
         
-        public async Task<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
+        public async CTask<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
         {
             if (Serv.IsPrimary())
             {
@@ -413,6 +425,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(NewViewBridge), NewViewBridge);
             stateToSerialize.Set(nameof(ViewChangeBridge), ViewChangeBridge);
             stateToSerialize.Set(nameof(ShutdownBridge), ShutdownBridge);
+            stateToSerialize.Set(nameof(ShutdownBridgePhase), ShutdownBridgePhase);
         }
 
         public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -420,9 +433,10 @@ namespace PBFT.Replica
                 sd.Get<Server>(nameof(Serv)),
                 sd.Get<int>(nameof(FailureNr)),
                 sd.Get<Source<PhaseMessage>>(nameof(MesBridge)),
+                sd.Get<Source<PhaseMessage>>(nameof(ShutdownBridgePhase)),
                 sd.Get<Source<bool>>(nameof(ViewChangeBridge)),
                 sd.Get<Source<NewView>>(nameof(NewViewBridge)),
-                sd.Get<Source<ViewChangeCertificate>>(nameof(ShutdownBridge))
-                );
+                sd.Get<Source<bool>>(nameof(ShutdownBridge))
+            );
     }
 }

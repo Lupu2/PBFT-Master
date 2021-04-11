@@ -86,7 +86,7 @@ namespace PBFT.Tests.Replica
             var sh = new SourceHandler(null, null, null, null, null, null); 
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             
-            var newviewmes = new NewView(1, null, null);
+            var newviewmes = new NewView(1, null, new CList<PhaseMessage>());
             Assert.IsFalse(Crypto.VerifySignature(newviewmes.Signature,newviewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
             server.SignMessage(newviewmes, MessageType.NewView);
             Assert.IsTrue(Crypto.VerifySignature(newviewmes.Signature, newviewmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));

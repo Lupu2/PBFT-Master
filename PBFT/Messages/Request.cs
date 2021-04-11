@@ -12,7 +12,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Request : IProtocolMessages, SignedMessage, IPersistable 
+    public class Request : IProtocolMessages, ISignedMessage, IPersistable 
     {
         public int ClientID {get; set;}
         public string Message{get; set;} //operation might be changed to object later on

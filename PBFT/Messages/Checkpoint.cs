@@ -11,7 +11,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Checkpoint : IProtocolMessages, SignedMessage, IPersistable
+    public class Checkpoint : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int ServID {get; set;}
         public int StableSeqNr{get; set;}

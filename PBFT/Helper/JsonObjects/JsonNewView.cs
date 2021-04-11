@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -25,7 +26,10 @@ namespace PBFT.Helper.JsonObjects
         public static JsonNewView ConvertToJsonNewViewCertificate(NewView nv)
         {
             var list = new List<PhaseMessage>();
-            foreach (var premes in nv.PrePrepMessages) list.Add(premes);
+            if (nv.PrePrepMessages != null)
+                foreach (var premes in nv.PrePrepMessages)
+                    list.Add(premes);
+            else list = null;
             JsonViewChangeCertificate jsonvcc;
             if (nv.ViewProof != null)
                 jsonvcc = JsonViewChangeCertificate.ConvertToJsonViewChangeCertificate(nv.ViewProof);
@@ -37,7 +41,10 @@ namespace PBFT.Helper.JsonObjects
         public NewView ConvertToNewView()
         {
             var clist = new CList<PhaseMessage>();
-            foreach (var premes in PrePrepMessages) clist.Add(premes);
+            if (PrePrepMessages != null)
+                foreach (var premes in PrePrepMessages)
+                    clist.Add(premes);
+            else clist = null;
             ViewChangeCertificate vcc;
             if (ViewProof != null)
                 vcc = ViewProof.ConvertToViewChangeCertificate();

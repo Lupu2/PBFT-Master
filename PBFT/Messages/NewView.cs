@@ -15,7 +15,7 @@ using PBFT.Helper.JsonObjects;
 
 namespace PBFT.Messages
 {
-    public class NewView : IProtocolMessages, SignedMessage, IPersistable
+    public class NewView : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int NewViewNr { get; set; }
         public ViewChangeCertificate ViewProof { get; set; }
@@ -96,15 +96,12 @@ namespace PBFT.Messages
             {
                 text += $"ViewChange Certificate: ViewPrimary: {ViewProof.ViewInfo}, Proofs: \n";
                 foreach (var proof in ViewProof.ProofList)
-                {
                     text += $"{proof}, ";
-                }
             }
             text += "Prepare messages:\n";
-            foreach (var prep in PrePrepMessages)
-            {
-                text += $"{prep}, ";
-            }
+            if (PrePrepMessages != null)
+                foreach (var prep in PrePrepMessages)
+                    text += $"{prep}, ";
             return text;
         }
 

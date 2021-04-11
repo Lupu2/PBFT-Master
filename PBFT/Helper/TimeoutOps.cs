@@ -19,15 +19,15 @@ namespace PBFT.Helper
         } 
         
         //Server
-        public static async CTask ProtocolTimeoutOperation(Source<ViewChangeCertificate> shutdown, int length)
+        public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length)
         {
             await Task.Delay(length);
             Console.WriteLine("Timeout occurred");
-            shutdown.Emit(null);
+            shutdown.Emit(false);
         }
 
         public static async Task AbortableProtocolTimeoutOperation(
-            Source<ViewChangeCertificate> shutdown, 
+            Source<bool> shutdown, 
             int length,
             CancellationToken cancel,
             Engine scheduler
@@ -40,7 +40,7 @@ namespace PBFT.Helper
                 Console.WriteLine("Timeout occurred");
                 await scheduler.Schedule(() =>
                 {
-                    shutdown.Emit(null);
+                    shutdown.Emit(false);
                 });
 
             }

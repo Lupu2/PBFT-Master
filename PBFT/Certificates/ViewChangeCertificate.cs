@@ -13,29 +13,29 @@ using PBFT.Replica;
 
 namespace PBFT.Certificates
 {
-    public class ViewChangeCertificate : IQCertificate, IPersistable
+    public class ViewChangeCertificate : IQActionCertificate, IPersistable
     {
         public ViewPrimary ViewInfo { get; set; }
         private bool Valid { get; set; }
         public bool CalledShutdown { get; set; }
         public CheckpointCertificate CurSystemState { get; set; }
         public CList<ViewChange> ProofList { get; set; }
-        public Action<ViewChangeCertificate> EmitShutdown;
+        public Action EmitShutdown;
         public Action EmitViewChange;
         
-        public ViewChangeCertificate(ViewPrimary info, CheckpointCertificate state, Action<ViewChangeCertificate> shutdown, Action viewchange)
+        public ViewChangeCertificate(ViewPrimary info, CheckpointCertificate state, Action shutdown, Action viewchange)
         {
             ViewInfo = info;
             Valid = false;
-            CalledShutdown = false;
             CurSystemState = state;
             EmitShutdown = shutdown;
             EmitViewChange = viewchange;
+            CalledShutdown = false;
             ProofList = new CList<ViewChange>();
         }
 
         [JsonConstructor]
-        public ViewChangeCertificate(ViewPrimary info, bool valid, bool shutdown, Action<ViewChangeCertificate> shutdownac, Action viewchange, CheckpointCertificate state, CList<ViewChange> proofs)
+        public ViewChangeCertificate(ViewPrimary info, bool valid, bool shutdown, Action shutdownac, Action viewchange, CheckpointCertificate state, CList<ViewChange> proofs)
         {
             ViewInfo = info;
             Valid = valid;
@@ -101,18 +101,44 @@ namespace PBFT.Certificates
         
         public bool IsValid() => Valid;
         
-        public void ResetCertificate()
+        public void ResetCertificate(List<Action> actions)
         {
             CalledShutdown = false;
             Valid = false;
             ProofList = new CList<ViewChange>();
+            EmitShutdown = actions[0];
+            EmitViewChange = actions[1];
         }
 
         public void AppendViewChange(ViewChange vc, RSAParameters pubkey, int fnodes)
         {
-            if (vc.Validate(pubkey, ViewInfo.ViewNr)) 
+            Console.WriteLine("AppendViewChange");
+            if (vc.Validate(pubkey, ViewInfo.ViewNr))
+            {
+                Console.WriteLine("Adding");
                 ProofList.Add(vc);
+            }
+            Console.WriteLine($"Count: {ProofList.Count}");
             Verification(fnodes);
+        }
+        
+        private void EmitShutdownHandler()
+        {
+            Console.WriteLine("Calling shutdown callback");
+            if (EmitShutdown != null)
+            {
+                EmitShutdown();
+                CalledShutdown = true;
+                EmitShutdown = null;
+            }
+            
+        }
+
+        private void EmitViewChangeHandler()
+        {
+            Console.WriteLine("Calling view-change callback");
+            if (EmitViewChange != null) EmitViewChange();
+            EmitViewChange = null;
         }
 
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
@@ -124,26 +150,13 @@ namespace PBFT.Certificates
             stateToSerialize.Set(nameof(EmitViewChange), EmitViewChange);
             stateToSerialize.Set(nameof(ProofList), ProofList);
         }
-
-        private void EmitShutdownHandler()
-        {
-            Console.WriteLine("Calling shutdown callback");
-            EmitShutdown(this);
-            CalledShutdown = true;
-        }
-
-        private void EmitViewChangeHandler()
-        {
-            Console.WriteLine("Calling viewchange callback");
-            EmitViewChange();
-        }
         
         private static ViewChangeCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
             => new ViewChangeCertificate(
                     sd.Get<ViewPrimary>(nameof(ViewInfo)),
                     sd.Get<bool>(nameof(Valid)),
                     sd.Get<bool>(nameof(CalledShutdown)),
-                    sd.Get<Action<ViewChangeCertificate>>(nameof(EmitShutdown)),
+                    sd.Get<Action>(nameof(EmitShutdown)),
                     sd.Get<Action>(nameof(EmitViewChange)),
                     sd.Get<CheckpointCertificate>(nameof(CurSystemState)),
                     sd.Get<CList<ViewChange>>(nameof(ProofList))

@@ -15,7 +15,7 @@ namespace PBFT.Network
         {
             try
             { 
-                var buffer = new byte[1024];
+                var buffer = new byte[2048];
                 var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
                 List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
                 List<int> types = new List<int>();

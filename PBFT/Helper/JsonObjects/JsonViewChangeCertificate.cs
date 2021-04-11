@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -34,7 +35,10 @@ namespace PBFT.Helper.JsonObjects
         public static JsonViewChangeCertificate ConvertToJsonViewChangeCertificate(ViewChangeCertificate vcc)
         {
             var list = new List<ViewChange>();
-            foreach (var vc in vcc.ProofList) list.Add(vc);
+            if (vcc.ProofList != null)
+                foreach (var vc in vcc.ProofList)
+                    list.Add(vc);
+            else list = null;
             JsonCheckpointCertificate jsoncheckcert;
             if (vcc.CurSystemState != null)
                 jsoncheckcert = JsonCheckpointCertificate.ConvertToJsonCheckpointCertificate(vcc.CurSystemState);
@@ -46,7 +50,10 @@ namespace PBFT.Helper.JsonObjects
         public ViewChangeCertificate ConvertToViewChangeCertificate()
         {
             var clist = new CList<ViewChange>();
-            foreach (var vc in ProofList) clist.Add(vc);
+            if (ProofList != null)
+                foreach (var vc in ProofList)
+                    clist.Add(vc);
+            else clist = null;
             CheckpointCertificate checkcert;
             if (CurSystemState != null)
                 checkcert = CurSystemState.ConvertToCheckpointCertificate();

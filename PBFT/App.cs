@@ -53,7 +53,8 @@ namespace PBFT
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
                 Source<bool> viewSource = new Source<bool>();
-                Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
+                Source<bool> shutdownSource = new Source<bool>();
+                Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
                 Source<NewView> newviewSource = new Source<NewView>();
                 Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
                 SourceHandler sh = new (reqSource, protSource, viewSource, shutdownSource, newviewSource, checkSource);
@@ -89,10 +90,10 @@ namespace PBFT
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, viewSource, newviewSource, shutdownSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
                 server.InitializeConnections()
                     .GetAwaiter()
-                    .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
+                    .OnCompleted(() => StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler));
                 //Server serv = new Server(id, 0, scheduler, 10);
                 //HandleRequest(serv, protexec, reqSource, protSource)
                 
@@ -101,52 +102,16 @@ namespace PBFT
                 server.Dispose();
             }
         }
-
-        public static async Task RunProtocol(Engine scheduler, Server serv, ProtocolExecution execute, Request req, CancellationTokenSource cancel)
+        
+        public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhase, Engine scheduler)
         {
-            //await scheduler.Schedule(() =>
-            //{
-                int seq = ++serv.CurSeqNr;
-                execute.Serv.ChangeClientStatus(req.ClientID);
-                //var timeout = TimeoutOps.;
-                //await scheduler.Schedule(() =>
-                //{
-                    //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                    var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                    operation.OnCompleted(() =>
-                    {
-                    //await AppOperation(req, serv, execute, seq, cancel);
-                        Console.WriteLine("APP OPERATION FINISHED");
-                        execute.Serv.ChangeClientStatus(req.ClientID);
-                        if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                        ) //really shouldn't call this at seq nr 0, but just incase
-                            serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                        Console.WriteLine("FINISHED TASK");
-                    });
-                //});
-                //Console.WriteLine("RunProtocol");
-                /*AppOperation(req, serv, execute, seq, cancel);
-                //var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                //operation.OnCompleted(() =>
-                //{
-                    Console.WriteLine("APP OPERATION FINISHED");
-                    execute.Serv.ChangeClientStatus(req.ClientID);
-                    if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                    ) //really shouldn't call this at seq nr 0, but just incase
-                        serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                    Console.WriteLine("FINISHED TASK");*/
-                //});
-                //});
+            _ = RequestHandler(execute, requestMessage, shutdownPhase, scheduler);
         }
         
-        public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
-        {
-            _ = RequestHandler(execute, requestMessage, scheduler);
-        }
-        
-        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
         {
             Server serv = execute.Serv;
+            serv.ProtocolActive = true;
             while (true)
             {
                 //TODO redesign to operate based on seqNr instead of req!
@@ -157,21 +122,16 @@ namespace PBFT
                     if (execute.Active)
                     {
                         Console.WriteLine("Handling client request");
-                        //await scheduler.Schedule(() => execute.HandleRequest(req));
-                        //serv.ChangeClientStatus(req.ClientID);
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
                             serv.Subjects.ShutdownSubject, 
                             1000,
                             cancel.Token,
-                            scheduler);
-                        //await Task.WhenAny(scheduler.Schedule(() =>
-                        /*var apprun = Task.WhenAny(
-                            RunProtocol(scheduler, serv, execute, req, cancel)
-                            //HandleShutdown(execute.Serv.Subjects.ShutdownSubject)
-                        );*/
+                            scheduler
+                        );
                         int seq = ++serv.CurSeqNr;
                         execute.Serv.ChangeClientStatus(req.ClientID);
+                        
                         bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
                             ListenForShutdown(serv.Subjects.ShutdownSubject));
                         Console.WriteLine("Result: " + res);
@@ -188,39 +148,32 @@ namespace PBFT
                         {
                             Console.WriteLine("View-Change commence :)");
                             execute.Active = false;
+                            serv.ProtocolActive = false;
                             await scheduler.Schedule(() =>
                             {
-                                var viewops = ViewChangeOperation(execute).GetAwaiter();
+                                shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End));
+                            });
+                            //await scheduler.Schedule(() =>
+                            //{
+                                var viewops = execute.HandlePrimaryChange().GetAwaiter();
                                 viewops.OnCompleted(() =>
                                 {
                                     execute.Active = true;
+                                    serv.ProtocolActive = true;
+                                    serv.GarbageViewChangeRegistry(serv.CurView);
                                     serv.ResetClientStatus();
                                 });
-                            });
+                            //});
                         }
-                        /*await scheduler.Schedule(() =>
-                        {
-                            int seq = ++serv.CurSeqNr;
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            var operation = AppOperation(req, serv, execute, seq, cancel).GetAwaiter();
-                            operation.OnCompleted(() =>
-                            {
-                                execute.Serv.ChangeClientStatus(req.ClientID);
-                                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                Console.WriteLine("FINISHED TASK");    
-                            });
-                        });*/
                     }
                 }
             }
         }
         
-        public static async CTask<bool> ListenForShutdown(Source<ViewChangeCertificate> shutdown)
+        public static async CTask<bool> ListenForShutdown(Source<bool> shutdown)
         {
             Console.WriteLine("ListenForShutdown");
-            await shutdown.Next();
-            return false;
+            return await shutdown.Next();
         }
         
         public static async CTask<bool> AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
@@ -231,6 +184,6 @@ namespace PBFT
             return true;
         }
         
-        public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
+        //public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
     }
 }

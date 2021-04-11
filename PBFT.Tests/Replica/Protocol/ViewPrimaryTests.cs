@@ -38,7 +38,7 @@ namespace PBFT.Tests.Replica
                 new Source<Request>(),
                 new Source<PhaseMessage>(),
                 new Source<bool>(),
-                new Source<ViewChangeCertificate>(),
+                new Source<bool>(),
                 new Source<NewView>(), new
                     Source<CheckpointCertificate>()
             );

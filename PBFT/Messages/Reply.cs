@@ -13,7 +13,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Reply : IProtocolMessages, SignedMessage, IPersistable
+    public class Reply : IProtocolMessages, ISignedMessage, IPersistable
     {  
         public int ServID{get; set;}
         public int SeqNr{get; set;}

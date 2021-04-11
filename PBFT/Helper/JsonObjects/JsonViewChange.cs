@@ -30,8 +30,10 @@ namespace PBFT.Tests.Helper
         public static JsonViewChange ConvertToJsonViewChange(ViewChange vc)
         {
             var dict = new Dictionary<int, JsonProtocolCertificate>();
-            foreach (var (key, protocert) in vc.RemPreProofs)
-                dict[key] = JsonProtocolCertificate.ConvertToJsonProtocolCertificate(protocert);
+            if (vc.RemPreProofs != null)
+                foreach (var (key, protocert) in vc.RemPreProofs)
+                    dict[key] = JsonProtocolCertificate.ConvertToJsonProtocolCertificate(protocert);
+            else dict = null;
             JsonCheckpointCertificate jsoncheckcert;
             if (vc.CertProof != null)
                 jsoncheckcert = JsonCheckpointCertificate.ConvertToJsonCheckpointCertificate(vc.CertProof);
@@ -43,8 +45,10 @@ namespace PBFT.Tests.Helper
         public ViewChange ConvertToViewChange()
         {
             var cdict = new CDictionary<int, ProtocolCertificate>();
-            foreach (var (key, jsonprotocert) in RemPreProofs)
-                cdict[key] = jsonprotocert.ConvertToProtocolCertificate();
+            if (RemPreProofs != null)
+                foreach (var (key, jsonprotocert) in RemPreProofs)
+                    cdict[key] = jsonprotocert.ConvertToProtocolCertificate();
+            else cdict = null;
             CheckpointCertificate checkcert;
             if (CertProof != null) checkcert = CertProof.ConvertToCheckpointCertificate();
             else checkcert = null;

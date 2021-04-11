@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -31,10 +33,9 @@ namespace PBFT.Tests.Replica.Protocol
         [TestMethod]
         public void ViewChangeProofValidationTest()
         {
-            //TODO update to attempt to see result of shutdown & newview source
             var scheduler = ExecutionEngineFactory.StartNew(new InMemoryStorageEngine());
             var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), new Source<bool>(),
-                new Source<ViewChangeCertificate>(), new Source<NewView>(), new Source<CheckpointCertificate>());
+                new Source<bool>(), new Source<NewView>(), new Source<CheckpointCertificate>());
             var testserv = new Server(1, 1, 1, 4, scheduler, 5, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             var (pri, pub) = Crypto.InitializeKeyPairs();
             Request req = new Request(1, "Hello World", "12:00");
@@ -44,6 +45,7 @@ namespace PBFT.Tests.Replica.Protocol
             checkstate.Stable = true;
             var vp = new ViewPrimary(4);
             vp.NextPrimary();
+            List<Action> actions = new List<Action>(){testserv.EmitShutdown, testserv.EmitViewChange};
             var viewcert = new ViewChangeCertificate(vp, checkstate, testserv.EmitShutdown, testserv.EmitViewChange);
             var viewcert2 = new ViewChangeCertificate(vp, null, testserv.EmitShutdown, testserv.EmitViewChange);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
@@ -58,7 +60,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vcmes2, pub, Quorum.CalculateFailureLimit(4));
             viewcert.AppendViewChange(vcmes3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert.ValidateCertificate(1));
-            viewcert.ResetCertificate();
+            viewcert.ResetCertificate(actions);
             Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
@@ -73,7 +75,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert2.AppendViewChange(vcmesn2, pub, Quorum.CalculateFailureLimit(4));
             viewcert2.AppendViewChange(vcmesn3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert2.ValidateCertificate(1));
-            viewcert2.ResetCertificate();
+            viewcert2.ResetCertificate(actions);
             Assert.IsFalse(viewcert2.IsValid());
             Assert.AreEqual(viewcert2.ProofList.Count, 0);
             Assert.IsFalse(viewcert2.ValidateCertificate(1));
@@ -88,7 +90,7 @@ namespace PBFT.Tests.Replica.Protocol
             Assert.IsFalse(viewcert.ValidateCertificate(1)); //Duplicate issue test
             viewcert.AppendViewChange(vcmes3, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsTrue(viewcert.ValidateCertificate(1));
-            viewcert.ResetCertificate();
+            viewcert.ResetCertificate(actions);
             Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
@@ -99,7 +101,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vcmes2, pub, Quorum.CalculateFailureLimit(4));
             viewcert.AppendViewChange(vwviewnrmes, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsFalse(viewcert.ValidateCertificate(1)); //wrong view nr
-            viewcert.ResetCertificate();
+            viewcert.ResetCertificate(actions);
             Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));
@@ -111,7 +113,7 @@ namespace PBFT.Tests.Replica.Protocol
             viewcert.AppendViewChange(vwstatemes, pub, Quorum.CalculateFailureLimit(4));
             Assert.IsFalse(viewcert.ValidateCertificate(1)); //wrong checkpoint state
             Assert.AreEqual(viewcert.ProofList.Count,3);
-            viewcert.ResetCertificate();
+            viewcert.ResetCertificate(actions);
             Assert.IsFalse(viewcert.IsValid());
             Assert.AreEqual(viewcert.ProofList.Count, 0);
             Assert.IsFalse(viewcert.ValidateCertificate(1));

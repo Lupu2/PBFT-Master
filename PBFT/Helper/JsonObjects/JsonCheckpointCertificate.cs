@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Certificates;
@@ -26,7 +25,10 @@ namespace PBFT.Helper.JsonObjects
         public static JsonCheckpointCertificate ConvertToJsonCheckpointCertificate(CheckpointCertificate checkcert)
         {
             var checklist = new List<Checkpoint>();
-            foreach (var checkpoint in checkcert.ProofList) checklist.Add(checkpoint);
+            if (checkcert.ProofList != null)
+                foreach (var checkpoint in checkcert.ProofList)
+                    checklist.Add(checkpoint);
+            else checklist = null;
             var jsoncheckcert = new JsonCheckpointCertificate(checkcert.LastSeqNr, checkcert.StateDigest,
                 checkcert.Stable, checklist);
             return jsoncheckcert;

@@ -13,6 +13,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.Rx.ExecutionEngine;
 using Cleipnir.StorageEngine.SimpleFile;
 using Newtonsoft.Json;
 using PBFT.Certificates;
@@ -32,6 +33,7 @@ namespace PBFT.Replica
         public Range CurSeqRange { get; set; }
         public int CheckpointConstant { get; set; }
         public int TotalReplicas { get; set; }
+        public bool ProtocolActive { get; set; }
         public CheckpointCertificate StableCheckpointsCertificate;
         public SourceHandler Subjects { get; set; }
         private CDictionary<int, CList<ProtocolCertificate>> Log;
@@ -60,6 +62,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = 0;
             TotalReplicas = totalreplicas;
+            ProtocolActive = false;
             CheckpointConstant = checkpointinter;
             CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
             CurSeqRange = new Range(0, 2 * checkpointinter);
@@ -91,6 +94,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = totalreplicas;
+            ProtocolActive = false;
             CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader, no it doesnt...
             CheckpointConstant = checkpointinter;
             if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
@@ -124,6 +128,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = replicas;
+            ProtocolActive = false;
             CurPrimary = lead;
             CheckpointConstant = seqRange.End.Value / 2;
             CurSeqRange = seqRange;
@@ -149,7 +154,7 @@ namespace PBFT.Replica
 
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, Engine sche, ViewPrimary lead, 
-            int replicas, SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
+            int replicas, bool active,  SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
             CDictionary<int, string> contactList, CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
@@ -157,6 +162,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = replicas;
+            ProtocolActive = active;
             //_servConn = new TempConn(ipaddress);
             CurPrimary = lead;
             CheckpointConstant = checkpointint;
@@ -351,15 +357,18 @@ namespace PBFT.Replica
                             case MessageType.PhaseMessage:
                                 Console.WriteLine("New PhaseMessage Message");
                                 PhaseMessage pesmes = (PhaseMessage) mes;
-                                Console.WriteLine(mes);
+                                Console.WriteLine(pesmes);
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
-                                    await _scheduler.Schedule(() =>
+                                    if (ProtocolActive)
                                     {
-                                        Subjects.ProtocolSubject.Emit(pesmes);
-                                    });
+                                        Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Subjects.ProtocolSubject.Emit(pesmes);
+                                        });    
+                                    }
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -370,12 +379,16 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
+                                Console.WriteLine(vc);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
                                 {
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
+                                    Console.WriteLine("ViewChange validation result: " +val);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
                                     {
+                                        Console.WriteLine("ViewChange cert already registered, adding to it");
+                                        Console.WriteLine("Count:" + ViewMessageRegister[vc.NextViewNr].ProofList.Count);
                                         /*ViewMessageRegister[vc.NextViewNr].Add(vc);
                                         ViewChangeCertificate vcc = new ViewChangeCertificate(
                                             new ViewPrimary(
@@ -392,8 +405,10 @@ namespace PBFT.Replica
                                         });*/
                                         await _scheduler.Schedule(() =>
                                         {
+                                            Console.WriteLine("Scheduling adding view-change");
                                                 if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                                 {
+                                                    Console.WriteLine("Adding");
                                                     ViewMessageRegister[vc.NextViewNr].AppendViewChange(
                                                     vc, 
                                                     ServPubKeyRegister[vc.ServID], 
@@ -405,8 +420,10 @@ namespace PBFT.Replica
                                     else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //does not already have any view-change messages for view n
                                     {
+                                        Console.WriteLine("Creating a new view-change certificate");
                                         await _scheduler.Schedule(() =>
                                         {
+                                            Console.WriteLine("Schduling creating viewcert and adding view-change");
                                             ViewMessageRegister[vc.NextViewNr] = new ViewChangeCertificate(
                                                 new ViewPrimary(vc.ServID,vc.NextViewNr, TotalReplicas), 
                                                 vc.CertProof,
@@ -422,6 +439,7 @@ namespace PBFT.Replica
                                     }
                                     else
                                     {
+                                        Console.WriteLine("Things did not go as planned :(");
                                         /*
                                          * Console.WriteLine("Connection terminated, rules were broken");
                                          * conn.Dispose();
@@ -543,12 +561,12 @@ namespace PBFT.Replica
             });
         }
         
-        public void EmitShutdown(ViewChangeCertificate vcc)
+        public void EmitShutdown()
         {
             Console.WriteLine("Received shutdown, emitting");
             _scheduler.Schedule(() =>
             {
-                Subjects.ShutdownSubject.Emit(vcc);
+                Subjects.ShutdownSubject.Emit(false);
             });
         }
 
@@ -829,6 +847,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(CheckpointConstant), CheckpointConstant);
             stateToSerialize.Set(nameof(CurPrimary), CurPrimary);
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
+            stateToSerialize.Set(nameof(ProtocolActive), ProtocolActive);
             stateToSerialize.Set(nameof(Subjects), Subjects);
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
@@ -848,6 +867,7 @@ namespace PBFT.Replica
                 Engine.Current,
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
+                sd.Get<bool>(nameof(ProtocolActive)),
                 sd.Get<SourceHandler>(nameof(Subjects)),
                 sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),

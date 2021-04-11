@@ -16,7 +16,7 @@ using PBFT.Certificates;
 namespace PBFT.Messages
 {
 
-    public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
+    public class PhaseMessage : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int ServID {get; set;}
         public int SeqNr {get; set;}

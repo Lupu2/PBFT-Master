@@ -29,7 +29,10 @@ namespace PBFT.Helper.JsonObjects
         public static JsonProtocolCertificate ConvertToJsonProtocolCertificate(ProtocolCertificate pcert)
         {
             var list = new List<PhaseMessage>();
-            foreach(var pmes in pcert.ProofList) list.Add(pmes);
+            if (pcert.ProofList != null)
+                foreach (var pmes in pcert.ProofList)
+                    list.Add(pmes);
+            else list = null;
             var jsonprotcert = new JsonProtocolCertificate(
                 pcert.SeqNr, 
                 pcert.ViewNr, 

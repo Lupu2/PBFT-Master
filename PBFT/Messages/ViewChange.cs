@@ -14,7 +14,7 @@ using PBFT.Tests.Helper;
 
 namespace PBFT.Messages
 {
-    public class ViewChange : IProtocolMessages, SignedMessage, IPersistable
+    public class ViewChange : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int StableSeqNr { get; set; }
         public int ServID { get; set; }
@@ -91,7 +91,7 @@ namespace PBFT.Messages
 
         public override string ToString()
         {
-            string tostring = $"ServerID:{ServID}, NextViewNr:{NextViewNr} ,StableSeq:{StableSeqNr}";
+            string tostring = $"ServerID:{ServID}, NextViewNr:{NextViewNr}, StableSeq:{StableSeqNr}";
             if (CertProof != null)
             {
                 tostring += "\nCheckpoint: \n";
@@ -99,7 +99,7 @@ namespace PBFT.Messages
                 foreach (var cproof in CertProof.ProofList) 
                     tostring += $"ID: {cproof.ServID}, SeqNr:{cproof.StableSeqNr}\n";    
             }
-            tostring += "Proofs: \n";
+            tostring += "\nRemProofs: \n";
             foreach (var (_,pproof) in RemPreProofs)
                 tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, Valid: {pproof.IsValid}, CType:{pproof.CType}, RequestDigest:{pproof.CurReqDigest}\n";
             return tostring;
