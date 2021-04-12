@@ -1,4 +1,5 @@
 using System;
+using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -139,20 +140,54 @@ namespace PBFT.Tests
         {
             var (pri, pub) = Crypto.InitializeKeyPairs();
             var (pri2, pub2) = Crypto.InitializeKeyPairs();
+            var (pri3, pub3) = Crypto.InitializeKeyPairs();
+            
+            var req = new Request(1, "12:00");
+            var ph1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph2 = new PhaseMessage(1, 2, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph3 = new PhaseMessage(1, 3, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph4 = new PhaseMessage(1, 4, 1, Crypto.CreateDigest(req), PMessageType.Prepare);
+            var ph5 = new PhaseMessage(1, 4, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            ph1.SignMessage(pri2);
+            ph2.SignMessage(pri2);
+            ph3.SignMessage(pri2);
+            ph4.SignMessage(pri2);
 
-            //TODO make pre-prepare messages for newview2
+            var view1 = new ViewChange(4, 1, 1, null, new CDictionary<int, ProtocolCertificate>());
+            var view2 = new ViewChange(4, 2, 1, null, new CDictionary<int, ProtocolCertificate>());
+            var view3 = new ViewChange(4, 3, 1, null, new CDictionary<int, ProtocolCertificate>());
+            view1.SignMessage(pri);
+            view2.SignMessage(pri2);
+            view3.SignMessage(pri3);
+            
             var viewcert = new ViewChangeCertificate(new ViewPrimary(1, 1, 4), null, null, null);
-            //TODO make 3 valid vcs and append to viewcert, need valid to be true
+            viewcert.AppendViewChange(view1, pub, 1);
+            viewcert.AppendViewChange(view2, pub2, 1);
+            viewcert.AppendViewChange(view3, pub3, 1);
+  
             var newview1 = new NewView(1, viewcert, new CList<PhaseMessage>());
-            var newview2 = new NewView(1, viewcert, new CList<PhaseMessage>() { });
+            var newview2 = new NewView(1, viewcert, new CList<PhaseMessage>() {ph1, ph2, ph3 });
             var newview1f = new NewView(1, null, new CList<PhaseMessage>());
+            var newview2f = new NewView(1, viewcert, new CList<PhaseMessage>() {ph1, ph2, ph3, ph4});
+            var newview3f = new NewView(2, viewcert, new CList<PhaseMessage>());
+            var newview4f = new NewView(1, viewcert, new CList<PhaseMessage>());
+            var newview5f = new NewView(1, viewcert, new CList<PhaseMessage>() {ph1, ph2, ph3, ph5});
+            newview1.SignMessage(pri);
+            newview2.SignMessage(pri2);
+            newview1f.SignMessage(pri);
+            newview2f.SignMessage(pri2);
+            newview3f.SignMessage(pri3);
+            newview5f.SignMessage(pri);
+            
             Assert.IsFalse(newview1f.Validate(pub,1));
-            /*
-             *  public int NewViewNr { get; set; }
-                public ViewChangeCertificate ViewProof { get; set; }
-                public CList<PhaseMessage> PrePrepMessages { get; set; }
-                public byte[] Signature { get; set; }
-             */
+            Assert.IsFalse(newview2f.Validate(pub2, 1));
+            Assert.IsFalse(newview3f.Validate(pub3, 1));
+            Assert.IsFalse(newview4f.Validate(pub, 1));
+            Assert.IsFalse(newview5f.Validate(pub, 1));
+            Assert.IsFalse(newview1.Validate(pub2, 1));
+            Assert.IsTrue(newview1.Validate(pub, 1));
+            Assert.IsTrue(newview2.Validate(pub2, 1));
+            Assert.IsFalse(newview2.Validate(pub, 1));
         }
         
         [TestMethod]

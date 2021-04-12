@@ -81,8 +81,8 @@ namespace PBFT.Messages
             {
                 var copypre = prepre.CreateCopyTemplate();
                 if (!Crypto.VerifySignature(prepre.Signature, copypre.SerializeToBuffer(), pubkey)) return false;
+                if (prepre.PhaseType != PMessageType.PrePrepare) return false;
             }
-
             Console.WriteLine("Gotten passed signature for pre-prepare messages");
             if (ViewProof == null) return false;
             Console.WriteLine("Gotten passed ViewProof");
