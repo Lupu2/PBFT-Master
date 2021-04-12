@@ -7,6 +7,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
+using PBFT.Replica;
 
 namespace PBFT.Tests
 {
@@ -133,6 +134,27 @@ namespace PBFT.Tests
             Assert.IsFalse(viewMes2.Validate(pub2,2));
         }
 
+        [TestMethod]
+        public void ValidateNewViewMessageTest()
+        {
+            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri2, pub2) = Crypto.InitializeKeyPairs();
+
+            //TODO make pre-prepare messages for newview2
+            var viewcert = new ViewChangeCertificate(new ViewPrimary(1, 1, 4), null, null, null);
+            //TODO make 3 valid vcs and append to viewcert, need valid to be true
+            var newview1 = new NewView(1, viewcert, new CList<PhaseMessage>());
+            var newview2 = new NewView(1, viewcert, new CList<PhaseMessage>() { });
+            var newview1f = new NewView(1, null, new CList<PhaseMessage>());
+            Assert.IsFalse(newview1f.Validate(pub,1));
+            /*
+             *  public int NewViewNr { get; set; }
+                public ViewChangeCertificate ViewProof { get; set; }
+                public CList<PhaseMessage> PrePrepMessages { get; set; }
+                public byte[] Signature { get; set; }
+             */
+        }
+        
         [TestMethod]
         public void ValidateCheckpointMessageTest()
         {

@@ -30,7 +30,8 @@ namespace PBFT.Certificates
             CurSystemState = state;
             EmitShutdown = shutdown;
             EmitViewChange = viewchange;
-            CalledShutdown = false;
+            if (EmitShutdown != null) CalledShutdown = false;
+            else CalledShutdown = true;
             ProofList = new CList<ViewChange>();
         }
 
@@ -118,7 +119,7 @@ namespace PBFT.Certificates
                 Console.WriteLine("Adding");
                 ProofList.Add(vc);
             }
-            Console.WriteLine($"Count: {ProofList.Count}");
+            Console.WriteLine($"New Count: {ProofList.Count}");
             Verification(fnodes);
         }
         

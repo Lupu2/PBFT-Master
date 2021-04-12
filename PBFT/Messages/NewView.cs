@@ -70,17 +70,24 @@ namespace PBFT.Messages
         }
 
         public bool Validate(RSAParameters pubkey, int nextview)
-        { 
+        {
+            Console.WriteLine("Validating NewView");
             var copymes = CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, copymes.SerializeToBuffer(), pubkey)) return false;
+            Console.WriteLine("Gotten passed Signature");
             if (NewViewNr != nextview) return false;
+            Console.WriteLine("Gotten passed viewnr");
             foreach (var prepre in PrePrepMessages)
             {
                 var copypre = prepre.CreateCopyTemplate();
                 if (!Crypto.VerifySignature(prepre.Signature, copypre.SerializeToBuffer(), pubkey)) return false;
             }
+
+            Console.WriteLine("Gotten passed signature for pre-prepare messages");
             if (ViewProof == null) return false;
+            Console.WriteLine("Gotten passed ViewProof");
             if (!ViewProof.IsValid()) return false;
+            Console.WriteLine("All tests passes");
             return true;
         }
         
@@ -133,7 +140,7 @@ namespace PBFT.Messages
             stateToSerialize.Set(nameof(NewViewNr),NewViewNr);
             stateToSerialize.Set(nameof(ViewProof), ViewProof);
             stateToSerialize.Set(nameof(PrePrepMessages), PrePrepMessages);
-            stateToSerialize.Set(nameof(Signature), Signature);
+            stateToSerialize.Set(nameof(Signature), Serializer.SerializeHash(Signature));
         }
 
         private static NewView Deserialize(IReadOnlyDictionary<string, object> sd)

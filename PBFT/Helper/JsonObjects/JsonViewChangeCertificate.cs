@@ -6,6 +6,7 @@ using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Certificates;
 using PBFT.Messages;
 using PBFT.Replica;
+using PBFT.Tests.Helper;
 
 namespace PBFT.Helper.JsonObjects
 {
@@ -15,7 +16,7 @@ namespace PBFT.Helper.JsonObjects
         public bool Valid { get; set; }
         public bool CalledShutdown { get; set; }
         public JsonCheckpointCertificate CurSystemState { get; set; }
-        public List<ViewChange> ProofList { get; set; }
+        public List<JsonViewChange> ProofList { get; set; }
 
         [JsonConstructor]
         public JsonViewChangeCertificate(
@@ -23,7 +24,7 @@ namespace PBFT.Helper.JsonObjects
             bool valid, 
             bool calledshut,
             JsonCheckpointCertificate curstatem, 
-            List<ViewChange> prooflist)
+            List<JsonViewChange> prooflist)
         {
             ViewInfo = viewinfo;
             Valid = valid;
@@ -34,10 +35,10 @@ namespace PBFT.Helper.JsonObjects
 
         public static JsonViewChangeCertificate ConvertToJsonViewChangeCertificate(ViewChangeCertificate vcc)
         {
-            var list = new List<ViewChange>();
+            var list = new List<JsonViewChange>();
             if (vcc.ProofList != null)
                 foreach (var vc in vcc.ProofList)
-                    list.Add(vc);
+                    list.Add(JsonViewChange.ConvertToJsonViewChange(vc));
             else list = null;
             JsonCheckpointCertificate jsoncheckcert;
             if (vcc.CurSystemState != null)
@@ -52,7 +53,7 @@ namespace PBFT.Helper.JsonObjects
             var clist = new CList<ViewChange>();
             if (ProofList != null)
                 foreach (var vc in ProofList)
-                    clist.Add(vc);
+                    clist.Add(vc.ConvertToViewChange());
             else clist = null;
             CheckpointCertificate checkcert;
             if (CurSystemState != null)

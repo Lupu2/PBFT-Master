@@ -42,8 +42,12 @@ namespace PBFT.Helper
             return resobj;
         }
 
-        public static string SerializeHash(byte[] hash) => Convert.ToBase64String(hash);
-        
+        public static string SerializeHash(byte[] hash)
+        {
+            if (hash != null) return Convert.ToBase64String(hash);
+            return null;
+        }
+
         public static CList<ProtocolCertificate> PrepareForSerialize(CList<ProtocolCertificate> certs)
         {
             var copyList = new CList<ProtocolCertificate>();

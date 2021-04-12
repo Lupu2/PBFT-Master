@@ -191,9 +191,10 @@ namespace PBFT.Replica
         public bool IsPrimary()
         {
             Start:
-            //Console.WriteLine("Isprimary");
-            //Console.WriteLine(CurView);
-            //Console.WriteLine(CurPrimary.ViewNr);
+            Console.WriteLine("Isprimary");
+            Console.WriteLine(CurView);
+            Console.WriteLine(CurPrimary.ViewNr);
+            Console.WriteLine(CurPrimary.ServID);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
@@ -334,7 +335,7 @@ namespace PBFT.Replica
                                     if (idx == -1)
                                     {
                                         Console.WriteLine("Checking if client already has a working request");
-                                        if (!ClientActive[reqmes.ClientID]) 
+                                        if (!ClientActive[reqmes.ClientID] && ProtocolActive) 
                                             await _scheduler.Schedule(() => 
                                             {
                                                 Console.WriteLine("Emitting request!");
@@ -361,13 +362,21 @@ namespace PBFT.Replica
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    if (ProtocolActive)
+                                    if (pesmes.ViewNr == CurView && ProtocolActive)
                                     {
-                                        Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
+                                        Console.WriteLine("Emitting Protocol PhaseMessage"); //protocol, emit
                                         await _scheduler.Schedule(() =>
                                         {
                                             Subjects.ProtocolSubject.Emit(pesmes);
                                         });    
+                                    }
+                                    else if(pesmes.ViewNr == CurView && !ProtocolActive)
+                                    {
+                                        Console.WriteLine("Emitting Redistribute PhaseMessage");
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Subjects.RedistSubject.Emit(pesmes);
+                                        });
                                     }
                                 }
                                 else //Rules broken, terminate connection
@@ -379,10 +388,16 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
+                                Console.WriteLine("View-Change:");
                                 Console.WriteLine(vc);
+                                Console.WriteLine("Attempting if condition:");
+                                //foreach(var (key, _) in ServConnInfo)
+                                //    Console.WriteLine(key);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
-                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
+                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID) || 
+                                    CurPrimary.ServID == ServID)
                                 {
+                                    Console.WriteLine("Passes if in server view-change");
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
                                     Console.WriteLine("ViewChange validation result: " +val);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
@@ -408,7 +423,6 @@ namespace PBFT.Replica
                                             Console.WriteLine("Scheduling adding view-change");
                                                 if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                                 {
-                                                    Console.WriteLine("Adding");
                                                     ViewMessageRegister[vc.NextViewNr].AppendViewChange(
                                                     vc, 
                                                     ServPubKeyRegister[vc.ServID], 
@@ -423,13 +437,17 @@ namespace PBFT.Replica
                                         Console.WriteLine("Creating a new view-change certificate");
                                         await _scheduler.Schedule(() =>
                                         {
-                                            Console.WriteLine("Schduling creating viewcert and adding view-change");
+                                            Console.WriteLine("Scheduling creating viewcert and adding view-change");
                                             ViewMessageRegister[vc.NextViewNr] = new ViewChangeCertificate(
                                                 new ViewPrimary(vc.ServID,vc.NextViewNr, TotalReplicas), 
                                                 vc.CertProof,
                                                 EmitShutdown, 
                                                 EmitViewChange
                                             );
+                                            foreach (var (key, _) in ViewMessageRegister)
+                                            {
+                                                Console.WriteLine(key);
+                                            }
                                             ViewMessageRegister[vc.NextViewNr].AppendViewChange(
                                                 vc, 
                                                 ServPubKeyRegister[vc.ServID], 
@@ -564,10 +582,13 @@ namespace PBFT.Replica
         public void EmitShutdown()
         {
             Console.WriteLine("Received shutdown, emitting");
-            _scheduler.Schedule(() =>
+            if (ProtocolActive)
             {
-                Subjects.ShutdownSubject.Emit(false);
-            });
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.ShutdownSubject.Emit(false);
+                });    
+            }
         }
 
         public void EmitViewChange()

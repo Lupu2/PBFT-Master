@@ -36,9 +36,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
@@ -53,9 +53,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>() ,new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>() ,new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
@@ -66,6 +66,8 @@ namespace PBFT.Tests
         {
             var digest = Crypto.CreateDigest(req);
             var cancel = new CancellationTokenSource();
+            exec.Active = true;
+            serv.ProtocolActive = true;
             var protocol = exec.HandleRequestTest(req, 1, cancel); //Protocol starting
             
             //Key initialization
@@ -110,9 +112,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello World!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv ,req, pesbridge).GetAwaiter().GetResult();
@@ -127,9 +129,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv, req, pesbridge).GetAwaiter().GetResult();
@@ -140,6 +142,8 @@ namespace PBFT.Tests
         {
             var digest = Crypto.CreateDigest(req);
             CancellationTokenSource cancel = new CancellationTokenSource();
+            exec.Active = true;
+            serv.ProtocolActive = true;
             var protocol = exec.HandleRequestTest(req, 1, cancel); //Protocol starting
             
             //Key initialization
@@ -181,9 +185,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(1,0,4,_scheduler,20,"127.0.0.1:9000",sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", DateTime.Now.ToString());
             req.SignMessage(_prikey);
             PerformTestFunctionTimeout(exec, testserv, req, pesbridge).GetAwaiter().OnCompleted(() => Console.WriteLine("Test"));
@@ -196,6 +200,8 @@ namespace PBFT.Tests
         {
             var digest = Crypto.CreateDigest(req);
             CancellationTokenSource cancel = new CancellationTokenSource();
+            exec.Active = true;
+            serv.ProtocolActive = true;
             var protocol = exec.HandleRequestTest(req, 1, cancel); //Protocol starting
             
             //Key initialization
@@ -242,9 +248,9 @@ namespace PBFT.Tests
             Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
             Source<bool> shutbridge = new Source<bool>();
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             var prot = PerformTestWithAnyTest(exec, testserv, _scheduler, req, true, pesbridge, shutbridge, shutdownPhase).GetAwaiter();
@@ -256,15 +262,14 @@ namespace PBFT.Tests
        [TestMethod]
        public void ProtocolExecutionWithAnyTimeoutFunctionalityForTimeoutTest()
        {
-           CList<string> aoo = new CList<string>();
            var (_prikey, _) = Crypto.InitializeKeyPairs();
            Source<Request> reqbridge = new Source<Request>();
            Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
            Source<bool> shutbridge = new Source<bool>();
            Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-           var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+           var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
            Request req = new Request(1, "Hello Galaxy!", "12:00");
            req.SignMessage(_prikey);
            var prot = PerformTestWithAnyTest(exec, testserv, _scheduler, req, false, pesbridge, shutbridge, shutdownPhase).GetAwaiter();
@@ -275,6 +280,8 @@ namespace PBFT.Tests
        
        public async CTask<bool> PerformTestWithAnyTest(ProtocolExecution exec, Server testserver, Engine sche, Request req, bool emit,  Source<PhaseMessage> phasesource, Source<bool> shutdownsource, Source<PhaseMessage> shutdownphase)
        {
+           exec.Active = true;
+           testserver.ProtocolActive = true;
            CancellationTokenSource cancel = new CancellationTokenSource();
            _ = TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource, 9000, cancel.Token, sche);
            if (emit) _ = CreateEmitMessages(sche, phasesource, testserver, req);
@@ -343,9 +350,9 @@ namespace PBFT.Tests
            Source<PhaseMessage> pesbridge = new Source<PhaseMessage>();
            Source<bool> shutbridge = new Source<bool>();
            Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
-           var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null);
+           var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null);
            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
            Request req = new Request(1, "Hello Galaxy!", "12:00");
            ViewPrimary nextvp = new ViewPrimary(4);
            nextvp.NextPrimary();
@@ -366,7 +373,8 @@ namespace PBFT.Tests
            else testserv.ServPubKeyRegister[0] = pubkey1;
            testserv.ServPubKeyRegister[2] = pubkey2;
            testserv.ServPubKeyRegister[3] = pubkey3;
-           
+           exec.Active = true;
+           testserv.ProtocolActive = true;
            CancellationTokenSource cancel = new CancellationTokenSource();
            _ = TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource, 9000, cancel.Token, sche);
            if (emit) _ = CreateEmitMessagesIncomplete(sche, phasesource, testserv, req, prikey1, prikey2, prikey3);

@@ -52,12 +52,21 @@ namespace PBFT
                 Server server = null;
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
+                Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
                 Source<bool> viewSource = new Source<bool>();
                 Source<bool> shutdownSource = new Source<bool>();
                 Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
                 Source<NewView> newviewSource = new Source<NewView>();
                 Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
-                SourceHandler sh = new (reqSource, protSource, viewSource, shutdownSource, newviewSource, checkSource);
+                SourceHandler sh = new (
+                    reqSource, 
+                    protSource, 
+                    viewSource, 
+                    shutdownSource, 
+                    newviewSource, 
+                    redistSource, 
+                    checkSource
+                );
                 PseudoApp = new CList<string>();
                 if (!con)
                 {
@@ -90,10 +99,13 @@ namespace PBFT
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
+                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, redistSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
                 server.InitializeConnections()
                     .GetAwaiter()
-                    .OnCompleted(() => StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler));
+                    .OnCompleted(() =>
+                    {
+                        StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler);
+                    });
                 //Server serv = new Server(id, 0, scheduler, 10);
                 //HandleRequest(serv, protexec, reqSource, protSource)
                 
@@ -110,6 +122,7 @@ namespace PBFT
         
         public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
         {
+            Console.WriteLine("RequestHandler");
             Server serv = execute.Serv;
             serv.ProtocolActive = true;
             while (true)

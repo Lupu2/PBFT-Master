@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -79,7 +80,9 @@ namespace PBFT.Messages
         {
             var copy = CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
+            Console.WriteLine("Passed NewViewNr check");
             if(!Crypto.VerifySignature(Signature,copy.SerializeToBuffer(), pubkey)) return false;
+            Console.WriteLine("Passed All checks");
             //Verify Checkout Certificate... 
             return true;
         }

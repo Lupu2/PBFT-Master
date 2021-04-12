@@ -35,7 +35,7 @@ namespace PBFT.Tests.Replica.Protocol
         {
             var scheduler = ExecutionEngineFactory.StartNew(new InMemoryStorageEngine());
             var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), new Source<bool>(),
-                new Source<bool>(), new Source<NewView>(), new Source<CheckpointCertificate>());
+                new Source<bool>(), new Source<NewView>(), new Source<PhaseMessage>(), new Source<CheckpointCertificate>());
             var testserv = new Server(1, 1, 1, 4, scheduler, 5, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             var (pri, pub) = Crypto.InitializeKeyPairs();
             Request req = new Request(1, "Hello World", "12:00");
