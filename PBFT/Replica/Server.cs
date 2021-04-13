@@ -399,7 +399,7 @@ namespace PBFT.Replica
                                 {
                                     Console.WriteLine("Passes if in server view-change");
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
-                                    Console.WriteLine("ViewChange validation result: " +val);
+                                    Console.WriteLine("ViewChange validation result: " + val);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //will already have a view-change message for view n, therefore count = 2
                                     {

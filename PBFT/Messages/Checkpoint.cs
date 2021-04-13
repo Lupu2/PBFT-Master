@@ -53,7 +53,7 @@ namespace PBFT.Messages
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = this.SerializeToBuffer();
+                    var serareq = SerializeToBuffer();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
@@ -69,7 +69,7 @@ namespace PBFT.Messages
             if (StableSeqNr < 0) return false;
             if (StateDigest == null) return false;
             if (Signature == null) return false;
-            var clone = CreateCopyTemplate();
+            var clone = (Checkpoint) CreateCopyTemplate();
             if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                 return false;
             return true;

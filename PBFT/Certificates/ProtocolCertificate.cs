@@ -49,7 +49,7 @@ namespace PBFT.Certificates
             ViewNr = vnr;
             CurReqDigest = req;
             CType = cType;
-            Valid = false;
+            Valid = val;
             ProofList = proof;
         }
 
@@ -88,6 +88,7 @@ namespace PBFT.Certificates
 
             foreach (var proof in ProofList)
             {
+                Console.WriteLine(proof);
                 if (proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr) return false;
                 if (CurReqDigest == null && proof.Digest != null || CurReqDigest != null && proof.Digest == null) 
                     return false;

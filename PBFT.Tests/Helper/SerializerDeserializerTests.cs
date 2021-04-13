@@ -73,8 +73,7 @@ namespace PBFT.Tests.Helper
         [TestMethod]
         public void SerializeDeserializeViewChange()
         {
-            //TODO implement after finishing the code for ViewChange struct
-           var viewmes = new ViewChange(1,1,1,null,new CDictionary<int, ProtocolCertificate>());
+            var viewmes = new ViewChange(1,1,1,null,new CDictionary<int, ProtocolCertificate>());
            var req = new Request(1, "12:00");
            var protocert = new ProtocolCertificate(1, 1,  Crypto.CreateDigest(req), CertType.Prepared);
            viewmes.RemPreProofs[1] = protocert;

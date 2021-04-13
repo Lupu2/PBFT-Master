@@ -20,7 +20,7 @@ namespace PBFT.Client
 {
     public class Client
     {
-        
+        //TODO fix/redesign client to get failed requests and not resend them automatically, make sure it can survive a server going down
         public int ClientID { get; }
         private RSAParameters _prikey{ get; } //Keep private key secret, can't leak info about: p,q & d
         public RSAParameters Pubkey { get; } //Contains only info for Exponent e & Modulus n

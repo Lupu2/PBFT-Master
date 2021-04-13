@@ -106,6 +106,7 @@ namespace PBFT.Replica
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
+                    .Where(pm => pm.SeqNr == qcertpre.SeqNr)
                     //.DisposeOn(ShutdownBridge.Next())
                     .Where(pm =>
                     {
@@ -126,6 +127,7 @@ namespace PBFT.Replica
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     //.DisposeOn(ShutdownBridge.Next())
+                    .Where(pm => pm.SeqNr == qcertcom.SeqNr)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                     .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                     .Scan(qcertcom.ProofList, (prooflist, message) =>
@@ -167,7 +169,9 @@ namespace PBFT.Replica
             {
                 Console.WriteLine("Error in ProtocolExecution!");
                 Console.WriteLine(e);
-                var rep = new Reply(Serv.ServID, Serv.CurSeqNr++, Serv.CurView, false, "Failure", clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, -1, Serv.CurView, false, "Failure", clireq.Timestamp);
+                Serv.SignMessage(rep, MessageType.Reply);
+                Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
             }
         }
@@ -384,7 +388,7 @@ namespace PBFT.Replica
                 Serv.SignMessage(nvmes, MessageType.NewView);
                 //Step 4.
                 Console.WriteLine("Wait start");
-                Sleep.Until(1000);
+                await Sleep.Until(1000);
                 Console.WriteLine("Wait fin");
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 Console.WriteLine("Calling RedoMessage");

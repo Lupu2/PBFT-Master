@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
+using PBFT.Network;
 using PBFT.Replica;
 
 namespace PBFT.Tests
@@ -121,18 +122,71 @@ namespace PBFT.Tests
         {
             var (pri, pub) = Crypto.InitializeKeyPairs();
             var (pri2, pub2) = Crypto.InitializeKeyPairs();
-
+            var (pri3, pub3) = Crypto.InitializeKeyPairs();
+            var dig = Crypto.CreateDigest(new Request(1, "12:00"));
+            var phase1 = new PhaseMessage(1, -1, 0, dig, PMessageType.PrePrepare);
+            var phase2 = new PhaseMessage(2, -1, 0, dig, PMessageType.Prepare);
+            var phase3 = new PhaseMessage(3, -1, 0, dig, PMessageType.Prepare);
+            var precert = new ProtocolCertificate(-1, 0, dig, CertType.Prepared);
+            phase1.SignMessage(pri);
+            phase2.SignMessage(pri2);
+            phase3.SignMessage(pri3);
+            precert.ProofList.Add(phase1);
+            precert.ProofList.Add(phase2);
+            precert.ProofList.Add(phase3);
+            precert.ValidateCertificate(1);
+            Assert.IsTrue(precert.IsValid);
+            
+            var cdict = new CDictionary<int, ProtocolCertificate>();
+            cdict[0] = precert;
             var viewMes1 = new ViewChange(-1,1,1,null, new CDictionary<int, ProtocolCertificate>());
             viewMes1.SignMessage(pri);
             var viewMes2 = new ViewChange(-1, 1, 1, null, new CDictionary<int, ProtocolCertificate>());
             viewMes2.SignMessage(pri2);
-            
+            var viewMes3 = new ViewChange(-1, 1, 1, null, cdict);
+            viewMes3.SignMessage(pri3);
+
             Assert.IsTrue(viewMes1.Validate(pub, 1));
             Assert.IsFalse(viewMes1.Validate(pub2,1));
             Assert.IsFalse(viewMes1.Validate(pub, 2));
             Assert.IsFalse(viewMes2.Validate(pub,1));
             Assert.IsTrue(viewMes2.Validate(pub2, 1));
             Assert.IsFalse(viewMes2.Validate(pub2,2));
+            Assert.IsTrue(viewMes3.Validate(pub3, 1));
+        }
+
+        [TestMethod]
+        public void ValidateViewChangeMessageTransportTest()
+        {
+            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri2, pub2) = Crypto.InitializeKeyPairs();
+            var (pri3, pub3) = Crypto.InitializeKeyPairs();
+            var dig = Crypto.CreateDigest(new Request(1, "12:00"));
+            var phase1 = new PhaseMessage(1, -1, 0, dig, PMessageType.PrePrepare);
+            var phase2 = new PhaseMessage(2, -1, 0, dig, PMessageType.Prepare);
+            var phase3 = new PhaseMessage(3, -1, 0, dig, PMessageType.Prepare);
+            var precert = new ProtocolCertificate(-1, 0, dig, CertType.Prepared);
+            phase1.SignMessage(pri);
+            phase2.SignMessage(pri2);
+            phase3.SignMessage(pri3);
+            precert.ProofList.Add(phase1);
+            precert.ProofList.Add(phase2);
+            precert.ProofList.Add(phase3);
+            precert.ValidateCertificate(1);
+            Assert.IsTrue(precert.IsValid);
+            
+            var cdict = new CDictionary<int, ProtocolCertificate>();
+            cdict[0] = precert;
+            var viewMes3 = new ViewChange(-1, 1, 1, null, cdict);
+            viewMes3.SignMessage(pri3);
+            byte[] mesdigest = viewMes3.SerializeToBuffer();
+            mesdigest = Serializer.AddTypeIdentifierToBytes(mesdigest, MessageType.ViewChange);
+            var (type, copyviewmes3) = Deserializer.ChooseDeserialize(mesdigest);
+            var viewcopy = (ViewChange) copyviewmes3;
+            Assert.AreEqual(type, 4);
+            Assert.IsTrue(viewMes3.Validate(pub3, 1));
+            Assert.IsTrue(viewcopy.Validate(pub3,1));
+            Assert.IsTrue(viewcopy.Compare(viewMes3));
         }
 
         [TestMethod]
@@ -144,10 +198,10 @@ namespace PBFT.Tests
             
             var req = new Request(1, "12:00");
             var ph1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
-            var ph2 = new PhaseMessage(1, 2, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
-            var ph3 = new PhaseMessage(1, 3, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph2 = new PhaseMessage(2, 2, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph3 = new PhaseMessage(3, 3, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
             var ph4 = new PhaseMessage(1, 4, 1, Crypto.CreateDigest(req), PMessageType.Prepare);
-            var ph5 = new PhaseMessage(1, 4, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph5 = new PhaseMessage(2, 4, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
             ph1.SignMessage(pri2);
             ph2.SignMessage(pri2);
             ph3.SignMessage(pri2);
@@ -188,6 +242,51 @@ namespace PBFT.Tests
             Assert.IsTrue(newview1.Validate(pub, 1));
             Assert.IsTrue(newview2.Validate(pub2, 1));
             Assert.IsFalse(newview2.Validate(pub, 1));
+        }
+        
+        [TestMethod]
+        public void ValidateNewViewMessageTransportTest()
+        {
+            var (pri, pub) = Crypto.InitializeKeyPairs();
+            var (pri2, pub2) = Crypto.InitializeKeyPairs();
+            var (pri3, pub3) = Crypto.InitializeKeyPairs();
+            
+            var req = new Request(1, "12:00");
+            var ph1 = new PhaseMessage(1, 1, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph2 = new PhaseMessage(2, 2, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            var ph3 = new PhaseMessage(3, 3, 1, Crypto.CreateDigest(req), PMessageType.PrePrepare);
+            ph1.SignMessage(pri2);
+            ph2.SignMessage(pri2);
+            ph3.SignMessage(pri2);
+            
+            var view1 = new ViewChange(4, 1, 1, null, new CDictionary<int, ProtocolCertificate>());
+            var view2 = new ViewChange(4, 2, 1, null, new CDictionary<int, ProtocolCertificate>());
+            var view3 = new ViewChange(4, 3, 1, null, new CDictionary<int, ProtocolCertificate>());
+            view1.SignMessage(pri);
+            view2.SignMessage(pri2);
+            view3.SignMessage(pri3);
+            
+            var viewcert = new ViewChangeCertificate(new ViewPrimary(1, 1, 4), null, null, null);
+            viewcert.AppendViewChange(view1, pub, 1);
+            viewcert.AppendViewChange(view2, pub2, 1);
+            viewcert.AppendViewChange(view3, pub3, 1);
+            
+            var newview2 = new NewView(1, viewcert, new CList<PhaseMessage>() {ph1, ph2, ph3 });
+            newview2.SignMessage(pri2);
+            
+            byte[] mesdigest = newview2.SerializeToBuffer();
+            mesdigest = Serializer.AddTypeIdentifierToBytes(mesdigest, MessageType.NewView);
+            var (type, copynewviewmes2) = Deserializer.ChooseDeserialize(mesdigest);
+            Assert.AreEqual(type, 5);
+            var newviewcopy = (NewView) copynewviewmes2;
+            Assert.IsTrue(newview2.Validate(pub2, 1));
+            Assert.IsFalse(newview2.Validate(pub, 1));
+            Assert.IsTrue(newviewcopy.Validate(pub2, 1));
+            Assert.IsFalse(newviewcopy.Validate(pub, 1));
+            Console.WriteLine("Compare");
+            Console.WriteLine(newview2);
+            Console.WriteLine(newviewcopy);
+            Assert.IsTrue(newview2.Compare(newviewcopy));
         }
         
         [TestMethod]

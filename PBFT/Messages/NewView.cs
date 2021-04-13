@@ -40,8 +40,25 @@ namespace PBFT.Messages
         
         public byte[] SerializeToBuffer()
         {
+            Action tempshut = null;
+            Action tempview = null;
+            if (ViewProof != null)
+            {
+                tempshut = ViewProof.EmitShutdown;
+                tempview = ViewProof.EmitViewChange;
+                ViewProof.EmitShutdown = null;
+                ViewProof.EmitViewChange = null;
+            }
             var jsonnv = JsonNewView.ConvertToJsonNewViewCertificate(this);
             string jsonval = JsonConvert.SerializeObject(jsonnv);
+            if (tempshut != null) ViewProof.EmitShutdown = tempshut;
+            if (tempview != null) ViewProof.EmitViewChange = tempview;
+                return Encoding.ASCII.GetBytes(jsonval);
+        }
+
+        public byte[] SerializeToBufferSignature()
+        {
+            string jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
         }
         public static NewView DeSerializeToObject(byte[] buffer)
@@ -58,7 +75,7 @@ namespace PBFT.Messages
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = this.SerializeToBuffer();
+                    var serareq = SerializeToBufferSignature();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
@@ -72,8 +89,8 @@ namespace PBFT.Messages
         public bool Validate(RSAParameters pubkey, int nextview)
         {
             Console.WriteLine("Validating NewView");
-            var copymes = CreateCopyTemplate();
-            if (!Crypto.VerifySignature(Signature, copymes.SerializeToBuffer(), pubkey)) return false;
+            var copymes = (NewView) CreateCopyTemplate();
+            if (!Crypto.VerifySignature(Signature, copymes.SerializeToBufferSignature(), pubkey)) return false;
             Console.WriteLine("Gotten passed Signature");
             if (NewViewNr != nextview) return false;
             Console.WriteLine("Gotten passed viewnr");
@@ -127,7 +144,7 @@ namespace PBFT.Messages
                 if (nvc2.ViewProof.CalledShutdown != ViewProof.CalledShutdown) return false;
                 for(int j=0; j<ViewProof.ProofList.Count; j++)
                 {
-                    if (nvc2.ViewProof.ProofList[j].Compare(ViewProof.ProofList[j])) return false;
+                    if (!nvc2.ViewProof.ProofList[j].Compare(ViewProof.ProofList[j])) return false;
                 }
             }
             if (nvc2.Signature == null && Signature != null || nvc2.Signature != null && Signature == null) return false;

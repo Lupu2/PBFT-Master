@@ -21,7 +21,7 @@ namespace PBFT.Helper
         //Server
         public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length, int id)
         {
-            await Task.Delay(length);
+            await Sleep.Until(length);
             Console.WriteLine("Timeout occurred " +id);
             shutdown.Emit(false);
         }

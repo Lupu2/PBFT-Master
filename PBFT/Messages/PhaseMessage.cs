@@ -85,7 +85,7 @@ namespace PBFT.Messages
                 Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
                 int seqLow = curSeqInterval.Start.Value;
                 int seqHigh = curSeqInterval.End.Value;
-                var clone = CreateCopyTemplate();
+                var clone = (PhaseMessage) CreateCopyTemplate();
                 if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                     return false;
                 if (ViewNr != cviewNr) return false;

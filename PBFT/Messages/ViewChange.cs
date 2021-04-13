@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using Newtonsoft.Json;
 using System.Text;
 using System.Security.Cryptography;
@@ -44,10 +45,24 @@ namespace PBFT.Messages
             Signature = sign;
         }
         
-        public byte[] SerializeToBuffer()
+        public byte[] SerializeToBuffer() //TODO is the reason why the signature fails, the object signed includes all of the original certs and proofs, this changes the format
         {
+            Action<CheckpointCertificate> temp = null;
+            if (CertProof != null)
+            {
+                temp = CertProof.EmitCheckpoint;
+                CertProof.EmitCheckpoint = null;
+            };
             var jsonvc = JsonViewChange.ConvertToJsonViewChange(this);
             string jsonval = JsonConvert.SerializeObject(jsonvc, Formatting.Indented);
+            if (temp != null)
+                CertProof.EmitCheckpoint = temp;
+            return Encoding.ASCII.GetBytes(jsonval);
+        }
+
+        public byte[] SerializeToBufferSignature()
+        {
+            string jsonval = JsonConvert.SerializeObject(this);
             return Encoding.ASCII.GetBytes(jsonval);
         }
 
@@ -65,7 +80,7 @@ namespace PBFT.Messages
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = SerializeToBuffer();
+                    var serareq = SerializeToBufferSignature();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
@@ -78,10 +93,10 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int nextview)
         {
-            var copy = CreateCopyTemplate();
+            var copy = (ViewChange) CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
             Console.WriteLine("Passed NewViewNr check");
-            if(!Crypto.VerifySignature(Signature,copy.SerializeToBuffer(), pubkey)) return false;
+            if(!Crypto.VerifySignature(Signature,copy.SerializeToBufferSignature(), pubkey)) return false;
             Console.WriteLine("Passed All checks");
             //Verify Checkout Certificate... 
             return true;
@@ -118,7 +133,7 @@ namespace PBFT.Messages
             {
                 if (vc2.CertProof.LastSeqNr != CertProof.LastSeqNr) return false;
                 if (!vc2.CertProof.StateDigest.SequenceEqual(CertProof.StateDigest)) return false;
-                if (vc2.CertProof.ProofList.Count != CertProof.ProofList.Count) return false;     
+                if (vc2.CertProof.ProofList.Count != CertProof.ProofList.Count) return false;
             }
             if (vc2.Signature == null && Signature != null || vc2.Signature != null && Signature == null) return false;
             if (vc2.Signature != null && Signature != null && !vc2.Signature.SequenceEqual(Signature)) return false;
