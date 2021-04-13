@@ -138,7 +138,7 @@ namespace PBFT
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
                             serv.Subjects.ShutdownSubject, 
-                            1000,
+                            10000,
                             cancel.Token,
                             scheduler
                         );
@@ -168,14 +168,16 @@ namespace PBFT
                             });
                             //await scheduler.Schedule(() =>
                             //{
-                                var viewops = execute.HandlePrimaryChange().GetAwaiter();
-                                viewops.OnCompleted(() =>
-                                {
-                                    execute.Active = true;
-                                    serv.ProtocolActive = true;
-                                    serv.GarbageViewChangeRegistry(serv.CurView);
-                                    serv.ResetClientStatus();
-                                });
+                            await execute.HandlePrimaryChange();
+                            
+                            //viewops.OnCompleted(() =>
+                            //{
+                            Console.WriteLine("View-Change completed");
+                            execute.Active = true;
+                            serv.ProtocolActive = true;
+                            serv.GarbageViewChangeRegistry(serv.CurView);
+                            serv.ResetClientStatus();
+                                //});
                             //});
                         }
                     }

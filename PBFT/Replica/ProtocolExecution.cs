@@ -13,6 +13,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
+using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
@@ -220,6 +221,7 @@ namespace PBFT.Replica
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
+                    .Where(pm => pm.SeqNr == qcertpre.SeqNr)
                     .Where(pm =>
                     {
                         Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
@@ -237,7 +239,7 @@ namespace PBFT.Replica
 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
-                    .DisposeOn(ShutdownBridge.Next())
+                    .Where(pm => pm.SeqNr == qcertcom.SeqNr)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                     .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
                     .Scan(qcertcom.ProofList, (prooflist, message) =>
@@ -279,6 +281,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Error in ProtocolExecution!");
                 Console.WriteLine(e);
                 var rep = new Reply(Serv.ServID, Serv.CurSeqNr++, Serv.CurView, false, "Failure", clireq.Timestamp);
+                
                 return rep;
             }
         }
@@ -325,25 +328,42 @@ namespace PBFT.Replica
             //Step 2.
             Serv.SignMessage(vc, MessageType.ViewChange);
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
-            
-            _ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource, 10000);
-            bool vcs = await WhenAny<bool>.Of(listener, ListenForShutdown(shutdownsource)); //TODO change to CTASK version
+            CancellationTokenSource cancel = new CancellationTokenSource();
+            //_ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource, 10000, 1);
+            //_ = TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource, 10000, cancel.Token, scheduler);
+            _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource, 10000, cancel.Token);
+            bool vcs = await WhenAny<bool>.Of(listener, ListenForShutdown(shutdownsource));
             Console.WriteLine("vcs: " + vcs);
             if (!vcs) goto ViewChange;
+            cancel.Cancel();
             //Step 3 -->.
             Source<bool> shutdownsource2 = new Source<bool>();
-            _= TimeoutOps.ProtocolTimeoutOperation(shutdownsource2, 15000);
-            bool val = await WhenAny<bool>.Of(ViewChangeProtocol(preps, vcc), ListenForShutdown(shutdownsource2)); //TODO change to CTASK version
+            CancellationTokenSource cancel2 = new CancellationTokenSource();
+            //_ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource2, 15000, 2);
+            //_= TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource2, 15000, cancel2.Token, scheduler);
+            _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource2, 15000, cancel2.Token);
+            bool val = await WhenAny<bool>.Of(ViewChangeProtocol(preps, vcc), ListenForShutdown(shutdownsource2));
             Console.WriteLine("val: " + val);
             if (!val) goto ViewChange;
+            cancel2.Cancel();
             //Active = true;
             //Serv.GarbageViewChangeRegistry(Serv.CurView);
         }
-        
-        public async CTask<bool> ListenForViewChange() => await ViewChangeBridge.Next();
 
-        public async CTask<bool> ListenForShutdown(Source<bool> shutemit) => await shutemit.Next();
-        
+        public async CTask<bool> ListenForViewChange()
+        {
+            var test = await ViewChangeBridge.Next();
+            Console.WriteLine("Received View-Change");
+            return test;
+        }
+
+        public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
+        {
+            var test = await shutemit.Next();
+            Console.WriteLine("View Change Received Shutdown");
+            return test;
+        }
+
         public async CTask<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
         {
             Console.WriteLine("ViewChangeProtocol");
@@ -363,6 +383,9 @@ namespace PBFT.Replica
                 var nvmes = new NewView(Serv.CurView, vcc, prepares);
                 Serv.SignMessage(nvmes, MessageType.NewView);
                 //Step 4.
+                Console.WriteLine("Wait start");
+                Sleep.Until(1000);
+                Console.WriteLine("Wait fin");
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 Console.WriteLine("Calling RedoMessage");
                 await RedoMessage(prepares);
@@ -408,28 +431,50 @@ namespace PBFT.Replica
             {
                 var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre); //need a way to know request digest and request message
                 var comcert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Committed);
+                Console.WriteLine("Initialize Log");
+                Serv.InitializeLog(prepre.SeqNr);
+                var preps = ReMesBridge
+                    .Where(pm => pm.PhaseType == PMessageType.Prepare)
+                    .Where(pm => pm.SeqNr == prepre.SeqNr)
+                    .Where(pm => pm.ValidateRedo(Serv.ServPubKeyRegister[pm.ServID], prepre.ViewNr))
+                    .Scan(precert.ProofList, (prooflist, message) =>
+                    {
+                        prooflist.Add(message);
+                        return prooflist;
+                    })
+                    .Where(_ => precert.ValidateCertificate(FailureNr))
+                    .Next();
+                var coms = ReMesBridge
+                    .Where(pm => pm.PhaseType == PMessageType.Commit)
+                    .Where(pm => pm.SeqNr == comcert.SeqNr)
+                    .Where(pm => pm.ValidateRedo(Serv.ServPubKeyRegister[pm.ServID], prepre.ViewNr))
+                    .Scan(comcert.ProofList, (prooflist, message) =>
+                    {
+                        prooflist.Add(message);
+                        return prooflist;
+                    })
+                    .Where(_ => comcert.ValidateCertificate(FailureNr))
+                    .Next();
                 if (!Serv.IsPrimary())
                 {
                     var prepare = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Prepare);
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
                     Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
+                    Serv.EmitRedistPhaseMessageLocally(prepare);
                 }
                 
-                var preps = ReMesBridge
-                    .Where(pm => pm.PhaseType == PMessageType.Prepare)
-                    .Where(pm => pm.ValidateRedo(Serv.ServPubKeyRegister[pm.ServID], prepre.ViewNr))
-                    .Next();
-                var coms = ReMesBridge.Where(pm => pm.PhaseType == PMessageType.Commit)
-                    .Where(pm => pm.ValidateRedo(Serv.ServPubKeyRegister[pm.ServID], prepre.ViewNr))
-                    .Next();
                 await preps;
+                Console.WriteLine("Prepare certificate: " + precert.SeqNr + " is finished");
                 Serv.AddProtocolCertificate(prepre.SeqNr, precert);
-                
+                Console.WriteLine("Finished adding the new certificate to server!");
                 var commes = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Commit);
+                Console.WriteLine("Made commit");
                 Serv.SignMessage(commes, MessageType.PhaseMessage);
                 Serv.Multicast(commes.SerializeToBuffer(), MessageType.PhaseMessage);
-                Serv.EmitPhaseMessageLocally(commes);
+                Serv.EmitRedistPhaseMessageLocally(commes);
+                
                 await coms;
+                Console.WriteLine("Commit certificate: " + comcert.SeqNr + " is finished");
                 Serv.AddProtocolCertificate(prepre.SeqNr, comcert);
             }
         }

@@ -113,12 +113,15 @@ namespace PBFT.Certificates
             if (proofs.Count < 1) return false;
             int preparenr = 0;
             foreach (var proof in proofs)
-            {
+            { 
                 if (proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr) return false;
+                Console.WriteLine("Passed seqnr");
                 if (CurReqDigest == null && proof.Digest != null || CurReqDigest != null && proof.Digest == null) 
                     return false;
+                Console.WriteLine("passed digest");
                 if (CurReqDigest != null && proof.Digest != null && !CurReqDigest.SequenceEqual(proof.Digest))
                     return false;
+                Console.WriteLine("passed digest 2");
                 if (proof.PhaseType == PMessageType.PrePrepare || proof.PhaseType == PMessageType.Prepare)
                 {
                     if (proof.PhaseType.Equals(PMessageType.PrePrepare)) preparenr++;
@@ -128,6 +131,7 @@ namespace PBFT.Certificates
                 {
                     if (CType != CertType.Committed) return false;
                 }
+                Console.WriteLine("Passed Message type");
                 if (preparenr != 1 && CType.Equals(CertType.Prepared)) return false;
             }
             Console.WriteLine("ProofsAreValid are true");
@@ -136,22 +140,22 @@ namespace PBFT.Certificates
         
         public bool ValidateCertificate(int fNodes)
         {
-            /*if (!Valid)
+            if (!Valid)
             {
                 Console.WriteLine("Current Proofs:");
-                foreach (var proof in proofs) Console.WriteLine(proof);    
-            }*/
+                foreach (var proof in ProofList) Console.WriteLine(proof);    
+            }
             if (!Valid)
             {
                 Console.WriteLine("QReached: " + QReached(fNodes));
                 if (QReached(fNodes) && ProofsAreValid()) Valid = true;
                 else Console.WriteLine("Certificate is not valid!");
             }
-            if (Valid) //TODO: debugging, remove before delivery
+            /*if (Valid) //TODO: debugging, remove before delivery
             {
                 Console.WriteLine("Proofs:");
                 foreach (var proof in ProofList) Console.WriteLine(proof);    
-            }
+            }*/
             return Valid;
         }
 

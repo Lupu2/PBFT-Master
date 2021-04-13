@@ -65,7 +65,7 @@ namespace PBFT.Replica
             ProtocolActive = false;
             CheckpointConstant = checkpointinter;
             CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
-            CurSeqRange = new Range(0, 2 * checkpointinter);
+            CurSeqRange = new Range(1, 2 * checkpointinter);
             Subjects = sh;
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
@@ -400,10 +400,12 @@ namespace PBFT.Replica
                                     Console.WriteLine("Passes if in server view-change");
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
                                     Console.WriteLine("ViewChange validation result: " +val);
-                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
+                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
+                                    ) //will already have a view-change message for view n, therefore count = 2
                                     {
                                         Console.WriteLine("ViewChange cert already registered, adding to it");
-                                        Console.WriteLine("Count:" + ViewMessageRegister[vc.NextViewNr].ProofList.Count);
+                                        Console.WriteLine("Count:" +
+                                                          ViewMessageRegister[vc.NextViewNr].ProofList.Count);
                                         /*ViewMessageRegister[vc.NextViewNr].Add(vc);
                                         ViewChangeCertificate vcc = new ViewChangeCertificate(
                                             new ViewPrimary(
@@ -418,18 +420,21 @@ namespace PBFT.Replica
                                         {
                                             Subjects.ShutdownSubject.Emit(vcc);
                                         });*/
-                                        await _scheduler.Schedule(() =>
+                                        if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                         {
-                                            Console.WriteLine("Scheduling adding view-change");
+                                            await _scheduler.Schedule(() =>
+                                            {
+                                                Console.WriteLine("Scheduling adding view-change");
                                                 if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                                 {
                                                     ViewMessageRegister[vc.NextViewNr].AppendViewChange(
-                                                    vc, 
-                                                    ServPubKeyRegister[vc.ServID], 
-                                                    Quorum.CalculateFailureLimit(TotalReplicas)
+                                                        vc, 
+                                                        ServPubKeyRegister[vc.ServID], 
+                                                        Quorum.CalculateFailureLimit(TotalReplicas)
                                                     );    
                                                 }
-                                        });
+                                            });
+                                        }
                                     }
                                     else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //does not already have any view-change messages for view n
@@ -468,6 +473,7 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.NewView:
                                 NewView nvmes = (NewView) mes;
+                                Console.WriteLine(nvmes);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
                                 {
@@ -572,11 +578,25 @@ namespace PBFT.Replica
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Phase Locally!");
-            //Console.WriteLine(mes);
-            _scheduler.Schedule(() =>
+            if (ProtocolActive)
             {
-                Subjects.ProtocolSubject.Emit(mes);
-            });
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.ProtocolSubject.Emit(mes);
+                });    
+            }
+        }
+
+        public void EmitRedistPhaseMessageLocally(PhaseMessage mes)
+        {
+            Console.WriteLine("Emitting Redist Phase Locally");
+            if (!ProtocolActive)
+            {
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.RedistSubject.Emit(mes);
+                });    
+            }
         }
         
         public void EmitShutdown()
@@ -679,13 +699,13 @@ namespace PBFT.Replica
 
         public void AddPubKeyClientRegister(int id, RSAParameters key)
         {
-            lock (_sync)
+            //lock (_sync)
                 ClientPubKeyRegister[id] = key;
         }
 
         public void AddPubKeyServerRegister(int id, RSAParameters key)
         {
-            lock (_sync)
+            //lock (_sync)
                 ServPubKeyRegister[id] = key;
         }
 
@@ -699,10 +719,10 @@ namespace PBFT.Replica
             Console.WriteLine("Saving Certificate: ");
             Console.WriteLine("SeqNr:" + seqNr);
             Console.WriteLine($"Cert: {cert}");
-            lock (_sync)
-            {
-                Log[seqNr].Add(cert);
-            }
+            //lock (_sync)
+            //{
+            Log[seqNr].Add(cert);
+            //}
             SeeLog();
         }
 
@@ -736,10 +756,10 @@ namespace PBFT.Replica
         {
             if (Log.ContainsKey(seqNr))
             {
-                lock (_sync)
-                {
+                //lock (_sync)
+                //{
                     return Log[seqNr];
-                }    
+                //}    
             }
             else
             {

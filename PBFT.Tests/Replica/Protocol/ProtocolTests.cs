@@ -238,7 +238,7 @@ namespace PBFT.Tests
             var rep = await protocol;
             return rep;
         }
-
+        
         [TestMethod]
        public void ProtocolExecutionWithAnyTimeoutFunctionalityForResultTest()
        {
@@ -418,7 +418,6 @@ namespace PBFT.Tests
                phaseSource.Emit(pm1);
            });
        }
-       
        
     }
 }

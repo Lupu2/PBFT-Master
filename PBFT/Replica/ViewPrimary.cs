@@ -50,6 +50,9 @@ namespace PBFT.Replica
         
         public CList<PhaseMessage> MakePrepareMessages(CDictionary<int, ProtocolCertificate> protcerts, int lowbound, int highbound)
         {
+            Console.WriteLine("MakePrepareMessages");
+            Console.WriteLine(lowbound);
+            Console.WriteLine(highbound);
             CList<PhaseMessage> premessages = new CList<PhaseMessage>();
             for (int i = lowbound; i <= highbound; i++)
             {

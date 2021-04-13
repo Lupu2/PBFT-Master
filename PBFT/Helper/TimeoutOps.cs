@@ -19,10 +19,10 @@ namespace PBFT.Helper
         } 
         
         //Server
-        public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length)
+        public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length, int id)
         {
             await Task.Delay(length);
-            Console.WriteLine("Timeout occurred");
+            Console.WriteLine("Timeout occurred " +id);
             shutdown.Emit(false);
         }
 
@@ -42,7 +42,24 @@ namespace PBFT.Helper
                 {
                     shutdown.Emit(false);
                 });
+            }
+            catch (TaskCanceledException te)
+            {
+                Console.WriteLine("Timeout cancelled!");
+            }
+        }
 
+        public static async CTask AbortableProtocolTimeoutOperationCTask(
+            Source<bool> shutdown,
+            int length,
+            CancellationToken cancel)
+        {
+            try
+            {
+                Console.WriteLine("Starting timeout with length: " + length);
+                await Task.Delay(length, cancel);
+                Console.WriteLine("Timeout occurred");
+                shutdown.Emit(false);
             }
             catch (TaskCanceledException te)
             {
