@@ -15,7 +15,7 @@ namespace PBFT.Network
         {
             try
             { 
-                var buffer = new byte[4096];
+                var buffer = new byte[16000];
                 var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
                 List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
                 List<int> types = new List<int>();
@@ -77,6 +77,17 @@ namespace PBFT.Network
             return resobj;
         }
         
-        
+        public static void Send(Socket sock, byte[] buffer)
+        {
+            try
+            {
+                sock.Send(buffer, SocketFlags.None);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to send message!");
+                Console.WriteLine(e);
+            }
+        }
     }
 }

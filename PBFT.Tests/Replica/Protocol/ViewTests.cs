@@ -18,7 +18,7 @@ namespace PBFT.Tests.Replica.Protocol
     [TestClass]
     public class ViewTests
     {
-        
+        //TODO fix this test with the updated RedoMessages that actually works
             /*[TestMethod]
             public void RedoMessageLeaderTest()
             {

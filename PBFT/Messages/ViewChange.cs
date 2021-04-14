@@ -62,7 +62,9 @@ namespace PBFT.Messages
 
         public byte[] SerializeToBufferSignature()
         {
+            Console.WriteLine("Serialize to buffer");
             string jsonval = JsonConvert.SerializeObject(this);
+            Console.WriteLine("JsonConvert finished");
             return Encoding.ASCII.GetBytes(jsonval);
         }
 
@@ -75,14 +77,18 @@ namespace PBFT.Messages
 
         public void SignMessage(RSAParameters prikey, string haspro = "SHA256")
         {
+            Console.WriteLine("SignMessage");
             using (var rsa = RSA.Create())
             {
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
                     var serareq = SerializeToBufferSignature();
+                    Console.WriteLine("Computing hash");
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
+
+                Console.WriteLine("Hashmes ready");
                 rsa.ImportParameters(prikey);
                 RSAPKCS1SignatureFormatter rsaFormatter = new RSAPKCS1SignatureFormatter(); //https://docs.microsoft.com/en-us/dotnet/api/system.security.cryptography.rsapkcs1signatureformatter?view=net-5.0
                 rsaFormatter.SetHashAlgorithm(haspro);

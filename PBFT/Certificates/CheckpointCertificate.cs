@@ -89,7 +89,7 @@ namespace PBFT.Certificates
                     Console.WriteLine("ADDING CHECKPOINT");
                     ProofList.Add(check);
                     Stable = ValidateCertificate(failureNr);
-                    if (Stable) EmitCertificate();    
+                    if (Stable && EmitCheckpoint != null) EmitCertificate();    
                 }
             }
         }
@@ -105,6 +105,7 @@ namespace PBFT.Certificates
         {
             Console.WriteLine("calling callback function");
             EmitCheckpoint(this);
+            EmitCheckpoint = null;
         }
 
         public override string ToString()

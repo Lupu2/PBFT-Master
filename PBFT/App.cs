@@ -138,7 +138,7 @@ namespace PBFT
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
                             serv.Subjects.ShutdownSubject, 
-                            1000,
+                            10000,
                             cancel.Token,
                             scheduler
                         );

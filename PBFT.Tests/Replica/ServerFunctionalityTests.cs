@@ -107,7 +107,7 @@ namespace PBFT.Tests.Replica
         }
         
         [TestMethod]
-        public void ServerCollectPrepareCertificatesTest()
+        public void ServerCollectPrepareCertificatesTestStable0()
         {
             var server = new Server(0, 1, 5, 4, null, 10, "127.0.0.1:9001", null, new CDictionary<int, string>());
             server.InitializeLog(0);

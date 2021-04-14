@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -15,6 +16,7 @@ using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Network;
+using PBFT.Replica;
 
 namespace PBFT.Client
 {
@@ -24,8 +26,6 @@ namespace PBFT.Client
         public int ClientID { get; }
         private RSAParameters _prikey{ get; } //Keep private key secret, can't leak info about: p,q & d
         public RSAParameters Pubkey { get; } //Contains only info for Exponent e & Modulus n
-
-        public Request CurReq { get; set; }
         
         public Dictionary<Request, ReplyCertificate> FinishedRequest;
         
@@ -75,9 +75,6 @@ namespace PBFT.Client
                     break;
                 default:
                     throw new IndexOutOfRangeException($"Server number {nrservers} not manageable!");
-            }
-            {
-                
             }
         }
 
@@ -168,8 +165,7 @@ namespace PBFT.Client
                     Serializer.AddTypeIdentifierToBytes(
                         ses.SerializeToBuffer(), MessageType.SessionMessage)
                     );
-                
-                await servinfo.Socket.SendAsync(sesbuff, SocketFlags.None);
+                await Send(servinfo.Socket, sesbuff);
             }
         }
 
@@ -181,17 +177,45 @@ namespace PBFT.Client
                     Serializer.AddTypeIdentifierToBytes(
                         req.SerializeToBuffer(), MessageType.Request)
                     );
-                await servinfo.Socket.SendAsync(reqbuff, SocketFlags.None);
+                await Send(servinfo.Socket, reqbuff);
             }
         }
 
+        private async Task Send(Socket sock, byte[] buff)
+        {
+            try
+            {
+                await sock.SendAsync(buff, SocketFlags.None);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to send message");
+                Console.WriteLine(e);
+                
+            }
+        }
+
+        private async Task Connect(Socket sock, IPEndPoint endpoint)
+        {
+            try
+            {
+                await sock.ConnectAsync(endpoint);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address.ToString());
+                Console.WriteLine(e);
+            }
+            
+        }
+        
         public async Task InitializeConnections()
         {
             foreach (var (id,info) in ServerInformation)
             {
                 Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
                 var endpoint = IPEndPoint.Parse(info.IPAddress);
-                while (!sock.Connected) await sock.ConnectAsync(endpoint);
+                while (!sock.Connected) await Connect(sock, endpoint);
                 info.Socket = sock;
                 info.Active = true;
                 _ = ListenForResponse(sock, id);

@@ -207,6 +207,7 @@ namespace PBFT.Replica
 
         public void SignMessage(IProtocolMessages mes, MessageType type)
         {
+            Console.WriteLine("Server SignMessage");
             switch (type)
             {
                 case MessageType.PhaseMessage:
@@ -220,7 +221,9 @@ namespace PBFT.Replica
                     mes = tempry;
                     break;
                 case MessageType.ViewChange:
+                    Console.WriteLine("ViewChange");
                     ViewChange tempvc = (ViewChange) mes;
+                    Console.WriteLine("calling SignMessage");
                     tempvc.SignMessage(_prikey);
                     mes = tempvc;
                     break;
@@ -560,7 +563,8 @@ namespace PBFT.Replica
             foreach (var (sid, conn) in ServConnInfo)
             {
                 if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
-                    conn.Socket.Send(fullbuffmes, SocketFlags.None);
+                    //conn.Socket.Send(fullbuffmes, SocketFlags.None);
+                    NetworkFunctionality.Send(conn.Socket, fullbuffmes);
             }
         }
 
@@ -572,8 +576,11 @@ namespace PBFT.Replica
             //Console.WriteLine("identifier?");
             //Console.WriteLine("Hello Mom");
             //Console.WriteLine("Sending message");
-            sock.Send(fullbuffmes, SocketFlags.None);
+            //sock.Send(fullbuffmes, SocketFlags.None);
+            NetworkFunctionality.Send(sock, fullbuffmes);
         }
+
+        
 
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
@@ -770,10 +777,13 @@ namespace PBFT.Replica
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
+            //TODO issue here, look into it
             Console.WriteLine("CollectPrepareCertificates");
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
             foreach (var (seqNr, certList) in Log)
             {
+                Console.WriteLine(seqNr);
+                Console.WriteLine(stableSeqNr);
                 if (seqNr > stableSeqNr)
                 {
                     foreach (var cert in certList) //most likely always prep,commit order, but can't be completely sure
@@ -781,6 +791,8 @@ namespace PBFT.Replica
                             prepdict[seqNr] = cert;
                 }
             }
+
+            Console.WriteLine(prepdict.Count);
             return prepdict;
         }
 

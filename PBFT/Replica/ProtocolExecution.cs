@@ -66,7 +66,7 @@ namespace PBFT.Replica
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
-                    Thread.Sleep(1000);
+                    await Sleep.Until(1000);
                     Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
                 }else{ //Replicas
                     var preprepared = await MesBridge
@@ -179,7 +179,7 @@ namespace PBFT.Replica
         
         //Function that performs all the operations in HandleRequest but without sending anything. Used for testing the operations performed in the function..
         public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq, CancellationTokenSource cancel)
-        { 
+        {
             try
             {
                 Console.WriteLine("HANDLEREQUESTTEST");
@@ -196,7 +196,7 @@ namespace PBFT.Replica
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
-                    Thread.Sleep(1000);
+                    await Sleep.Until(1000);
                     //Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
                 }else{ //Replicas
                     var preprepared = await MesBridge
@@ -321,17 +321,24 @@ namespace PBFT.Replica
             if (Serv.StableCheckpointsCertificate == null)
             {
                 preps = Serv.CollectPrepareCertificates(-1);
+                Console.WriteLine("finished preps");
                 vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
             }
             else
             {
                 int stableseq = Serv.StableCheckpointsCertificate.LastSeqNr;
                 preps = Serv.CollectPrepareCertificates(stableseq);
+                Console.WriteLine("finished preps");
                 vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
             } 
             //Step 2.
+            Console.WriteLine("Created and ready to send view message");
             Serv.SignMessage(vc, MessageType.ViewChange);
+            Console.WriteLine("finished message signing");
+            vcc.AppendViewChange(vc, Serv.Pubkey, FailureNr);
+            Console.WriteLine("Finished appending");
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
+            Console.WriteLine("Finished multicast");
             CancellationTokenSource cancel = new CancellationTokenSource();
             //_ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource, 10000, 1);
             //_ = TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource, 10000, cancel.Token, scheduler);
@@ -468,6 +475,7 @@ namespace PBFT.Replica
                 }
                 
                 await preps;
+                await Sleep.Until(500);
                 Console.WriteLine("Prepare certificate: " + precert.SeqNr + " is finished");
                 Serv.AddProtocolCertificate(prepre.SeqNr, precert);
                 Console.WriteLine("Finished adding the new certificate to server!");
