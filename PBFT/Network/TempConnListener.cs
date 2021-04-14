@@ -47,38 +47,8 @@ namespace PBFT.Network
                 newConnection(clientconn);
             }
         }
-
-        // public async Task HandleConnection(Socket socketHandler)
-        // {
-        //     /*var clientSocket = await Task.Factory.FromAsync(
-        //         new Func<AsyncCallback, object, IAsyncResult>(socket.BeginAccept),
-        //         new Func<IAsyncResult, Socket>(socket.EndAccept),
-        //         null).ConfigureAwait(false);*/
-        //     var stream = new NetworkStream(socketHandler);
-        //     var buffer = new byte[1024];
-        //     while (true)
-        //     {
-        //         try
-        //         {
-        //             int bytesread = await stream.ReadAsync(buffer,0,buffer.Length);
-        //             if (bytesread == 0 || bytesread == -1) break;
-        //             //var obj = socketHandler.ReceiveAsync();
-        //             var bytemes = buffer //want only the relevant part of the buffer.
-        //                 .ToList()
-        //                 .Take(bytesread)
-        //                 .ToArray();
-        //             var mes = Helper.Deserializer.ChooseDeserialize(bytemes);
-        //             IncomingMessage.Emit(mes);
-        //         }
-        //         catch (Exception e)
-        //         {
-        //             Console.WriteLine(e.Message);
-        //         }
-        //     }
-        // }
         
         //Connecting/Sending operations
-        
         public void Dispose()
         {
             socket.Dispose();

@@ -48,8 +48,10 @@ namespace PBFT
                 if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
                 else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
                 var con = File.Exists("./PBFTStorage.txt");
+                Console.WriteLine(con);
                 Engine scheduler;
                 Server server = null;
+                ProtocolExecution protexec = null;
                 Source<Request> reqSource = new Source<Request>();
                 Source<PhaseMessage> protSource = new Source<PhaseMessage>();
                 Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
@@ -70,6 +72,7 @@ namespace PBFT
                 PseudoApp = new CList<string>();
                 if (!con)
                 {
+                    Console.WriteLine("Starting application");
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
                     
                     //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
@@ -85,6 +88,7 @@ namespace PBFT
                 else
                 {
                     //load persistent data
+                    Console.WriteLine("Restarting application");
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
                     //server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
                     //   protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
@@ -92,14 +96,17 @@ namespace PBFT
                     {
                         server = Roots.Resolve<Server>();
                         PseudoApp = Roots.Resolve<CList<string>>();
+                        protexec = Roots.Resolve<ProtocolExecution>();
                     });
                     server.AddEngine(scheduler);
-
-
                 }
                 server.Start();
                 Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, redistSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
+                protexec = new ProtocolExecution(server, 1, protSource, redistSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
+                scheduler.Schedule(() =>
+                {
+                    Roots.Entangle(protexec);
+                });
                 server.InitializeConnections()
                     .GetAwaiter()
                     .OnCompleted(() =>
@@ -152,8 +159,7 @@ namespace PBFT
                         {
                             Console.WriteLine("APP OPERATION FINISHED");
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                            if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                            ) //really shouldn't call this at seq nr 0, but just incase
+                            if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                 serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                             Console.WriteLine("FINISHED TASK");    
                         }
@@ -166,19 +172,15 @@ namespace PBFT
                             {
                                 shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End));
                             });
-                            //await scheduler.Schedule(() =>
-                            //{
                             await execute.HandlePrimaryChange();
-                            
-                            //viewops.OnCompleted(() =>
-                            //{
                             Console.WriteLine("View-Change completed");
+                            serv.UpdateSeqNr();
+                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
+                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                             execute.Active = true;
                             serv.ProtocolActive = true;
                             serv.GarbageViewChangeRegistry(serv.CurView);
                             serv.ResetClientStatus();
-                                //});
-                            //});
                         }
                     }
                 }

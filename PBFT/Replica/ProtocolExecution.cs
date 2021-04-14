@@ -294,10 +294,10 @@ namespace PBFT.Replica
         {
             Console.WriteLine("HandlePrimaryChange");
             ViewChange:
+            
             //Step 1.
             Serv.CurPrimary.NextPrimary();
             Serv.CurView++;
-            //Serv.CurView = Serv.CurPrimary.ViewNr;
             ViewChangeCertificate vcc;
             Console.WriteLine("Initialize ViewChangeCertificate");
             if (!Serv.ViewMessageRegister.ContainsKey(Serv.CurView))
@@ -309,56 +309,44 @@ namespace PBFT.Replica
             else
             {
                 vcc = Serv.ViewMessageRegister[Serv.CurView];
+                Console.WriteLine("Obtained viewcert from registry");
                 vcc.CalledShutdown = true;
                 vcc.EmitShutdown = null;
             }
-            Console.WriteLine("Starting listener");
             var listener = ListenForViewChange();
             var shutdownsource = new Source<bool>();
             ViewChange vc;
             CDictionary<int, ProtocolCertificate> preps;
-            Console.WriteLine("Creating ViewChange");
             if (Serv.StableCheckpointsCertificate == null)
             {
                 preps = Serv.CollectPrepareCertificates(-1);
-                Console.WriteLine("finished preps");
                 vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
             }
             else
             {
                 int stableseq = Serv.StableCheckpointsCertificate.LastSeqNr;
                 preps = Serv.CollectPrepareCertificates(stableseq);
-                Console.WriteLine("finished preps");
                 vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
             } 
             //Step 2.
-            Console.WriteLine("Created and ready to send view message");
             Serv.SignMessage(vc, MessageType.ViewChange);
-            Console.WriteLine("finished message signing");
             vcc.AppendViewChange(vc, Serv.Pubkey, FailureNr);
-            Console.WriteLine("Finished appending");
             Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
-            Console.WriteLine("Finished multicast");
             CancellationTokenSource cancel = new CancellationTokenSource();
-            //_ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource, 10000, 1);
-            //_ = TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource, 10000, cancel.Token, scheduler);
             _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource, 10000, cancel.Token);
             bool vcs = await WhenAny<bool>.Of(listener, ListenForShutdown(shutdownsource));
             Console.WriteLine("vcs: " + vcs);
             if (!vcs) goto ViewChange;
             cancel.Cancel();
+            
             //Step 3 -->.
             Source<bool> shutdownsource2 = new Source<bool>();
             CancellationTokenSource cancel2 = new CancellationTokenSource();
-            //_ = TimeoutOps.ProtocolTimeoutOperation(shutdownsource2, 15000, 2);
-            //_= TimeoutOps.AbortableProtocolTimeoutOperation(shutdownsource2, 15000, cancel2.Token, scheduler);
             _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource2, 15000, cancel2.Token);
             bool val = await WhenAny<bool>.Of(ViewChangeProtocol(preps, vcc), ListenForShutdown(shutdownsource2));
             Console.WriteLine("val: " + val);
             if (!val) goto ViewChange;
             cancel2.Cancel();
-            //Active = true;
-            //Serv.GarbageViewChangeRegistry(Serv.CurView);
         }
 
         public async CTask<bool> ListenForViewChange()
@@ -381,8 +369,8 @@ namespace PBFT.Replica
             if (Serv.IsPrimary())
             {
                 Console.WriteLine("server is primary");
-                //startval is first entry after last checkpoint, lastval is the last sequence number performed, which could be either CurSeq or CurSeq+1 depending on where the system called for view-change
                 //Step 3.
+                //startval is first entry after last checkpoint, lastval is the last sequence number performed, which could be either CurSeq or CurSeq+1 depending on where the system called for view-change
                 int low;
                 if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
                 else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
@@ -393,10 +381,9 @@ namespace PBFT.Replica
                 Console.WriteLine("Creating NewView");
                 var nvmes = new NewView(Serv.CurView, vcc, prepares);
                 Serv.SignMessage(nvmes, MessageType.NewView);
+                
                 //Step 4.
-                Console.WriteLine("Wait start");
                 await Sleep.Until(1000);
-                Console.WriteLine("Wait fin");
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 Console.WriteLine("Calling RedoMessage");
                 await RedoMessage(prepares);

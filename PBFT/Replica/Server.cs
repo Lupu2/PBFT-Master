@@ -192,9 +192,9 @@ namespace PBFT.Replica
         {
             Start:
             Console.WriteLine("Isprimary");
-            Console.WriteLine(CurView);
-            Console.WriteLine(CurPrimary.ViewNr);
-            Console.WriteLine(CurPrimary.ServID);
+            //Console.WriteLine(CurView);
+            //Console.WriteLine(CurPrimary.ViewNr);
+            //Console.WriteLine(CurPrimary.ServID);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
@@ -207,7 +207,6 @@ namespace PBFT.Replica
 
         public void SignMessage(IProtocolMessages mes, MessageType type)
         {
-            Console.WriteLine("Server SignMessage");
             switch (type)
             {
                 case MessageType.PhaseMessage:
@@ -221,9 +220,7 @@ namespace PBFT.Replica
                     mes = tempry;
                     break;
                 case MessageType.ViewChange:
-                    Console.WriteLine("ViewChange");
                     ViewChange tempvc = (ViewChange) mes;
-                    Console.WriteLine("calling SignMessage");
                     tempvc.SignMessage(_prikey);
                     mes = tempvc;
                     break;
@@ -393,14 +390,10 @@ namespace PBFT.Replica
                                 ViewChange vc = (ViewChange) mes;
                                 Console.WriteLine("View-Change:");
                                 Console.WriteLine(vc);
-                                Console.WriteLine("Attempting if condition:");
-                                //foreach(var (key, _) in ServConnInfo)
-                                //    Console.WriteLine(key);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID) || 
                                     CurPrimary.ServID == ServID)
                                 {
-                                    Console.WriteLine("Passes if in server view-change");
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
                                     Console.WriteLine("ViewChange validation result: " + val);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
@@ -452,10 +445,6 @@ namespace PBFT.Replica
                                                 EmitShutdown, 
                                                 EmitViewChange
                                             );
-                                            foreach (var (key, _) in ViewMessageRegister)
-                                            {
-                                                Console.WriteLine(key);
-                                            }
                                             ViewMessageRegister[vc.NextViewNr].AppendViewChange(
                                                 vc, 
                                                 ServPubKeyRegister[vc.ServID], 
@@ -563,7 +552,6 @@ namespace PBFT.Replica
             foreach (var (sid, conn) in ServConnInfo)
             {
                 if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
-                    //conn.Socket.Send(fullbuffmes, SocketFlags.None);
                     NetworkFunctionality.Send(conn.Socket, fullbuffmes);
             }
         }
@@ -573,10 +561,6 @@ namespace PBFT.Replica
             Console.WriteLine($"Sending: {type} message");
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
-            //Console.WriteLine("identifier?");
-            //Console.WriteLine("Hello Mom");
-            //Console.WriteLine("Sending message");
-            //sock.Send(fullbuffmes, SocketFlags.None);
             NetworkFunctionality.Send(sock, fullbuffmes);
         }
 
@@ -631,7 +615,6 @@ namespace PBFT.Replica
         {
             Console.WriteLine("Receieved stable checkpoint certificate, emitting");
             Console.WriteLine(CurSeqNr);
-
             _scheduler.Schedule(() =>
             {
                 Subjects.CheckpointSubject.Emit(cpc);
@@ -650,7 +633,6 @@ namespace PBFT.Replica
                         var servConn = new TempInteractiveConn(ip);
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
-                        //ServConnInfo[k] = servConn;
                         Session sesmes = new Session(DeviceType.Server, Pubkey, ServID);
                         SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
                         _ = HandleIncommingMessages(servConn);
@@ -677,20 +659,21 @@ namespace PBFT.Replica
             }
         }
 
-        /*public async Task ReEstablishConnections()
+        public async Task ReEstablishConnections()
         {
+            //TODO implement RestablishConnection
             foreach (var (k,conn) in ServConnInfo)
             {
                 if (k != ServID)
                 {
-                    var servConn = new TempInteractiveConn(conn.Socket.RemoteEndPoint.ToString(), false, null);
-                    await servConn.Connect();
+                    //var servConn = new TempInteractiveConn(conn.Socket.RemoteEndPoint.ToString(), false, null);
+                    //await servConn.Connect();
                     //ServConnInfo[k] = servConn;
-                    SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                    await SendMessage(sesmes.SerializeToBuffer(), k, MessageType.SessionMessage);
+                    //SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
+                    //await SendMessage(sesmes.SerializeToBuffer(), k, MessageType.SessionMessage);
                 }
             }
-        }*/
+        }
         
         public void ChangeClientStatus(int cid)
         {
@@ -735,8 +718,16 @@ namespace PBFT.Replica
 
         public void UpdateRange(int stableSeq)
             => CurSeqRange = new Range(stableSeq+ 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
-        
 
+        public void UpdateSeqNr()
+        {
+            int newsqnr = 0;
+            foreach (var (seqNr, certs) in Log)
+            {
+                if (seqNr > newsqnr && certs.Count == 2) newsqnr = seqNr;
+            }
+            CurSeqNr = newsqnr;
+        }
         public void SeeLog()
         {
             Console.WriteLine("Current Log: ");
@@ -777,7 +768,6 @@ namespace PBFT.Replica
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
-            //TODO issue here, look into it
             Console.WriteLine("CollectPrepareCertificates");
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
             foreach (var (seqNr, certList) in Log)
@@ -828,9 +818,7 @@ namespace PBFT.Replica
 
                 using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
                 {
-                    //Console.WriteLine(digdict.Count);
                     string serializedlog = JsonConvert.SerializeObject(digdict);
-                    //Console.WriteLine(serializedlog);
                     var bytelog = Encoding.ASCII.GetBytes(serializedlog);
                     return shaalgo.ComputeHash(bytelog);
                 }
@@ -846,7 +834,6 @@ namespace PBFT.Replica
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
             {
                 Console.WriteLine("Calling Create checkpoint");
-                //var statedig = MakeStateDigest(limseqNr);
                 var statedig = Crypto.MakeStateDigest(appstate);
                 CheckpointCertificate checkcert;
                 if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];

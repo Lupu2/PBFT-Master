@@ -195,7 +195,7 @@ namespace PBFT.Client
             }
         }
 
-        private async Task Connect(Socket sock, IPEndPoint endpoint)
+        /*private async Task Connect(Socket sock, IPEndPoint endpoint)
         {
             try
             {
@@ -203,11 +203,10 @@ namespace PBFT.Client
             }
             catch (Exception e)
             {
-                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address.ToString());
+                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
                 Console.WriteLine(e);
             }
-            
-        }
+        }*/
         
         public async Task InitializeConnections()
         {
@@ -215,7 +214,7 @@ namespace PBFT.Client
             {
                 Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
                 var endpoint = IPEndPoint.Parse(info.IPAddress);
-                while (!sock.Connected) await Connect(sock, endpoint);
+                while (!sock.Connected) await NetworkFunctionality.Connect(sock, endpoint);
                 info.Socket = sock;
                 info.Active = true;
                 _ = ListenForResponse(sock, id);

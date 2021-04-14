@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -86,6 +87,19 @@ namespace PBFT.Network
             catch (Exception e)
             {
                 Console.WriteLine("Failed to send message!");
+                Console.WriteLine(e);
+            }
+        }
+        
+        public static async Task Connect(Socket sock, IPEndPoint endpoint)
+        {
+            try
+            {
+                await sock.ConnectAsync(endpoint);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
                 Console.WriteLine(e);
             }
         }
