@@ -72,10 +72,11 @@ namespace PBFT.Replica
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
                         //.DisposeOn(ShutdownBridge.Next())
-                        .Where(pm => {
-                                Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
-                                return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
-                            })
+                        .Where(pm =>
+                        {
+                            Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
+                            return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
+                        })
                         .Merge(ShutdownBridgePhase)
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
@@ -374,7 +375,7 @@ namespace PBFT.Replica
                 int low;
                 if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
                 else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
-                int high = Serv.CurSeqNr + 1;
+                int high = Serv.CurSeqNr;
                 var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
                 for (var idx=0; idx<prepares.Count; idx++)
                     Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
@@ -431,6 +432,7 @@ namespace PBFT.Replica
                 var comcert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Committed);
                 Console.WriteLine("Initialize Log");
                 Serv.InitializeLog(prepre.SeqNr);
+
                 var preps = ReMesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.SeqNr == prepre.SeqNr)
@@ -453,6 +455,7 @@ namespace PBFT.Replica
                     })
                     .Where(_ => comcert.ValidateCertificate(FailureNr))
                     .Next();
+                    
                 if (!Serv.IsPrimary())
                 {
                     var prepare = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Prepare);

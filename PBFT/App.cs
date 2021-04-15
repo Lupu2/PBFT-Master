@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Threading;
-using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
@@ -32,7 +31,7 @@ namespace PBFT
                 Console.WriteLine(args[0].Split("id=")[1]);
                 int paramid = Int32.Parse(args[0].Split("id=")[1]);
                 bool testparam = Boolean.Parse(args[1].Split("test=")[1]);
-                var storageEngine = new SimpleFileStorageEngine(".PBFTStorage"+paramid+".txt", true); //change to false when done debugging
+                var storageEngine = new SimpleFileStorageEngine("PBFTStorage"+paramid+".txt", true); //change to false when done debugging
                 (int, string) servInfo;
                 CDictionary<int, string> serversInfo;
                 Console.WriteLine(paramid);
@@ -48,6 +47,7 @@ namespace PBFT
                 if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
                 else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
                 var con = File.Exists("./PBFTStorage.txt");
+                //var con = File.Exists("./PBFTStorage" + id + ".txt");
                 Console.WriteLine(con);
                 Engine scheduler;
                 Server server = null;

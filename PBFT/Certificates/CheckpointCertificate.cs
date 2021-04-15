@@ -55,6 +55,7 @@ namespace PBFT.Certificates
 
         public bool ProofsAreValid()
         {
+            Console.WriteLine("ProofsAreValid");
             if (ProofList.Count < 1) return false;
             foreach (var check in ProofList)
             {
@@ -65,6 +66,8 @@ namespace PBFT.Certificates
                     return false;
                 if (check.Signature == null) return false;
             }
+
+            Console.WriteLine("All proofs are valid");
             return true;
         }
 
@@ -84,16 +87,30 @@ namespace PBFT.Certificates
         {
             if (!Stable)
             {
+                Console.WriteLine("Before:");
+                SeeProofs();
                 if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest))
                 {
                     Console.WriteLine("ADDING CHECKPOINT");
                     ProofList.Add(check);
                     Stable = ValidateCertificate(failureNr);
+                    Console.WriteLine("Validation: " + Stable);
+                    if (!Stable)
+                    {
+                        Console.WriteLine("After:");
+                        SeeProofs();
+                    }
                     if (Stable && EmitCheckpoint != null) EmitCertificate();    
                 }
             }
         }
 
+        public void SeeProofs()
+        {
+            foreach (var proof in ProofList)
+                Console.WriteLine(proof);
+        }
+        
         public bool CompareAndValidate(CheckpointCertificate ccert)
         {
             if (!ccert.Stable) return false;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -77,7 +78,13 @@ namespace PBFT.Messages
         
         public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, StableSeqNr, StateDigest);
 
-        public override string ToString() => $"ServID: {ServID}, SeqNumber: {StableSeqNr}, Digest: {StateDigest}, Signature: {Signature} ";
+        public override string ToString()
+        {
+            string tostring = $"ServID: {ServID}, SeqNumber: {StableSeqNr},";
+            if (StateDigest != null) tostring += $"Digest: {BitConverter.ToString(StateDigest)},";
+            tostring += $"Signature: {Signature}";
+            return tostring;
+        }
         
         public bool Compare(Checkpoint check)
         {
