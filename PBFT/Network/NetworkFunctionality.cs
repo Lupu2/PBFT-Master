@@ -91,16 +91,18 @@ namespace PBFT.Network
             }
         }
         
-        public static async Task Connect(Socket sock, IPEndPoint endpoint)
+        public static async Task<bool> Connect(Socket sock, IPEndPoint endpoint)
         {
             try
             {
                 await sock.ConnectAsync(endpoint);
+                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
                 Console.WriteLine(e);
+                return false;
             }
         }
     }

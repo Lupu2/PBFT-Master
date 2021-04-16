@@ -112,6 +112,11 @@ namespace PBFT.Certificates
             EmitViewChange = actions[1];
         }
 
+        public void ScaleDownViewProofs()
+        {
+            foreach (var proof in ProofList) proof.RemoveUnecessaryData();
+        }
+
         public void AppendViewChange(ViewChange vc, RSAParameters pubkey, int fnodes)
         {
             Console.WriteLine("AppendViewChange");

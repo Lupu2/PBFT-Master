@@ -29,7 +29,7 @@ namespace PBFT.Replica
         private Source<PhaseMessage> MesBridge;
         private Source<PhaseMessage> ReMesBridge;
         private Source<bool> ViewChangeBridge;
-        private Source<PhaseMessage> ShutdownBridgePhase;
+        public Source<PhaseMessage> ShutdownBridgePhase;
         private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
         //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
@@ -380,6 +380,7 @@ namespace PBFT.Replica
                 for (var idx=0; idx<prepares.Count; idx++)
                     Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
                 Console.WriteLine("Creating NewView");
+                vcc.ScaleDownViewProofs();
                 var nvmes = new NewView(Serv.CurView, vcc, prepares);
                 Serv.SignMessage(nvmes, MessageType.NewView);
                 

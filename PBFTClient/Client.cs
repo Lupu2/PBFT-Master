@@ -177,36 +177,38 @@ namespace PBFT.Client
                     Serializer.AddTypeIdentifierToBytes(
                         req.SerializeToBuffer(), MessageType.Request)
                     );
-                await Send(servinfo.Socket, reqbuff);
+                if (!servinfo.Active)
+                {
+                    var newsock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    var conn = await NetworkFunctionality.Connect(newsock, IPEndPoint.Parse(servinfo.IPAddress));
+                    if (conn)
+                    {
+                        servinfo.Socket = newsock;
+                        servinfo.Active = true;
+                        Session climes = new Session(DeviceType.Client, Pubkey, ClientID);
+                        await SendSessionMessage(climes);
+                        _ = ListenForResponse(newsock, id);
+                    }
+                }
+                var res = await Send(servinfo.Socket, reqbuff); 
+                if (!res) servinfo.Active = false;
             }
         }
 
-        private async Task Send(Socket sock, byte[] buff)
+        private async Task<bool> Send(Socket sock, byte[] buff)
         {
             try
             {
                 await sock.SendAsync(buff, SocketFlags.None);
+                return true;
             }
             catch (Exception e)
             {
                 Console.WriteLine("Failed to send message");
                 Console.WriteLine(e);
-                
+                return false;
             }
         }
-
-        /*private async Task Connect(Socket sock, IPEndPoint endpoint)
-        {
-            try
-            {
-                await sock.ConnectAsync(endpoint);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
-                Console.WriteLine(e);
-            }
-        }*/
         
         public async Task InitializeConnections()
         {
@@ -262,6 +264,7 @@ namespace PBFT.Client
                     Console.WriteLine("ERROR Listen Response");
                     Console.WriteLine(e);
                     ServerInformation[id].Active = false;
+                    sock.Dispose();
                     return;
                 }
             }
@@ -272,9 +275,7 @@ namespace PBFT.Client
             try
             {
                 var repCert = new ReplyCertificate(req, true); //most reply certificates are set to f+1 validation
-
-                //Set timeout for validateRequest and return false if it occurs
-                //Console.WriteLine("Validating");
+                
                 await ReplySource
                     .Where(rep => rep.Validate(ServerInformation[rep.ServID].GetPubkeyInfo(), req))
                     .Scan(repCert.ProofList, (prooflist, message) =>
@@ -295,7 +296,6 @@ namespace PBFT.Client
                 Console.WriteLine(e);
                 return false;
             }
-            
         }
     }
 }

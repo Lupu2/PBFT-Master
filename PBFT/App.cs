@@ -21,7 +21,7 @@ namespace PBFT
         {
             Console.WriteLine("Application running...");
             Console.WriteLine(args.Length);
-            
+            Console.WriteLine(Directory.GetCurrentDirectory());
             if (args.Length > 0) //add arguments by editing configuration program arguments or by adding parameters behind executable directly
             {
                 Console.WriteLine("arguments:");
@@ -31,7 +31,8 @@ namespace PBFT
                 Console.WriteLine(args[0].Split("id=")[1]);
                 int paramid = Int32.Parse(args[0].Split("id=")[1]);
                 bool testparam = Boolean.Parse(args[1].Split("test=")[1]);
-                var storageEngine = new SimpleFileStorageEngine("PBFTStorage"+paramid+".txt", true); //change to false when done debugging
+                bool usememory = Boolean.Parse(args[2].Split("per=")[1]);
+                var storageEngine = new SimpleFileStorageEngine("PBFTStorage"+paramid+".txt", !usememory); //change to false when done debugging
                 (int, string) servInfo;
                 CDictionary<int, string> serversInfo;
                 Console.WriteLine(paramid);
@@ -46,77 +47,83 @@ namespace PBFT
                 Console.WriteLine(ipaddr);
                 if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
                 else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
-                var con = File.Exists("./PBFTStorage.txt");
-                //var con = File.Exists("./PBFTStorage" + id + ".txt");
+                //var con = File.Exists("./PBFTStorage.txt");
+                var con = File.Exists("./PBFTStorage" + id + ".txt");
+                Console.WriteLine("Found storage:" + con);
                 Console.WriteLine(con);
                 Engine scheduler;
                 Server server = null;
                 ProtocolExecution protexec = null;
-                Source<Request> reqSource = new Source<Request>();
-                Source<PhaseMessage> protSource = new Source<PhaseMessage>();
-                Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
-                Source<bool> viewSource = new Source<bool>();
-                Source<bool> shutdownSource = new Source<bool>();
-                Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
-                Source<NewView> newviewSource = new Source<NewView>();
-                Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
-                SourceHandler sh = new (
-                    reqSource, 
-                    protSource, 
-                    viewSource, 
-                    shutdownSource, 
-                    newviewSource, 
-                    redistSource, 
-                    checkSource
-                );
-                PseudoApp = new CList<string>();
-                if (!con)
+                if (!con || !usememory)
                 {
+                    Source<Request> reqSource = new Source<Request>();
+                    Source<PhaseMessage> protSource = new Source<PhaseMessage>();
+                    Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
+                    Source<bool> viewSource = new Source<bool>();
+                    Source<bool> shutdownSource = new Source<bool>();
+                    Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
+                    Source<NewView> newviewSource = new Source<NewView>();
+                    Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
+                    SourceHandler sh = new (
+                        reqSource, 
+                        protSource, 
+                        viewSource, 
+                        shutdownSource, 
+                        newviewSource, 
+                        redistSource, 
+                        checkSource
+                    );
+                    PseudoApp = new CList<string>();
                     Console.WriteLine("Starting application");
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
-                    
-                    //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
+                    server.Start();
+                    Thread.Sleep(1000);
+                    protexec = new ProtocolExecution(
+                        server, 
+                        1, 
+                        protSource, 
+                        redistSource, 
+                        shutdownPhaseSource, 
+                        viewSource, 
+                        newviewSource, 
+                        shutdownSource
+                    );
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);
-                        Roots.Entangle(server);
+                        Roots.Entangle(protexec);
                     });
-
-                    //protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
+                    scheduler.Sync().Wait();
+                    server.InitializeConnections()
+                        .GetAwaiter()
+                        .OnCompleted(() =>
+                            StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler)
+                        );
                 }
                 else
                 {
                     //load persistent data
                     Console.WriteLine("Restarting application");
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
-                    //server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                    //   protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
                     scheduler.Schedule(() =>
                     {
-                        server = Roots.Resolve<Server>();
+                        //server = Roots.Resolve<Server>();
                         PseudoApp = Roots.Resolve<CList<string>>();
                         protexec = Roots.Resolve<ProtocolExecution>();
-                    });
-                    server.AddEngine(scheduler);
-                }
-                server.Start();
-                Thread.Sleep(1000);
-                protexec = new ProtocolExecution(server, 1, protSource, redistSource, shutdownPhaseSource, viewSource, newviewSource, shutdownSource);
-                scheduler.Schedule(() =>
-                {
-                    Roots.Entangle(protexec);
-                });
-                server.InitializeConnections()
-                    .GetAwaiter()
-                    .OnCompleted(() =>
+                        server = protexec.Serv;
+                    }).GetAwaiter().OnCompleted(() =>
                     {
-                        StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler);
+                        server.AddEngine(scheduler);
+                        server.Start();
+                        Thread.Sleep(1000);
+                        server.InitializeConnections()
+                            .GetAwaiter()
+                            .OnCompleted(() => 
+                                StartRequestHandler(protexec, server.Subjects.RequestSubject, protexec.ShutdownBridgePhase, scheduler)
+                        );
                     });
-                //Server serv = new Server(id, 0, scheduler, 10);
-                //HandleRequest(serv, protexec, reqSource, protSource)
-                
-                //_ = RequestHandler(server, protexec, reqSource, scheduler);
+                }
                 Console.ReadLine();
                 server.Dispose();
             }
@@ -161,7 +168,9 @@ namespace PBFT
                             execute.Serv.ChangeClientStatus(req.ClientID);
                             if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                 serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                            Console.WriteLine("FINISHED TASK");    
+                            Console.WriteLine("FINISHED TASK");
+                            await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                            Console.WriteLine("Finished Sync");
                         }
                         else
                         {
@@ -169,9 +178,8 @@ namespace PBFT
                             execute.Active = false;
                             serv.ProtocolActive = false;
                             await scheduler.Schedule(() =>
-                            {
-                                shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End));
-                            });
+                                shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End))
+                            );
                             await execute.HandlePrimaryChange();
                             Console.WriteLine("View-Change completed");
                             serv.UpdateSeqNr();
@@ -181,6 +189,7 @@ namespace PBFT
                             serv.ProtocolActive = true;
                             serv.GarbageViewChangeRegistry(serv.CurView);
                             serv.ResetClientStatus();
+                            await scheduler.Sync();
                         }
                     }
                 }

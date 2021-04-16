@@ -119,9 +119,18 @@ namespace PBFT.Messages
                     tostring += $"ID: {cproof.ServID}, SeqNr:{cproof.StableSeqNr}\n";    
             }
             tostring += "\nRemProofs: \n";
-            foreach (var (_,pproof) in RemPreProofs)
-                tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, Valid: {pproof.IsValid}, CType:{pproof.CType}, RequestDigest:{pproof.CurReqDigest}\n";
+            if (RemPreProofs != null)
+            {
+                foreach (var (_,pproof) in RemPreProofs)
+                    tostring += $"SeqNr: {pproof.SeqNr}, ViewNr:{pproof.ViewNr}, Valid: {pproof.IsValid}, CType:{pproof.CType}, RequestDigest:{pproof.CurReqDigest}\n";    
+            }
             return tostring;
+        }
+
+        public void RemoveUnecessaryData()
+        {
+            CertProof = null;
+            RemPreProofs = null;
         }
 
         public bool Compare(ViewChange vc2)
