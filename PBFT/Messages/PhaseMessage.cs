@@ -16,17 +16,13 @@ using PBFT.Certificates;
 namespace PBFT.Messages
 {
 
-    public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
+    public class PhaseMessage : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int ServID {get; set;}
-
         public int SeqNr {get; set;}
-        
         public int ViewNr{get; set;}
         public byte[] Digest{get; set;}
-        
         public byte[] Signature{get; set;}
-
         public PMessageType PhaseType{get; set;}
 
         public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase)
@@ -89,7 +85,7 @@ namespace PBFT.Messages
                 Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
                 int seqLow = curSeqInterval.Start.Value;
                 int seqHigh = curSeqInterval.End.Value;
-                var clone = CreateCopyTemplate();
+                var clone = (PhaseMessage) CreateCopyTemplate();
                 if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                     return false;
                 if (ViewNr != cviewNr) return false;

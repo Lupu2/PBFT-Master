@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
+using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
@@ -20,7 +21,7 @@ namespace PBFT
         {
             Console.WriteLine("Application running...");
             Console.WriteLine(args.Length);
-            
+            Console.WriteLine(Directory.GetCurrentDirectory());
             if (args.Length > 0) //add arguments by editing configuration program arguments or by adding parameters behind executable directly
             {
                 Console.WriteLine("arguments:");
@@ -30,7 +31,8 @@ namespace PBFT
                 Console.WriteLine(args[0].Split("id=")[1]);
                 int paramid = Int32.Parse(args[0].Split("id=")[1]);
                 bool testparam = Boolean.Parse(args[1].Split("test=")[1]);
-                var storageEngine = new SimpleFileStorageEngine(".PBFTStorage"+paramid+".txt", true); //change to false when done debugging
+                bool usememory = Boolean.Parse(args[2].Split("per=")[1]);
+                var storageEngine = new SimpleFileStorageEngine("PBFTStorage"+paramid+".txt", !usememory); //change to false when done debugging
                 (int, string) servInfo;
                 CDictionary<int, string> serversInfo;
                 Console.WriteLine(paramid);
@@ -45,69 +47,98 @@ namespace PBFT
                 Console.WriteLine(ipaddr);
                 if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
                 else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
-                var con = File.Exists("./PBFTStorage.txt");
+                //var con = File.Exists("./PBFTStorage.txt");
+                var con = File.Exists("./PBFTStorage" + id + ".txt");
+                Console.WriteLine("Found storage:" + con);
+                Console.WriteLine(con);
                 Engine scheduler;
                 Server server = null;
-                Source<Request> reqSource = new Source<Request>();
-                Source<PhaseMessage> protSource = new Source<PhaseMessage>();
-                Source<ViewChange> viewSource = new Source<ViewChange>();
-                Source<ViewChangeCertificate> shutdownSource = new Source<ViewChangeCertificate>();
-                Source<NewView> newviewSource = new Source<NewView>();
-                Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
-                SourceHandler sh = new (reqSource, protSource, viewSource, shutdownSource, newviewSource, checkSource);
-                PseudoApp = new CList<string>();
-                if (!con)
+                ProtocolExecution protexec = null;
+                if (!con || !usememory)
                 {
+                    Source<Request> reqSource = new Source<Request>();
+                    Source<PhaseMessage> protSource = new Source<PhaseMessage>();
+                    Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
+                    Source<bool> viewSource = new Source<bool>();
+                    Source<bool> shutdownSource = new Source<bool>();
+                    Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
+                    Source<NewView> newviewSource = new Source<NewView>();
+                    Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
+                    SourceHandler sh = new (
+                        reqSource, 
+                        protSource, 
+                        viewSource, 
+                        shutdownSource, 
+                        newviewSource, 
+                        redistSource, 
+                        checkSource
+                    );
+                    PseudoApp = new CList<string>();
+                    Console.WriteLine("Starting application");
                     scheduler = ExecutionEngineFactory.StartNew(storageEngine);
-                    
-                    //server = new Server(id, 0, serversInfo.Count, scheduler, 20, ipaddr, reqSource, protSource, viewSource, shutdownSource, newviewSource ,serversInfo);
                     server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
+                    server.Start();
+                    Thread.Sleep(1000);
+                    protexec = new ProtocolExecution(
+                        server, 
+                        1, 
+                        protSource, 
+                        redistSource, 
+                        shutdownPhaseSource, 
+                        viewSource, 
+                        newviewSource, 
+                        shutdownSource
+                    );
                     scheduler.Schedule(() =>
                     {
                         Roots.Entangle(PseudoApp);
-                        Roots.Entangle(server);
+                        Roots.Entangle(protexec);
                     });
-
-                    //protSource,serversInfo); //int id, int curview, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge
+                    scheduler.Sync().Wait();
+                    server.InitializeConnections()
+                        .GetAwaiter()
+                        .OnCompleted(() =>
+                            StartRequestHandler(protexec, reqSource, shutdownPhaseSource, scheduler)
+                        );
                 }
                 else
                 {
                     //load persistent data
+                    Console.WriteLine("Restarting application");
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
-                    //server = new Server(id, 0, serversInfo.Count, scheduler, 15, ipaddr, reqSource,
-                    //   protSource, viewSource, shutdownSource, serversInfo); //TODO update with that collected in the storageEngine
                     scheduler.Schedule(() =>
                     {
-                        server = Roots.Resolve<Server>();
+                        //server = Roots.Resolve<Server>();
                         PseudoApp = Roots.Resolve<CList<string>>();
+                        protexec = Roots.Resolve<ProtocolExecution>();
+                        server = protexec.Serv;
+                    }).GetAwaiter().OnCompleted(() =>
+                    {
+                        server.AddEngine(scheduler);
+                        server.Start();
+                        Thread.Sleep(1000);
+                        server.InitializeConnections()
+                            .GetAwaiter()
+                            .OnCompleted(() => 
+                                StartRequestHandler(protexec, server.Subjects.RequestSubject, protexec.ShutdownBridgePhase, scheduler)
+                        );
                     });
-                    server.AddEngine(scheduler);
-
-
                 }
-                server.Start();
-                Thread.Sleep(1000);
-                ProtocolExecution protexec = new ProtocolExecution(server, 1, protSource, newviewSource ,shutdownSource);
-                server.InitializeConnections()
-                    .GetAwaiter()
-                    .OnCompleted(() => StartRequestHandler(protexec, reqSource, scheduler));
-                //Server serv = new Server(id, 0, scheduler, 10);
-                //HandleRequest(serv, protexec, reqSource, protSource)
-                
-                //_ = RequestHandler(server, protexec, reqSource, scheduler);
                 Console.ReadLine();
                 server.Dispose();
             }
         }
-
-        public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        
+        public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhase, Engine scheduler)
         {
-            _ = RequestHandler(execute, requestMessage, scheduler);
+            _ = RequestHandler(execute, requestMessage, shutdownPhase, scheduler);
         }
         
-        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Engine scheduler)
+        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
         {
+            Console.WriteLine("RequestHandler");
             Server serv = execute.Serv;
+            serv.ProtocolActive = true;
             while (true)
             {
                 //TODO redesign to operate based on seqNr instead of req!
@@ -118,73 +149,67 @@ namespace PBFT
                     if (execute.Active)
                     {
                         Console.WriteLine("Handling client request");
-                        //await scheduler.Schedule(() => execute.HandleRequest(req));
-                        //serv.ChangeClientStatus(req.ClientID);
-                        await scheduler.Schedule(() =>
+                        CancellationTokenSource cancel = new CancellationTokenSource();
+                        _ = TimeoutOps.AbortableProtocolTimeoutOperation(
+                            serv.Subjects.ShutdownSubject, 
+                            10000,
+                            cancel.Token,
+                            scheduler
+                        );
+                        int seq = ++serv.CurSeqNr;
+                        execute.Serv.ChangeClientStatus(req.ClientID);
+                        
+                        bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
+                            ListenForShutdown(serv.Subjects.ShutdownSubject));
+                        Console.WriteLine("Result: " + res);
+                        if (res)
                         {
+                            Console.WriteLine("APP OPERATION FINISHED");
                             execute.Serv.ChangeClientStatus(req.ClientID);
-                                var operation = AppOperation(req, serv, execute).GetAwaiter();
-                                operation.OnCompleted(() =>
-                                {
-                                    Console.WriteLine("It worked!");
-                                    Console.WriteLine(serv.CurSeqNr);
-                                    execute.Serv.ChangeClientStatus(req.ClientID);
-                                    if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                        serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                    Console.WriteLine("FINISHED TASK");
-                                });
-                            
-
-                            /*serv.ChangeClientStatus(req.ClientID);
-
-                            var reply = execute.HandleRequest(req)
-                                .GetAwaiter();
-                            /*    .GetResult();
-                            serv.CurSeqNr = reply.SeqNr;
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            Console.WriteLine("It worked!");
-                            Console.WriteLine(serv.CurSeqNr);
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                            reply.OnCompleted(() =>
-                            {
-                                execute.Serv.ChangeClientStatus(req.ClientID);
-                                Console.WriteLine("It worked!");
-                                Console.WriteLine(serv.CurSeqNr);
-                                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                    serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                            });*/
-                        });
-                        //serv.ChangeClientStatus(req.ClientID);
+                            if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
+                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                            Console.WriteLine("FINISHED TASK");
+                            await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                            Console.WriteLine("Finished Sync");
+                        }
+                        else
+                        {
+                            Console.WriteLine("View-Change commence :)");
+                            execute.Active = false;
+                            serv.ProtocolActive = false;
+                            await scheduler.Schedule(() =>
+                                shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End))
+                            );
+                            await execute.HandlePrimaryChange();
+                            Console.WriteLine("View-Change completed");
+                            serv.UpdateSeqNr();
+                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
+                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                            execute.Active = true;
+                            serv.ProtocolActive = true;
+                            serv.GarbageViewChangeRegistry(serv.CurView);
+                            serv.ResetClientStatus();
+                            await scheduler.Sync();
+                        }
                     }
                 }
-                
             }
         }
-
-        public static void CreateCheckpoint(Engine eng, Server serv)
+        
+        public static async CTask<bool> ListenForShutdown(Source<bool> shutdown)
         {
-            eng.Schedule(() =>
-            {
-                serv.CreateCheckpoint(serv.CurSeqNr, PseudoApp);
-            });
+            Console.WriteLine("ListenForShutdown");
+            return await shutdown.Next();
         }
         
-        public static async CTask AppOperation(Request req, Server serv, ProtocolExecution execute)
+        public static async CTask<bool> AppOperation(Request req, Server serv, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
         {
-            var reply = await execute.HandleRequest(req);
-            serv.CurSeqNr = reply.SeqNr;
-            PseudoApp.Add(reply.Result);
+            var reply = await execute.HandleRequest(req, curSeq, cancel);
+            if (reply.Status && execute.Active) PseudoApp.Add(reply.Result);
             Console.WriteLine("AppCount:" + PseudoApp.Count);
-            //Console.WriteLine(reply);
-                        /*reply.OnCompleted(() =>
-                        {
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            Console.WriteLine("It worked!");
-                            Console.WriteLine(serv.CurSeqNr);
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr);
-                        });*/
+            return true;
         }
+        
+        //public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
     }
 }

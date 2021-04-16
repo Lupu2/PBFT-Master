@@ -29,9 +29,10 @@ namespace PBFT.Network
             _active = false;
         }
         
-        public async Task Connect() 
+        public async Task Connect()
         {
-            while (!Socket.Connected) await Socket.ConnectAsync(Address);
+            while (!Socket.Connected)
+                await NetworkFunctionality.Connect(Socket, Address);
             _active = true;
         }
         

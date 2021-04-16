@@ -13,6 +13,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
+using Cleipnir.Rx.ExecutionEngine;
 using Cleipnir.StorageEngine.SimpleFile;
 using Newtonsoft.Json;
 using PBFT.Certificates;
@@ -32,13 +33,14 @@ namespace PBFT.Replica
         public Range CurSeqRange { get; set; }
         public int CheckpointConstant { get; set; }
         public int TotalReplicas { get; set; }
+        public bool ProtocolActive { get; set; }
         public CheckpointCertificate StableCheckpointsCertificate;
         public SourceHandler Subjects { get; set; }
         private CDictionary<int, CList<ProtocolCertificate>> Log;
         public CDictionary<int, bool> ClientActive;
         public CDictionary<int, Reply> ReplyLog;
         public CDictionary<int, string> ServerContactList;
-        public CDictionary<int, CArray<ViewChange>> ViewMessageRegister;
+        public CDictionary<int, ViewChangeCertificate> ViewMessageRegister;
         public CDictionary<int, CheckpointCertificate> CheckpointLog;
 
         //NON-Persitent
@@ -60,15 +62,16 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = 0;
             TotalReplicas = totalreplicas;
+            ProtocolActive = false;
             CheckpointConstant = checkpointinter;
             CurPrimary = new ViewPrimary(TotalReplicas); //Leader of view 0 = server 0
-            CurSeqRange = new Range(0, 2 * checkpointinter);
+            CurSeqRange = new Range(1, 2 * checkpointinter);
             Subjects = sh;
             Log = new CDictionary<int, CList<ProtocolCertificate>>();
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -91,6 +94,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = totalreplicas;
+            ProtocolActive = false;
             CurPrimary = new ViewPrimary(TotalReplicas); //assume it is the leader, no it doesnt...
             CheckpointConstant = checkpointinter;
             if (seqnr - checkpointinter < 0) CurSeqRange = new Range(0, checkpointinter - seqnr);
@@ -101,7 +105,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -124,6 +128,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = replicas;
+            ProtocolActive = false;
             CurPrimary = lead;
             CheckpointConstant = seqRange.End.Value / 2;
             CurSeqRange = seqRange;
@@ -132,7 +137,7 @@ namespace PBFT.Replica
             ClientActive = new CDictionary<int, bool>();
             ReplyLog = new CDictionary<int, Reply>();
             ServerContactList = contactList;
-            ViewMessageRegister = new CDictionary<int, CArray<ViewChange>>();
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();
             StableCheckpointsCertificate = null;
             CheckpointLog = new CDictionary<int, CheckpointCertificate>();
 
@@ -149,7 +154,7 @@ namespace PBFT.Replica
 
         [JsonConstructor]
         public Server(int id, int curview, int seqnr, int checkpointint, Range seqRange, Engine sche, ViewPrimary lead, 
-            int replicas, SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
+            int replicas, bool active,  SourceHandler sh, CDictionary<int, CList<ProtocolCertificate>> oldlog,
             CDictionary<int, bool> clientActiveRegister, CDictionary<int, Reply> replog,
             CDictionary<int, string> contactList, CheckpointCertificate stablecheck, CDictionary<int, CheckpointCertificate> checkpoints)
         {
@@ -157,6 +162,7 @@ namespace PBFT.Replica
             CurView = curview;
             CurSeqNr = seqnr;
             TotalReplicas = replicas;
+            ProtocolActive = active;
             //_servConn = new TempConn(ipaddress);
             CurPrimary = lead;
             CheckpointConstant = checkpointint;
@@ -167,8 +173,7 @@ namespace PBFT.Replica
             ClientActive = clientActiveRegister;
             ReplyLog = replog;
             ServerContactList = contactList;
-            ViewMessageRegister =
-                new CDictionary<int, CArray<ViewChange>>(); //possibly change this to get stored view messages?
+            ViewMessageRegister = new CDictionary<int, ViewChangeCertificate>();; //possibly change this to get stored view messages?
             StableCheckpointsCertificate = stablecheck;
             CheckpointLog = checkpoints;
 
@@ -186,9 +191,10 @@ namespace PBFT.Replica
         public bool IsPrimary()
         {
             Start:
-            //Console.WriteLine("Isprimary");
+            Console.WriteLine("Isprimary");
             //Console.WriteLine(CurView);
             //Console.WriteLine(CurPrimary.ViewNr);
+            //Console.WriteLine(CurPrimary.ServID);
             if (CurView == CurPrimary.ViewNr)
             {
                 if (ServID == CurPrimary.ServID) return true;
@@ -294,8 +300,10 @@ namespace PBFT.Replica
                                 Session sesmes = (Session) mes;
                                 DeviceType devtype = sesmes.Devtype;
                                 Console.WriteLine(sesmes);
-                                if(ServConnInfo.ContainsKey(sesmes.DevID)) Console.WriteLine(ServConnInfo[sesmes.DevID].Socket.Connected);
-                                if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) || !ClientConnInfo[sesmes.DevID].Socket.Connected))
+                                if (ServConnInfo.ContainsKey(sesmes.DevID))
+                                    Console.WriteLine(ServConnInfo[sesmes.DevID].Socket.Connected);
+                                if (devtype == DeviceType.Client && (!ClientConnInfo.ContainsKey(sesmes.DevID) ||
+                                                                     !ClientConnInfo[sesmes.DevID].Socket.Connected))
                                 {
                                     Console.WriteLine("New Session Message");
                                     await _scheduler.Schedule(() =>
@@ -303,7 +311,8 @@ namespace PBFT.Replica
                                         MessageHandler.HandleSessionMessage(sesmes, conn, this);
                                         Session replysesmes = new Session(DeviceType.Server, Pubkey, ServID);
                                         Console.WriteLine("Returning message");
-                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket, MessageType.SessionMessage);
+                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                            MessageType.SessionMessage);
                                     });
                                 }
                                 else if (devtype == DeviceType.Server && sesmes.DevID != ServID &&
@@ -316,9 +325,11 @@ namespace PBFT.Replica
                                         MessageHandler.HandleSessionMessage(sesmes, conn, this);
                                         Session replysesmes = new Session(DeviceType.Server, Pubkey, ServID);
                                         Console.WriteLine("Returning message");
-                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket, MessageType.SessionMessage);
+                                        SendMessage(replysesmes.SerializeToBuffer(), conn.Socket,
+                                            MessageType.SessionMessage);
                                     });
                                 }
+
                                 break;
                             case MessageType.Request:
                                 Request reqmes = (Request) mes;
@@ -328,11 +339,17 @@ namespace PBFT.Replica
                                     int idx = OperationInMemory(reqmes);
                                     if (idx == -1)
                                     {
-                                        if (!ClientActive[reqmes.ClientID]) 
-                                            await _scheduler.Schedule(() => 
+                                        Console.WriteLine("Checking if client already has a working request");
+                                        if (!ClientActive[reqmes.ClientID] && ProtocolActive)
+                                            await _scheduler.Schedule(() =>
                                             {
+                                                Console.WriteLine("Emitting request!");
                                                 Subjects.RequestSubject.Emit(reqmes);
                                             });
+                                        else
+                                        {
+                                            Console.WriteLine("Client request denied!");
+                                        }
                                     }
                                     else SendMessage(ReplyLog[idx].SerializeToBuffer(), conn.Socket, MessageType.Reply);
                                 }
@@ -342,19 +359,25 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
+
                                 break;
                             case MessageType.PhaseMessage:
                                 Console.WriteLine("New PhaseMessage Message");
                                 PhaseMessage pesmes = (PhaseMessage) mes;
-                                Console.WriteLine(mes);
+                                Console.WriteLine(pesmes);
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    Console.WriteLine("Emitting PhaseMessage"); //protocol, emit
-                                    await _scheduler.Schedule(() =>
+                                    if (pesmes.ViewNr == CurView && ProtocolActive)
                                     {
-                                        Subjects.ProtocolSubject.Emit(pesmes);
-                                    });
+                                        Console.WriteLine("Emitting Protocol PhaseMessage"); //protocol, emit
+                                        await _scheduler.Schedule(() => { Subjects.ProtocolSubject.Emit(pesmes); });
+                                    }
+                                    else if (pesmes.ViewNr == CurView && !ProtocolActive)
+                                    {
+                                        Console.WriteLine("Emitting Redistribute PhaseMessage");
+                                        await _scheduler.Schedule(() => { Subjects.RedistSubject.Emit(pesmes); });
+                                    }
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -366,41 +389,76 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
+                                Console.WriteLine("View-Change:");
+                                Console.WriteLine(vc);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
-                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
+                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID) ||
+                                    CurPrimary.ServID == ServID)
                                 {
                                     bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
-                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)
-                                    ) //will already have a view-change message for view n, therefore count = 2
+                                    Console.WriteLine("ViewChange validation result: " + val);
+                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr))
+                                        //will already have a view-change message for view n, therefore count = 2
                                     {
-                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
-                                        ViewChangeCertificate vcc = new ViewChangeCertificate(
-                                            new ViewPrimary(ServID, vc.NextViewNr, TotalReplicas), StableCheckpointsCertificate);
-                                        foreach (var vctemp in ViewMessageRegister[vc.NextViewNr])
-                                            vcc.AppendViewChange(vctemp, ServPubKeyRegister[vc.ServID]);
-                                        await _scheduler.Schedule(() =>
+                                        Console.WriteLine("ViewChange cert already registered, adding to it");
+                                        Console.WriteLine("Count:" +
+                                                          ViewMessageRegister[vc.NextViewNr].ProofList.Count);
+                                        if (!ViewMessageRegister[vc.NextViewNr].IsValid())
                                         {
-                                            Subjects.ShutdownSubject.Emit(vcc);
-                                        });
+                                            await _scheduler.Schedule(() =>
+                                            {
+                                                Console.WriteLine("Scheduling adding view-change");
+                                                if (!ViewMessageRegister[vc.NextViewNr].IsValid())
+                                                {
+                                                    ViewMessageRegister[vc.NextViewNr].AppendViewChange(
+                                                        vc,
+                                                        ServPubKeyRegister[vc.ServID],
+                                                        Quorum.CalculateFailureLimit(TotalReplicas)
+                                                    );
+                                                }
+                                            });
+                                        }
                                     }
                                     else if (val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)
                                     ) //does not already have any view-change messages for view n
                                     {
-                                        ViewMessageRegister[vc.NextViewNr] = new CArray<ViewChange>();
-                                        ViewMessageRegister[vc.NextViewNr].Add(vc);
+                                        Console.WriteLine("Creating a new view-change certificate");
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Console.WriteLine("Scheduling creating viewcert and adding view-change");
+                                            ViewMessageRegister[vc.NextViewNr] = new ViewChangeCertificate(
+                                                new ViewPrimary(vc.ServID, vc.NextViewNr, TotalReplicas),
+                                                vc.CertProof,
+                                                EmitShutdown,
+                                                EmitViewChange
+                                            );
+                                            ViewMessageRegister[vc.NextViewNr].AppendViewChange(
+                                                vc,
+                                                ServPubKeyRegister[vc.ServID],
+                                                Quorum.CalculateFailureLimit(TotalReplicas)
+                                            );
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Things did not go as planned :(");
+                                        /*
+                                         * Console.WriteLine("Connection terminated, rules were broken");
+                                         * conn.Dispose();
+                                         * return;
+                                         */
                                     }
                                 }
+
                                 break;
                             case MessageType.NewView:
                                 NewView nvmes = (NewView) mes;
+                                Console.WriteLine(nvmes);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID))
                                 {
                                     Console.WriteLine("Emitting");
-                                    await _scheduler.Schedule(() =>
-                                    {
-                                        Subjects.NewViewSubject.Emit(nvmes);
-                                    });
+                                    await _scheduler.Schedule(() => { Subjects.NewViewSubject.Emit(nvmes); });
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -408,55 +466,62 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
+
                                 break;
                             case MessageType.Checkpoint:
                                 Checkpoint check = (Checkpoint) mes;
-                                //Console.WriteLine("Checkpoint:" + check);
+                                Console.WriteLine("Checkpoint:" + check);
                                 //Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
-                                //foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
-                                if (CheckpointLog.ContainsKey(check.StableSeqNr))
+                                foreach (var (key, _) in CheckpointLog) Console.WriteLine("Key: " + key);
+                                await _scheduler.Schedule(() =>
                                 {
-                                    //Console.WriteLine(StableCheckpointsCertificate != null && StableCheckpointsCertificate.LastSeqNr == check.StableSeqNr);
-                                    Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
-                                    //if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
-                                        await _scheduler.Schedule(() =>
-                                        {
-                                            Console.WriteLine("Adding to existing Checkpoint log");
-                                            Console.WriteLine("Checkpoint:" + check);
-                                            Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
-                                            foreach (var (key,_) in CheckpointLog) Console.WriteLine("Key: " + key);
-                                            if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                    if (CheckpointLog.ContainsKey(check.StableSeqNr))
+                                    {
+                                        Console.WriteLine("Found existing certificate");
+                                        Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
+                                        //Console.WriteLine(StableCheckpointsCertificate != null && StableCheckpointsCertificate.LastSeqNr == check.StableSeqNr);
+                                        //await _scheduler.Schedule(() =>
+                                        //{
+                                            //Console.WriteLine("Adding to existing Checkpoint log");
+                                            //Console.WriteLine("Checkpoint:" + check);
+                                            //Console.WriteLine("CheckpointLength: " + CheckpointLog.Count);
+                                            foreach (var (key, _) in CheckpointLog) Console.WriteLine("Key: " + key);
+                                            if (StableCheckpointsCertificate == null ||
+                                                StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
                                                 CheckpointLog[check.StableSeqNr].AppendProof(
                                                     check,
                                                     ServPubKeyRegister[check.ServID],
                                                     Quorum.CalculateFailureLimit(TotalReplicas)
                                                 );
-                                        });
-                                }
-                                else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
-                                {
-                                    Console.WriteLine("Adding new Checkpoint to checkpoint log");
-                                    await _scheduler.Schedule(() =>
+                                        //});
+                                    }
+                                    else if (!CheckpointLog.ContainsKey(check.StableSeqNr))
                                     {
-                                        if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
+                                        Console.WriteLine("Could not find existing certificate");
+                                        Console.WriteLine("Adding new Checkpoint to checkpoint log");
+                                        //await _scheduler.Schedule(() =>
+                                        //{
+                                        if (StableCheckpointsCertificate == null ||
+                                            StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr)
                                         {
                                             CheckpointCertificate cert = new CheckpointCertificate
                                             (
                                                 check.StableSeqNr,
-                                                check.StateDigest, 
+                                                check.StateDigest,
                                                 EmitCheckpoint
                                             );
                                             cert.AppendProof
                                             (
-                                                check, 
+                                                check,
                                                 ServPubKeyRegister[check.ServID],
                                                 Quorum.CalculateFailureLimit(TotalReplicas)
                                             );
-                                            CheckpointLog[check.StableSeqNr] = cert;     
+                                            CheckpointLog[check.StableSeqNr] = cert;
                                         }
-                                        //App.CreateCheckpoint(_scheduler, this);
-                                    });
-                                }
+
+                                        //});
+                                    }
+                                });
                                 break;
                             default:
                                 Console.WriteLine("Unrecognizable Message");
@@ -481,7 +546,7 @@ namespace PBFT.Replica
             foreach (var (sid, conn) in ServConnInfo)
             {
                 if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
-                    conn.Socket.Send(fullbuffmes, SocketFlags.None);
+                    NetworkFunctionality.Send(conn.Socket, fullbuffmes);
             }
         }
 
@@ -490,27 +555,60 @@ namespace PBFT.Replica
             Console.WriteLine($"Sending: {type} message");
             var mesidentbytes = Serializer.AddTypeIdentifierToBytes(sermessage, type);
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
-            //Console.WriteLine("identifier?");
-            //Console.WriteLine("Hello Mom");
-            //Console.WriteLine("Sending message");
-            sock.Send(fullbuffmes, SocketFlags.None);
+            NetworkFunctionality.Send(sock, fullbuffmes);
         }
+
+        
 
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Phase Locally!");
-            //Console.WriteLine(mes);
-            _scheduler.Schedule(() =>
+            if (ProtocolActive)
             {
-                Subjects.ProtocolSubject.Emit(mes);
-            });
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.ProtocolSubject.Emit(mes);
+                });    
+            }
         }
 
+        public void EmitRedistPhaseMessageLocally(PhaseMessage mes)
+        {
+            Console.WriteLine("Emitting Redist Phase Locally");
+            if (!ProtocolActive)
+            {
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.RedistSubject.Emit(mes);
+                });    
+            }
+        }
+        
+        public void EmitShutdown()
+        {
+            Console.WriteLine("Received shutdown, emitting");
+            if (ProtocolActive)
+            {
+                _scheduler.Schedule(() =>
+                {
+                    Subjects.ShutdownSubject.Emit(false);
+                });    
+            }
+        }
+
+        public void EmitViewChange()
+        {
+            Console.WriteLine("Received viewchange, emitting to start new view");
+            _scheduler.Schedule(() =>
+            {
+                Subjects.ViewChangeSubject.Emit(true);
+            });
+        }
+        
         public void EmitCheckpoint(CheckpointCertificate cpc)
         {
             Console.WriteLine("Receieved stable checkpoint certificate, emitting");
             Console.WriteLine(CurSeqNr);
-
             _scheduler.Schedule(() =>
             {
                 Subjects.CheckpointSubject.Emit(cpc);
@@ -529,7 +627,6 @@ namespace PBFT.Replica
                         var servConn = new TempInteractiveConn(ip);
                         await servConn.Connect();
                         Console.WriteLine("Connection established");
-                        //ServConnInfo[k] = servConn;
                         Session sesmes = new Session(DeviceType.Server, Pubkey, ServID);
                         SendMessage(sesmes.SerializeToBuffer(), servConn.Socket, MessageType.SessionMessage);
                         _ = HandleIncommingMessages(servConn);
@@ -555,28 +652,7 @@ namespace PBFT.Replica
                 }
             }
         }
-
-        /*public async Task ReEstablishConnections()
-        {
-            foreach (var (k,conn) in ServConnInfo)
-            {
-                if (k != ServID)
-                {
-                    var servConn = new TempInteractiveConn(conn.Socket.RemoteEndPoint.ToString(), false, null);
-                    await servConn.Connect();
-                    //ServConnInfo[k] = servConn;
-                    SessionMessage sesmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-                    await SendMessage(sesmes.SerializeToBuffer(), k, MessageType.SessionMessage);
-                }
-            }
-        }*/
-
-        /*public async CTask InitializeSession(Dictionary<int,string> addresses) //Create Session messages and send them to other servers
-        {
-            var sessionmes = new SessionMessage(DeviceType.Server, Pubkey, ServID);
-            await Multicast(sessionmes.SerializeToBuffer());
-        }*/
-
+        
         public void ChangeClientStatus(int cid)
         {
             //Assuming Client Already added during client initialization
@@ -584,15 +660,20 @@ namespace PBFT.Replica
             else ClientActive[cid] = true;
         }
 
+        public void ResetClientStatus()
+        {
+            foreach (var (cid, _) in ClientActive) ClientActive[cid] = false;
+        }
+
         public void AddPubKeyClientRegister(int id, RSAParameters key)
         {
-            lock (_sync)
+            //lock (_sync)
                 ClientPubKeyRegister[id] = key;
         }
 
         public void AddPubKeyServerRegister(int id, RSAParameters key)
         {
-            lock (_sync)
+            //lock (_sync)
                 ServPubKeyRegister[id] = key;
         }
 
@@ -603,22 +684,31 @@ namespace PBFT.Replica
 
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
-            Console.WriteLine("Certificate saved!");
+            Console.WriteLine("Saving Certificate: ");
             Console.WriteLine("SeqNr:" + seqNr);
             Console.WriteLine($"Cert: {cert}");
-            lock (_sync)
-            {
-                Log[seqNr].Add(cert);
-            }
+            //lock (_sync)
+            //{
+            Log[seqNr].Add(cert);
+            //}
             SeeLog();
         }
 
         public void UpdateRange(int stableSeq)
             => CurSeqRange = new Range(stableSeq+ 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
-        
 
+        public void UpdateSeqNr()
+        {
+            int newsqnr = 0;
+            foreach (var (seqNr, certs) in Log)
+            {
+                if (seqNr > newsqnr && certs.Count == 2) newsqnr = seqNr;
+            }
+            CurSeqNr = newsqnr;
+        }
         public void SeeLog()
         {
+            Console.WriteLine("Current Log: ");
             foreach (var (seqNr,proofs) in Log)
             {
                 Console.WriteLine("SeqNr: "+ seqNr);
@@ -642,10 +732,10 @@ namespace PBFT.Replica
         {
             if (Log.ContainsKey(seqNr))
             {
-                lock (_sync)
-                {
+                //lock (_sync)
+                //{
                     return Log[seqNr];
-                }    
+                //}    
             }
             else
             {
@@ -656,9 +746,12 @@ namespace PBFT.Replica
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
+            Console.WriteLine("CollectPrepareCertificates");
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
             foreach (var (seqNr, certList) in Log)
             {
+                Console.WriteLine(seqNr);
+                Console.WriteLine(stableSeqNr);
                 if (seqNr > stableSeqNr)
                 {
                     foreach (var cert in certList) //most likely always prep,commit order, but can't be completely sure
@@ -666,6 +759,8 @@ namespace PBFT.Replica
                             prepdict[seqNr] = cert;
                 }
             }
+
+            Console.WriteLine(prepdict.Count);
             return prepdict;
         }
 
@@ -701,9 +796,7 @@ namespace PBFT.Replica
 
                 using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
                 {
-                    //Console.WriteLine(digdict.Count);
                     string serializedlog = JsonConvert.SerializeObject(digdict);
-                    //Console.WriteLine(serializedlog);
                     var bytelog = Encoding.ASCII.GetBytes(serializedlog);
                     return shaalgo.ComputeHash(bytelog);
                 }
@@ -719,19 +812,24 @@ namespace PBFT.Replica
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
             {
                 Console.WriteLine("Calling Create checkpoint");
-                //var statedig = MakeStateDigest(limseqNr);
                 var statedig = Crypto.MakeStateDigest(appstate);
                 CheckpointCertificate checkcert;
-                if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
-                else
+                Console.WriteLine("Scheduling checkpoint in created checkpoint");
+                _scheduler.Schedule(() =>
                 {
-                    checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
-                    CheckpointLog[limseqNr] = checkcert;
-                }
-                var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
-                checkpointmes.SignMessage(_prikey);
-                Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint); //wait for multicast to finish
-                checkcert.AppendProof(checkpointmes, Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));
+                    if (CheckpointLog.ContainsKey(limseqNr)) checkcert = CheckpointLog[limseqNr];
+                    else
+                    {
+                        checkcert = new CheckpointCertificate(limseqNr, statedig, EmitCheckpoint);
+                        CheckpointLog[limseqNr] = checkcert;
+                    }
+                    var checkpointmes = new Checkpoint(ServID, limseqNr, statedig);
+                    checkpointmes.SignMessage(_prikey);
+                    Multicast(checkpointmes.SerializeToBuffer(), MessageType.Checkpoint); //wait for multicast to finish
+                    Console.WriteLine("CreateCheckpoint append");
+                    Console.WriteLine(checkpointmes);
+                    checkcert.AppendProof(checkpointmes, Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));
+                });
             }
         }
 
@@ -749,13 +847,20 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
+        public void GarbageViewChangeRegistry(int viewNr)
+        {
+            foreach (var (entryViewNr, _) in ViewMessageRegister)
+                if (entryViewNr <= viewNr)
+                    ViewMessageRegister.Remove(entryViewNr);
+        }
+
         private void GarbageCollectCheckpointLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)
                 if (entrySeqNr <= seqNr)
                     CheckpointLog.Remove(entrySeqNr);
         }
-
+        
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
@@ -766,6 +871,7 @@ namespace PBFT.Replica
             stateToSerialize.Set(nameof(CheckpointConstant), CheckpointConstant);
             stateToSerialize.Set(nameof(CurPrimary), CurPrimary);
             stateToSerialize.Set(nameof(TotalReplicas), TotalReplicas);
+            stateToSerialize.Set(nameof(ProtocolActive), ProtocolActive);
             stateToSerialize.Set(nameof(Subjects), Subjects);
             stateToSerialize.Set(nameof(Log), Log);
             stateToSerialize.Set(nameof(ClientActive), ClientActive);
@@ -785,6 +891,7 @@ namespace PBFT.Replica
                 Engine.Current,
                 sd.Get<ViewPrimary>(nameof(CurPrimary)),
                 sd.Get<int>(nameof(TotalReplicas)),
+                sd.Get<bool>(nameof(ProtocolActive)),
                 sd.Get<SourceHandler>(nameof(Subjects)),
                 sd.Get<CDictionary<int, CList<ProtocolCertificate>>>(nameof(Log)),
                 sd.Get<CDictionary<int, bool>>(nameof(ClientActive)),

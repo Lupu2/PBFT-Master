@@ -87,7 +87,7 @@ namespace Playground.ReactiveFun
                     .OrderByDescending(p => p.PromisedBallot)
                     .First()
                     .PromisedValue;
-
+                
                 Network.Broadcast(new Accept() {Ballot = ballot, Value = toPropose});
                 await Messages
                     .OfType<Accepted>()

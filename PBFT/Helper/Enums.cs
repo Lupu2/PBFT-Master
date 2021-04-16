@@ -22,9 +22,8 @@ namespace PBFT.Helper
         PrePrepare = 0,
         Prepare = 1,
         Commit = 2,
+        End = 3,
     }
-    
-    
     
     public enum MessageType
     {

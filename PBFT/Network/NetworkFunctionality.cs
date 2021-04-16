@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace PBFT.Network
         {
             try
             { 
-                var buffer = new byte[1024];
+                var buffer = new byte[16000];
                 var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
                 List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
                 List<int> types = new List<int>();
@@ -77,6 +78,32 @@ namespace PBFT.Network
             return resobj;
         }
         
+        public static void Send(Socket sock, byte[] buffer)
+        {
+            try
+            {
+                sock.Send(buffer, SocketFlags.None);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to send message!");
+                Console.WriteLine(e);
+            }
+        }
         
+        public static async Task<bool> Connect(Socket sock, IPEndPoint endpoint)
+        {
+            try
+            {
+                await sock.ConnectAsync(endpoint);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
+                Console.WriteLine(e);
+                return false;
+            }
+        }
     }
 }

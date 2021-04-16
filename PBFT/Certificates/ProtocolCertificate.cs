@@ -12,8 +12,6 @@ using PBFT.Helper;
 
 namespace PBFT.Certificates
 {
- 
- 
     public class ProtocolCertificate : IQCertificate, IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
         public CertType CType {get; set;}
@@ -21,8 +19,8 @@ namespace PBFT.Certificates
         public int ViewNr {get; set;}
         public byte[] CurReqDigest {get; set;}
         private bool Valid{get; set;}
-
         public CList<PhaseMessage> ProofList {get; set;}
+        
         public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType)
         {
                 SeqNr = seq;
@@ -51,7 +49,7 @@ namespace PBFT.Certificates
             ViewNr = vnr;
             CurReqDigest = req;
             CType = cType;
-            Valid = false;
+            Valid = val;
             ProofList = proof;
         }
 
@@ -87,93 +85,78 @@ namespace PBFT.Certificates
         {
             int preparenr = 0;
             if (ProofList.Count < 1) return false;
-            bool proofvalid = true;
-         
+
             foreach (var proof in ProofList)
             {
-                if (proof.Digest == null || proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr)
-                {
-                    proofvalid = false;
-                    break;
-                }
-                
+                Console.WriteLine(proof);
+                if (proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr) return false;
+                if (CurReqDigest == null && proof.Digest != null || CurReqDigest != null && proof.Digest == null) 
+                    return false;
+                if (CurReqDigest != null && proof.Digest != null && !CurReqDigest.SequenceEqual(proof.Digest))
+                    return false;
                 if (proof.PhaseType.Equals(PMessageType.PrePrepare) || proof.PhaseType.Equals(PMessageType.Prepare))
                 {
                     if (proof.PhaseType.Equals(PMessageType.PrePrepare)) preparenr++;
-                    
-                    if (CType != CertType.Prepared)
-                    {
-                        proofvalid = false;
-                        break;
-                    }
+                    if (CType != CertType.Prepared) return false;
                 }
                 else if (proof.PhaseType.Equals(PMessageType.Commit))
                 {
-                    if (CType != CertType.Committed)
-                    {
-                        proofvalid = false;
-                        break;
-                    } 
+                    if (CType != CertType.Committed) return false;
                 }
-
-                if (preparenr != 1 && CType.Equals(CertType.Prepared))
-                {
-                    proofvalid = false;
-                    break;
-                }
+                if (preparenr != 1 && CType.Equals(CertType.Prepared)) return false;
             }
-            return proofvalid;
+            Console.WriteLine("ProofsAreValid are true");
+            return true;
         }
 
         public bool ProofsAreValid(CList<PhaseMessage> proofs)
         {
             if (proofs.Count < 1) return false;
-            bool proofvalid = true;
-         
+            int preparenr = 0;
             foreach (var proof in proofs)
-            {
-                //Console.WriteLine(proof);
-                if (proof.Digest == null || proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr)
-                {
-                    proofvalid = false;
-                    break;
-                }
-                
+            { 
+                if (proof.Signature == null || proof.ViewNr != ViewNr || proof.SeqNr != SeqNr) return false;
+                Console.WriteLine("Passed seqnr");
+                if (CurReqDigest == null && proof.Digest != null || CurReqDigest != null && proof.Digest == null) 
+                    return false;
+                Console.WriteLine("passed digest");
+                if (CurReqDigest != null && proof.Digest != null && !CurReqDigest.SequenceEqual(proof.Digest))
+                    return false;
+                Console.WriteLine("passed digest 2");
                 if (proof.PhaseType == PMessageType.PrePrepare || proof.PhaseType == PMessageType.Prepare)
                 {
-                    if (CType!= CertType.Prepared)
-                    {
-                        proofvalid = false;
-                        break;
-                    }
+                    if (proof.PhaseType.Equals(PMessageType.PrePrepare)) preparenr++;
+                    if (CType != CertType.Prepared) return false;
                 }
                 else if (proof.PhaseType == PMessageType.Commit)
                 {
-                    if (CType != CertType.Committed)
-                    {
-                        proofvalid = false;
-                        break;
-                    } 
+                    if (CType != CertType.Committed) return false;
                 }
+                Console.WriteLine("Passed Message type");
+                if (preparenr != 1 && CType.Equals(CertType.Prepared)) return false;
             }
-            return proofvalid;
+            Console.WriteLine("ProofsAreValid are true");
+            return true;
         }
         
         public bool ValidateCertificate(int fNodes)
         {
-            /*if (!Valid)
+            if (!Valid)
             {
                 Console.WriteLine("Current Proofs:");
-                foreach (var proof in proofs) Console.WriteLine(proof);    
-            }*/
+                foreach (var proof in ProofList) Console.WriteLine(proof);    
+            }
             if (!Valid)
+            {
+                Console.WriteLine("QReached: " + QReached(fNodes));
                 if (QReached(fNodes) && ProofsAreValid()) Valid = true;
                 else Console.WriteLine("Certificate is not valid!");
-            if (Valid)
+            }
+            /*if (Valid) //TODO: debugging, remove before delivery
             {
                 Console.WriteLine("Proofs:");
                 foreach (var proof in ProofList) Console.WriteLine(proof);    
-            }
+            }*/
             return Valid;
         }
 

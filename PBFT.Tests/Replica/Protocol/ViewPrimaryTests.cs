@@ -37,10 +37,11 @@ namespace PBFT.Tests.Replica
             var sh = new SourceHandler(
                 new Source<Request>(),
                 new Source<PhaseMessage>(),
-                new Source<ViewChange>(),
-                new Source<ViewChangeCertificate>(),
-                new Source<NewView>(), new
-                    Source<CheckpointCertificate>()
+                new Source<bool>(),
+                new Source<bool>(),
+                new Source<NewView>(), 
+                new Source<PhaseMessage>(),
+                new Source<CheckpointCertificate>()
             );
             Server testserv = new Server(0, 0, 4, null, 50, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             Assert.AreEqual(testserv.CurPrimary.ServID, 0);
