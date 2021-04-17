@@ -17,6 +17,12 @@ namespace PBFT
     public static class App
     {
         public static CList<string> PseudoApp;
+
+        public static void PseudoAppContent()
+        {
+            foreach (var con in PseudoApp)
+                Console.WriteLine(con);
+        }
         public static void Run(string[] args)
         {
             Console.WriteLine("Application running...");
@@ -115,6 +121,8 @@ namespace PBFT
                     }).GetAwaiter().OnCompleted(() =>
                     {
                         server.AddEngine(scheduler);
+                        server.SeeLog();
+                        PseudoAppContent();
                         server.Start();
                         Thread.Sleep(1000);
                         server.InitializeConnections()
@@ -169,7 +177,8 @@ namespace PBFT
                             if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
                                 serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
                             Console.WriteLine("FINISHED TASK");
-                            await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                            //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                            await Sync.Next();
                             Console.WriteLine("Finished Sync");
                         }
                         else
@@ -178,8 +187,8 @@ namespace PBFT
                             execute.Active = false;
                             serv.ProtocolActive = false;
                             await scheduler.Schedule(() =>
-                                shutdownPhaseSource.Emit(new PhaseMessage(-1,-1,-1, null, PMessageType.End))
-                            );
+                                shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
+                                ));
                             await execute.HandlePrimaryChange();
                             Console.WriteLine("View-Change completed");
                             serv.UpdateSeqNr();
@@ -189,7 +198,7 @@ namespace PBFT
                             serv.ProtocolActive = true;
                             serv.GarbageViewChangeRegistry(serv.CurView);
                             serv.ResetClientStatus();
-                            await scheduler.Sync();
+                            await Sync.Next();
                         }
                     }
                 }

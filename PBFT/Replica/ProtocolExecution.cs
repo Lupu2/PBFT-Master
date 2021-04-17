@@ -78,6 +78,7 @@ namespace PBFT.Replica
                             return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                         })
                         .Merge(ShutdownBridgePhase)
+                        //.DisposeOn(ShutdownBridgePhase)
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                     if (preprepared.ServID == -1 && preprepared.PhaseType == PMessageType.End) 
@@ -200,7 +201,7 @@ namespace PBFT.Replica
                     await Sleep.Until(1000);
                     //Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
                 }else{ //Replicas
-                    var preprepared = await MesBridge
+                    var preprepared = await MesBridge.Merge(ShutdownBridgePhase)
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
                         .Where(pm => {
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");

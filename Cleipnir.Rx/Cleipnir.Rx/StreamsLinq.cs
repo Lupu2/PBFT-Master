@@ -535,8 +535,10 @@ namespace Cleipnir.Rx
 
                 if (NumberOfObservers == 0)
                 {
-                    _inner1.Unsubscribe(subscriber);
-                    _inner2.Unsubscribe(subscriber);
+                    //_inner1.Unsubscribe(subscriber);
+                    //_inner2.Unsubscribe(subscriber);
+                    _inner1.Unsubscribe(this);
+                    _inner2.Unsubscribe(this);
                 }
             }           
 
