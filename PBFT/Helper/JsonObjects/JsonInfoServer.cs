@@ -2,8 +2,8 @@ namespace PBFT.Helper.JsonObjects
 {    
     public class JSONInfoServer
     {
-        public int ID { get; set;}
-        public string IP { get; set;}
+        public int ID { get; set; }
+        public string IP { get; set; }
 
         public JSONInfoServer(int id, string ipaddr)
         {

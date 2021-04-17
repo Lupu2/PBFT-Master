@@ -14,12 +14,12 @@ namespace PBFT.Certificates
 {
     public class ProtocolCertificate : IQCertificate, IPersistable
     { //Prepared, Commit phase Log.Add({1: seqnr, 2: viewnr, 3: prepared, 4: commit, 5: operation})
-        public CertType CType {get; set;}
-        public int SeqNr {get; set;}
-        public int ViewNr {get; set;}
-        public byte[] CurReqDigest {get; set;}
-        private bool Valid{get; set;}
-        public CList<PhaseMessage> ProofList {get; set;}
+        public CertType CType { get; set; }
+        public int SeqNr { get; set; }
+        public int ViewNr { get; set; }
+        public byte[] CurReqDigest { get; set; }
+        private bool Valid{ get; set; }
+        public CList<PhaseMessage> ProofList { get; set; }
         
         public ProtocolCertificate(int seq, int vnr, byte[] req, CertType cType)
         {
@@ -179,6 +179,12 @@ namespace PBFT.Certificates
         {
             Valid = false;
             ProofList = new CList<PhaseMessage>();
+        }
+        
+        public void SeeProofs()
+        {
+            foreach (var proof in ProofList)
+                Console.WriteLine(proof);
         }
 
         public ProtocolCertificate CloneInfoCertificate() =>

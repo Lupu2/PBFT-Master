@@ -12,7 +12,7 @@ namespace PBFT.Network
         public IPEndPoint Address { get; }
         public Socket Socket { get; }
 
-        private bool _active = false;
+        public bool Active { get; set; }
 
         public TempInteractiveConn(Socket sock)
         {
@@ -26,20 +26,20 @@ namespace PBFT.Network
             _ipAddress = ipAddress;
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
             Address = IPEndPoint.Parse(ipAddress);
-            _active = false;
+            Active = false;
         }
         
         public async Task Connect()
         {
             while (!Socket.Connected)
                 await NetworkFunctionality.Connect(Socket, Address);
-            _active = true;
+            Active = true;
         }
         
         public void Dispose()
         {
             Socket.Dispose();
-            _active = false;
+            Active= false;
         }
     }
 }

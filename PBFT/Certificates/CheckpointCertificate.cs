@@ -15,11 +15,10 @@ namespace PBFT.Certificates
 {
     public class CheckpointCertificate : IQCertificate, IPersistable
     {
-        public int LastSeqNr {get; set;}
-        public byte[] StateDigest {get; set;}
-        public bool Stable {get; set;}
-        public CList<Checkpoint> ProofList {get; set;}
-        
+        public int LastSeqNr { get; set;}
+        public byte[] StateDigest { get; set;}
+        public bool Stable { get; set; }
+        public CList<Checkpoint> ProofList { get; set; }
         public Action<CheckpointCertificate> EmitCheckpoint { get; set; }
 
         public CheckpointCertificate(int seqLimit, byte[] digest, Action<CheckpointCertificate> emitCheckpoint)
@@ -88,7 +87,7 @@ namespace PBFT.Certificates
             if (!Stable)
             {
                 Console.WriteLine("Before:");
-                SeeProofs();
+                //SeeProofs();
                 if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest))
                 {
                     Console.WriteLine("ADDING CHECKPOINT");

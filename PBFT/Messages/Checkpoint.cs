@@ -14,10 +14,10 @@ namespace PBFT.Messages
 {
     public class Checkpoint : IProtocolMessages, ISignedMessage, IPersistable
     {
-        public int ServID {get; set;}
-        public int StableSeqNr{get; set;}
-        public byte[] StateDigest {get; set;} //Digest of the state
-        public byte[] Signature{get; set;}
+        public int ServID { get; set; }
+        public int StableSeqNr{ get; set; }
+        public byte[] StateDigest { get; set; } //Digest of the state
+        public byte[] Signature{ get; set; }
         
         public Checkpoint(int id, int seqnr, byte[] statedigest)
         {
@@ -69,7 +69,6 @@ namespace PBFT.Messages
         {
             if (StableSeqNr < 0) return false;
             if (StateDigest == null) return false;
-            if (Signature == null) return false;
             var clone = (Checkpoint) CreateCopyTemplate();
             if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                 return false;

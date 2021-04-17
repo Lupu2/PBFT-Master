@@ -9,5 +9,7 @@ namespace PBFT.Certificates
         public bool ValidateCertificate(int nodes);
 
         public void ResetCertificate();
+
+        public void SeeProofs();
     }
 }

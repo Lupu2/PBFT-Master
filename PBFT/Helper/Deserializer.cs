@@ -9,11 +9,9 @@ namespace PBFT.Helper
         public static (int, IProtocolMessages) ChooseDeserialize(byte[] sermessage)
         {
             if (sermessage.Length < 4)
-            {
                 throw new IndexOutOfRangeException("INVALID INPUT ARGUMENT");
-            }
-            //Collect the last 4bytes to get MessageType value
             
+            //Collect the last 4bytes to get MessageType value
             int formatByte = BitConverter.ToInt32(sermessage.Reverse()
                                                                .Take(4)
                                                                .Reverse()

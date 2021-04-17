@@ -7,13 +7,13 @@ namespace PBFT.Certificates
 {
     public class ReplyCertificate :IQCertificate
     {
-        public Request RequestOrg {get; set;}
+        public Request RequestOrg { get; set; }
         
         public bool ValStrength { get; set; }
         
-        private bool Valid{get; set;}
+        private bool Valid{ get; set; }
 
-        public CList<Reply> ProofList {get; set;}
+        public CList<Reply> ProofList { get; set; }
 
         public ReplyCertificate(Request req)
         {
@@ -92,6 +92,12 @@ namespace PBFT.Certificates
         {
             Valid = false;
             ProofList = new CList<Reply>();
+        }
+        
+        public void SeeProofs()
+        {
+            foreach (var proof in ProofList)
+                Console.WriteLine(proof);
         }
     }
 }

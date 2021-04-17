@@ -12,7 +12,6 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Cleipnir.ExecutionEngine;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -22,17 +21,15 @@ namespace PBFT.Replica
 {
     public class ProtocolExecution : IPersistable
     {
-        public Server Serv {get; set;}
-        public int FailureNr {get; set;}
+        public Server Serv { get; set;}
+        public int FailureNr { get; set;}
         public bool Active { get; set; }
-        private readonly object _sync = new object();
         private Source<PhaseMessage> MesBridge;
         private Source<PhaseMessage> ReMesBridge;
         private Source<bool> ViewChangeBridge;
         public Source<PhaseMessage> ShutdownBridgePhase;
         private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
-        //public CancellationTokenSource cancel = new CancellationTokenSource(); //Set timeout for async functions
 
         public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
         {
@@ -61,7 +58,6 @@ namespace PBFT.Replica
                 if (Serv.IsPrimary()) //Primary
                 {
                     curSeq = leaderseq;
-                    //curSeq = ++Serv.CurSeqNr; //single threaded and asynchronous, only a single HandleRequest has access to this variable at the time.
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
@@ -71,14 +67,12 @@ namespace PBFT.Replica
                 }else{ //Replicas
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                        //.DisposeOn(ShutdownBridge.Next())
                         .Where(pm =>
                         {
                             Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                             return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);
                         })
                         .Merge(ShutdownBridgePhase)
-                        //.DisposeOn(ShutdownBridgePhase)
                         .Next();
                     //Add functionality for if you get another prepare message with same view but different seq nr, while you are already working on another,then you know that the primary is faulty.
                     if (preprepared.ServID == -1 && preprepared.PhaseType == PMessageType.End) 
@@ -109,7 +103,6 @@ namespace PBFT.Replica
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.SeqNr == qcertpre.SeqNr)
-                    //.DisposeOn(ShutdownBridge.Next())
                     .Where(pm =>
                     {
                         Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
@@ -123,12 +116,10 @@ namespace PBFT.Replica
                         return prooflist;
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
-                    //.DisposeOn(ShutdownBridge.Next())
                     .Where(pm => pm.SeqNr == qcertcom.SeqNr)
                     .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange, qcertcom))
                     .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
@@ -139,7 +130,6 @@ namespace PBFT.Replica
                     })
                     .Where(_ => qcertcom.ValidateCertificate(FailureNr))
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
-                    //.DisposeOn(ShutdownBridge.Next())
                     .Next();
                 
                 Console.WriteLine("Waiting for prepares");
@@ -151,7 +141,6 @@ namespace PBFT.Replica
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
-                //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for commits");
                 if (Active) await committed;
@@ -198,8 +187,8 @@ namespace PBFT.Replica
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
                     qcertpre = new ProtocolCertificate(preprepare.SeqNr, preprepare.ViewNr, digest, CertType.Prepared, preprepare); //Log preprepare as Prepare
-                    await Sleep.Until(1000);
-                    //Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message PrePrepare
+                    //await Sleep.Until(1000); //causes object not initialized execption for test fsr
+                    Thread.Sleep(1000);
                 }else{ //Replicas
                     var preprepared = await MesBridge.Merge(ShutdownBridgePhase)
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
@@ -219,7 +208,6 @@ namespace PBFT.Replica
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
                     qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
                     //Serv.EmitPhaseMessageLocally(prepare);
-                    //Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
                 if (Active) cancel.Cancel();
                 else throw new TimeoutException("Timeout Occurred! System is no longer active!");
@@ -267,7 +255,6 @@ namespace PBFT.Replica
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 //Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
-                //qcertcom.ProofList.Add(commitmes);
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for commits");
                 if (Active) await committed;

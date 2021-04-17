@@ -5,7 +5,6 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.ExecutionEngine.DataStructures;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
@@ -13,7 +12,6 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using Cleipnir.Rx.ExecutionEngine;
 using Cleipnir.StorageEngine.SimpleFile;
 using Newtonsoft.Json;
 using PBFT.Certificates;
@@ -52,7 +50,6 @@ namespace PBFT.Replica
         public Dictionary<int, TempInteractiveConn> ServConnInfo;
         public Dictionary<int, RSAParameters> ServPubKeyRegister;
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
-        private readonly object _sync = new object();
         private bool rebooted;
 
         public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress,
@@ -545,7 +542,7 @@ namespace PBFT.Replica
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             foreach (var (sid, conn) in ServConnInfo)
             {
-                if (sid != ServID) //shouldn't happen but just to be sure. Might be possible to use socket.SendAsync(mess, SocketFlag.Multicast)
+                if (sid != ServID)
                     NetworkFunctionality.Send(conn.Socket, fullbuffmes);
             }
         }
@@ -557,9 +554,7 @@ namespace PBFT.Replica
             var fullbuffmes = NetworkFunctionality.AddEndDelimiter(mesidentbytes);
             NetworkFunctionality.Send(sock, fullbuffmes);
         }
-
         
-
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Phase Locally!");
@@ -666,17 +661,11 @@ namespace PBFT.Replica
         }
 
         public void AddPubKeyClientRegister(int id, RSAParameters key)
-        {
-            //lock (_sync)
-                ClientPubKeyRegister[id] = key;
-        }
-
+            => ClientPubKeyRegister[id] = key;
+        
         public void AddPubKeyServerRegister(int id, RSAParameters key)
-        {
-            //lock (_sync)
-                ServPubKeyRegister[id] = key;
-        }
-
+            => ServPubKeyRegister[id] = key;
+        
         //Log functions
         public void InitializeLog(int seqNr) => Log[seqNr] = new CList<ProtocolCertificate>();
         
@@ -687,10 +676,7 @@ namespace PBFT.Replica
             Console.WriteLine("Saving Certificate: ");
             Console.WriteLine("SeqNr:" + seqNr);
             Console.WriteLine($"Cert: {cert}");
-            //lock (_sync)
-            //{
             Log[seqNr].Add(cert);
-            //}
             SeeLog();
         }
 
@@ -730,18 +716,8 @@ namespace PBFT.Replica
         
         public CList<ProtocolCertificate> GetProtocolCertificate(int seqNr)
         {
-            if (Log.ContainsKey(seqNr))
-            {
-                //lock (_sync)
-                //{
-                    return Log[seqNr];
-                //}    
-            }
-            else
-            {
-                return new CList<ProtocolCertificate>();
-            }
-            
+            if (Log.ContainsKey(seqNr)) return Log[seqNr];
+            else return new CList<ProtocolCertificate>();
         }
 
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
@@ -882,7 +858,7 @@ namespace PBFT.Replica
         }
 
         private static Server Deserialize(IReadOnlyDictionary<string, object> sd)
-        => new Server(
+            => new Server(
                 sd.Get<int>(nameof(ServID)),
                 sd.Get<int>(nameof(CurView)),
                 sd.Get<int>(nameof(CurSeqNr)),
@@ -900,5 +876,5 @@ namespace PBFT.Replica
                 sd.Get<CheckpointCertificate>(nameof(StableCheckpointsCertificate)),
                 sd.Get<CDictionary<int, CheckpointCertificate>>(nameof(CheckpointLog))
         );
-        }
+    }
 }

@@ -8,12 +8,12 @@ namespace PBFT.Helper.JsonObjects
 {
     public class JsonProtocolCertificate
     {
-        public CertType CType {get; set;}
-        public int SeqNr {get; set;}
-        public int ViewNr {get; set;}
-        public byte[] CurReqDigest {get; set;}
-        public bool Valid{get; set;}
-        public List<PhaseMessage> ProofList {get; set;}
+        public CertType CType { get; set; }
+        public int SeqNr { get; set; }
+        public int ViewNr { get; set; }
+        public byte[] CurReqDigest { get; set; }
+        public bool Valid{ get; set; }
+        public List<PhaseMessage> ProofList { get; set; }
 
         [JsonConstructor]
         public JsonProtocolCertificate(int seq, int vnr, byte[] req, CertType cType, bool val, List<PhaseMessage> proof)

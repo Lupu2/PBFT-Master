@@ -15,10 +15,10 @@ namespace PBFT.Replica
 {
     public class ViewPrimary : IPersistable
     {
-        public int ServID {get; set;}
-        public int ViewNr {get; set;}
+        public int ServID { get; set; }
+        public int ViewNr { get; set; }
 
-        public int NrOfNodes {get; set;}
+        public int NrOfNodes { get; set; }
         
         public ViewPrimary(int numberofReplicas)
         {
