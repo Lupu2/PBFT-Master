@@ -58,7 +58,6 @@ namespace PBFT.Certificates
                 .GroupBy(c => new {c.ServID, c.Signature})
                 .Where(c => c.Count() > 1)
                 .Sum(c => c.Count()-1);
-            Console.WriteLine(count);
             return count;
         }
 
@@ -97,6 +96,7 @@ namespace PBFT.Certificates
 
         public bool ValidateCertificate(int nodes)
         {
+            Console.WriteLine("Validate Certificate");
             if (QReached(nodes) && ProofsAreValid()) Valid = true;
             return Valid;
         }

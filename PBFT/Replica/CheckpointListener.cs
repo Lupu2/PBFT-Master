@@ -29,7 +29,7 @@ namespace PBFT.Replica
             CheckpointBridge = checkbridge;
         }
 
-        public async CTask Listen(CheckpointCertificate cpc, Dictionary<int, RSAParameters> keys, Action finCallback)
+        public async CTask Listen(CheckpointCertificate cpc, Dictionary<int, RSAParameters> keys, Action<CheckpointCertificate> finCallback)
         {
             Console.WriteLine("Checkpoint Listener: " + StableSeqNr);
             await CheckpointBridge
@@ -46,7 +46,8 @@ namespace PBFT.Replica
                 })
                 .Where(_ => cpc.ValidateCertificate(FailureNr))
                 .Next();
-            finCallback();
+            Console.WriteLine("Finished Listener!");
+            finCallback(cpc);
         }
         
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)

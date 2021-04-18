@@ -34,7 +34,7 @@ namespace PBFT.Replica
             ViewBridge = viewbridge;
         }
         
-        private async CTask Listen(ViewChangeCertificate vcc, Dictionary<int, RSAParameters> keys, Action finCallback)
+        public async CTask Listen(ViewChangeCertificate vcc, Dictionary<int, RSAParameters> keys, Action finCallback)
         {
             Console.WriteLine("ViewChange Listener: " + NewViewNr);
             await ViewBridge
