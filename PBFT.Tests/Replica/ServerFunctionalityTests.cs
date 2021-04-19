@@ -17,7 +17,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ChangeClientTest()
         {
-            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null);
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null, null, null);
             Server testserv = new Server(1,1,4,null,50,"127.0.0.1:9001", sh, new CDictionary<int, string>());
             testserv.ClientActive[1] = false;
             testserv.ClientActive[2] = false;
@@ -45,7 +45,7 @@ namespace PBFT.Tests.Replica
         public void ServerSigningPhaseMessageTest()
         {
             var (_prikey, _) = Crypto.InitializeKeyPairs();
-            var sh = new SourceHandler(null, null, null, null, null, null, null);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, null);
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             var req = new Request(1, "op");
             var digest = Crypto.CreateDigest(req);
@@ -59,7 +59,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ServerSigningReplyTest()
         {
-            var sh = new SourceHandler(null, null, null, null, null, null, null);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, null);
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
            
             var replymes = new Reply(server.ServID, 1, server.CurView, true, "Result", DateTime.Now.ToString());
@@ -71,7 +71,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ServerSigningViewChangeTest()
         {
-            var sh = new SourceHandler(null, null, null, null, null, null, null); 
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, null); 
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
            
             var viewmes = new ViewChange(0, 0, 1, null, new CDictionary<int, ProtocolCertificate>());
@@ -85,7 +85,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ServerSigningNewViewTest()
         {
-            var sh = new SourceHandler(null, null, null, null, null, null, null); 
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, null); 
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             
             var newviewmes = new NewView(1, null, new CList<PhaseMessage>());
@@ -98,7 +98,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void ServerSigningCheckpointTest()
         {
-            var sh = new SourceHandler(null, null, null, null, null, null, null);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, null);
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
             var checkmes = new Checkpoint(server.ServID, 20, null);
             Assert.IsFalse(Crypto.VerifySignature(checkmes.Signature,checkmes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));

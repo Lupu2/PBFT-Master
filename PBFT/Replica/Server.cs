@@ -17,6 +17,7 @@ using Newtonsoft.Json;
 using PBFT.Certificates;
 using PBFT.Network;
 using PBFT.Helper;
+using PBFT.Helper.JsonObjects;
 using PBFT.Messages;
 
 namespace PBFT.Replica
@@ -382,10 +383,62 @@ namespace PBFT.Replica
                                     conn.Dispose();
                                     return;
                                 }
-
                                 break;
                             case MessageType.ViewChange:
                                 ViewChange vc = (ViewChange) mes;
+                                Console.WriteLine("View-Change:");
+                                Console.WriteLine(vc);
+                                if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
+                                    ServPubKeyRegister.ContainsKey(CurPrimary.ServID) ||
+                                    CurPrimary.ServID == ServID)
+                                {
+                                    bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
+                                    Console.WriteLine("ViewChange validation result: " + val);
+                                    if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
+                                    {
+                                        Console.WriteLine("ViewChange cert already registered, adding to it");
+                                        Console.WriteLine("Count:" + ViewMessageRegister[vc.NextViewNr].ProofList.Count);
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Console.WriteLine("Scheduling adding view-change");
+                                            if (!ViewMessageRegister[vc.NextViewNr].IsValid()) Subjects.ViewChangeSubject.Emit(vc);
+                                        });
+                                    }
+                                    else if(val && !ViewMessageRegister.ContainsKey(vc.NextViewNr)) //does not already have any view-change messages for view n
+                                    {
+                                        Console.WriteLine("Creating a new-view certificate");
+                                        await _scheduler.Schedule(() =>
+                                        {
+                                            Console.WriteLine("Scheduling creating viewcert and adding view-change");
+                                            var newvp = new ViewPrimary(vc.ServID, vc.NextViewNr, TotalReplicas);
+                                            var viewcert = new ViewChangeCertificate(
+                                                newvp,
+                                                vc.CertProof,
+                                                null,
+                                                null
+                                            );
+                                            ViewMessageRegister[vc.NextViewNr] = viewcert;
+                                            var viewlistener = new ViewChangeListener(
+                                                vc.NextViewNr, 
+                                                Quorum.CalculateFailureLimit(TotalReplicas), 
+                                                newvp, 
+                                                Subjects.ViewChangeSubject,
+                                                true);
+                                            _ = viewlistener.Listen(viewcert, ServPubKeyRegister, EmitViewChange, EmitShutdown);
+                                            Subjects.ViewChangeSubject.Emit(vc);
+                                        });
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Things did not go as planned :(");
+                                        //
+                                        //Console.WriteLine("Connection terminated, rules were broken");
+                                        //conn.Dispose();
+                                        //return;
+                                    }
+                                }
+
+                                /*ViewChange vc = (ViewChange) mes;
                                 Console.WriteLine("View-Change:");
                                 Console.WriteLine(vc);
                                 if (ServConnInfo.ContainsKey(CurPrimary.ServID) &&
@@ -439,14 +492,13 @@ namespace PBFT.Replica
                                     else
                                     {
                                         Console.WriteLine("Things did not go as planned :(");
-                                        /*
-                                         * Console.WriteLine("Connection terminated, rules were broken");
-                                         * conn.Dispose();
-                                         * return;
-                                         */
+                                        //
+                                        //Console.WriteLine("Connection terminated, rules were broken");
+                                        //conn.Dispose();
+                                        //return;
+                                        //
                                     }
-                                }
-
+                                }*/
                                 break;
                             case MessageType.NewView:
                                 NewView nvmes = (NewView) mes;
@@ -466,7 +518,7 @@ namespace PBFT.Replica
 
                                 break;
                             case MessageType.Checkpoint:
-                                Checkpoint check = (Checkpoint) mes;
+                                /*Checkpoint check = (Checkpoint) mes;
                                 Console.WriteLine("Checkpoint:" + check);
                                 //Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
                                 foreach (var (key, _) in CheckpointLog) Console.WriteLine("Key: " + key);
@@ -517,6 +569,48 @@ namespace PBFT.Replica
                                         }
 
                                         //});
+                                    }
+                                });
+                                break;*/
+                            //version 2
+                                Checkpoint check = (Checkpoint) mes;
+                                Console.WriteLine("Checkpoint:" + check);
+                                //Console.WriteLine("CheckpointLenght: " + CheckpointLog.Count);
+                                foreach (var (key, _) in CheckpointLog) Console.WriteLine("Key: " + key);
+                                await _scheduler.Schedule(() =>
+                                {
+                                    Console.WriteLine("Scheduling checkpoint in server");
+                                    if (CheckpointLog.ContainsKey(check.StableSeqNr))
+                                    {
+                                        Console.WriteLine("Found existing certificate");
+                                        Console.WriteLine("StableCert: " + StableCheckpointsCertificate);
+                                        if (StableCheckpointsCertificate == null || 
+                                            StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr
+                                            )
+                                            Subjects.CheckpointSubject.Emit(check);
+                                    }
+                                    else if(!CheckpointLog.ContainsKey(check.StableSeqNr))
+                                    {
+                                        Console.WriteLine("Could not find existing certificate");
+                                        Console.WriteLine("Adding new Checkpoint to checkpoint log");
+                                        if (StableCheckpointsCertificate == null ||
+                                            StableCheckpointsCertificate.LastSeqNr > check.StableSeqNr)
+                                        {
+                                            CheckpointCertificate cert = new CheckpointCertificate(
+                                                check.StableSeqNr,
+                                                check.StateDigest, 
+                                                null
+                                            );
+                                            CheckpointLog[check.StableSeqNr] = cert;
+                                            var checklistener = new CheckpointListener(
+                                            check.StableSeqNr,
+                                            Quorum.CalculateFailureLimit(TotalReplicas), 
+                                                 check.StateDigest, 
+                                                 Subjects.CheckpointSubject
+                                            );
+                                            _= checklistener.Listen(cert, ServPubKeyRegister, EmitCheckpoint);
+                                            Subjects.CheckpointSubject.Emit(check);
+                                        }
                                     }
                                 });
                                 break;
@@ -578,6 +672,15 @@ namespace PBFT.Replica
                 });    
             }
         }
+
+        public void EmitViewChangeLocally(ViewChange viewmes)
+        {
+            Console.WriteLine("Emitting View Change Locally");
+            _scheduler.Schedule(() =>
+            {
+                Subjects.ViewChangeSubject.Emit(viewmes);
+            });
+        }
         
         public void EmitShutdown()
         {
@@ -596,7 +699,7 @@ namespace PBFT.Replica
             Console.WriteLine("Received viewchange, emitting to start new view");
             _scheduler.Schedule(() =>
             {
-                Subjects.ViewChangeSubject.Emit(true);
+                Subjects.ViewChangeFinSubject.Emit(true);
             });
         }
         
@@ -606,7 +709,7 @@ namespace PBFT.Replica
             Console.WriteLine(CurSeqNr);
             _scheduler.Schedule(() =>
             {
-                Subjects.CheckpointSubject.Emit(cpc);
+                Subjects.CheckpointFinSubject.Emit(cpc);
             });
         }
         
@@ -745,7 +848,7 @@ namespace PBFT.Replica
             Console.WriteLine("Listen for stable checkpoints");
             while (true)
             {
-                var stablecheck = await Subjects.CheckpointSubject.Next();
+                var stablecheck = await Subjects.CheckpointFinSubject.Next();
                 Console.WriteLine("Update Checkpoint State");
                 Console.WriteLine(stablecheck);
                 StableCheckpointsCertificate = stablecheck;
@@ -777,7 +880,6 @@ namespace PBFT.Replica
                     return shaalgo.ComputeHash(bytelog);
                 }
             }
-
             throw new ArgumentException();
         }
 
@@ -805,6 +907,37 @@ namespace PBFT.Replica
                     Console.WriteLine("CreateCheckpoint append");
                     Console.WriteLine(checkpointmes);
                     checkcert.AppendProof(checkpointmes, Pubkey, Quorum.CalculateFailureLimit(TotalReplicas));
+                });
+            }
+        }
+
+        public void CreateCheckpoint2(int limseqNr, CList<string> appstate)
+        {
+            if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
+            {
+                Console.WriteLine("Calling Create checkpoint");
+                var statedig = Crypto.MakeStateDigest(appstate);
+                Console.WriteLine("Scheduling checkpoint in created checkpoint");
+                _scheduler.Schedule(() =>
+                {
+                    if (!CheckpointLog.ContainsKey(limseqNr))
+                    {
+                        CheckpointCertificate checkcert = new CheckpointCertificate(limseqNr, statedig, null);
+                        CheckpointLog[limseqNr] = checkcert;
+                        var checklistener = new CheckpointListener(
+                        limseqNr,
+                        Quorum.CalculateFailureLimit(TotalReplicas), 
+                             statedig, 
+                             Subjects.CheckpointSubject
+                        );
+                        _ = checklistener.Listen(checkcert, ServPubKeyRegister, EmitCheckpoint);
+                    }
+                    var checkmes = new Checkpoint(ServID, limseqNr, statedig);
+                    checkmes.SignMessage(_prikey);
+                    Multicast(checkmes.SerializeToBuffer(), MessageType.Checkpoint);
+                    Console.WriteLine("CreateCheckpoint emitted");
+                    Console.WriteLine(checkmes);
+                    Subjects.CheckpointSubject.Emit(checkmes);
                 });
             }
         }

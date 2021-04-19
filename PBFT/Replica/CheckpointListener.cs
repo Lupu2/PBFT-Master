@@ -9,6 +9,7 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using PBFT.Certificates;
+using PBFT.Helper;
 using PBFT.Messages;
 
 namespace PBFT.Replica
@@ -36,7 +37,7 @@ namespace PBFT.Replica
                 .Where(check => check.StableSeqNr == StableSeqNr)
                 .Where(check =>
                 {
-                    Console.WriteLine("ViewChange VALIDATING MESSAGE");
+                    Console.WriteLine("Checkpoint VALIDATING MESSAGE");
                     return check.Validate(keys[check.ServID]);
                 })
                 .Scan(cpc.ProofList, (prooflist, message) =>
@@ -54,7 +55,7 @@ namespace PBFT.Replica
         {
             stateToSerialize.Set(nameof(StableSeqNr), StableSeqNr);
             stateToSerialize.Set(nameof(FailureNr), FailureNr);
-            stateToSerialize.Set(nameof(StateDigest), StateDigest);
+            stateToSerialize.Set(nameof(StateDigest), Serializer.SerializeHash(StateDigest));
             stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
         }
 
@@ -62,7 +63,7 @@ namespace PBFT.Replica
             => new CheckpointListener(
                 sd.Get<int>(nameof(StableSeqNr)),
                 sd.Get<int>(nameof(FailureNr)),
-                sd.Get<byte[]>(nameof(StateDigest)),
+                Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                 sd.Get<Source<Checkpoint>>(nameof(CheckpointBridge))
                 );
     }

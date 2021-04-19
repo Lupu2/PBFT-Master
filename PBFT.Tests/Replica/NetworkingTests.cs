@@ -24,7 +24,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void SimpleListenerTest()
         {
-            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null);
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null, null, null);
             var serv = new Server(1, 1, 4, null, 20, "127.0.0.1:9001", sh, new CDictionary<int, string>());
             serv.Start();
             new Thread(Sender) {IsBackground = true}.Start();
@@ -58,7 +58,7 @@ namespace PBFT.Tests.Replica
         [TestMethod]
         public void SimpleServerToServerCommunicationTest() //need to redesign network layer before continuing with these tests. Creating connection is not working properly atm.
         {
-            var sourceHandler = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null , null);
+            var sourceHandler = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null , null, null, null);
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sourceHandler, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.Start();
@@ -70,7 +70,7 @@ namespace PBFT.Tests.Replica
 
         public void OtherServer(RSAParameters otherpubkey)
         {
-            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null);
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null, null, null);
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
             var serv = new Server(1, 0, 4, null, 20, "127.0.0.1:9001", sh, servers);
@@ -89,7 +89,7 @@ namespace PBFT.Tests.Replica
             var storage = new InMemoryStorageEngine();
             var scheduler = ExecutionEngineFactory.StartNew(storage);
             var mesSource = new Source<PhaseMessage>();
-            var sh = new SourceHandler(new Source<Request>(), mesSource, null, null, null, null, null);
+            var sh = new SourceHandler(new Source<Request>(), mesSource, null, null, null, null, null, null, null);
             var serv = new Server(0, 0, 4, scheduler, 20, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
             serv.ServerContactList[1] = "127.0.0.1:9001";
@@ -118,7 +118,7 @@ namespace PBFT.Tests.Replica
         {
             var storage = new InMemoryStorageEngine();
             var scheduler = ExecutionEngineFactory.StartNew(storage);
-            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null);
+            var sh = new SourceHandler(new Source<Request>(), new Source<PhaseMessage>(), null, null, null, null, null, null, null);
             CDictionary<int, string> servers = new CDictionary<int, string>();
             servers[0] = "127.0.0.1:9000";
             servers[1] = "127.0.0.1:9001";

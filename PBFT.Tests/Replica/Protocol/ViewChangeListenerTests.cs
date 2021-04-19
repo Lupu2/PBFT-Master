@@ -40,7 +40,7 @@ namespace PBFT.Tests.Replica.Protocol
             keys[3] = pub3;
             Source<ViewChange> viewbridge = new Source<ViewChange>();
             ViewPrimary vp = new ViewPrimary(1, 1, 4);
-            var viewlistener = new ViewChangeListener(1, Quorum.CalculateFailureLimit(4), vp, viewbridge);
+            var viewlistener = new ViewChangeListener(1, Quorum.CalculateFailureLimit(4), vp, viewbridge, false);
             var viewcert = new ViewChangeCertificate(vp, null, null, null);
             var view0 = new ViewChange(-1,0,1,null, new CDictionary<int, ProtocolCertificate>());
             view0.SignMessage(pri0);
@@ -50,7 +50,7 @@ namespace PBFT.Tests.Replica.Protocol
             view2.SignMessage(pri2);
             var view3 = new ViewChange(-1,3,1,null, new CDictionary<int, ProtocolCertificate>());
             view3.SignMessage(pri3);
-            viewlistener.Listen(viewcert, keys, ListenForEmit);
+            viewlistener.Listen(viewcert, keys, ListenForEmit, null);
             
             _scheduler.Schedule(() =>
             {
@@ -91,7 +91,7 @@ namespace PBFT.Tests.Replica.Protocol
             
             Source<ViewChange> viewbridge = new Source<ViewChange>();
             ViewPrimary vp = new ViewPrimary(1, 1, 4);
-            var viewlistener = new ViewChangeListener(1, Quorum.CalculateFailureLimit(4), vp, viewbridge);
+            var viewlistener = new ViewChangeListener(1, Quorum.CalculateFailureLimit(4), vp, viewbridge, false);
             var viewcert = new ViewChangeCertificate(vp, checkcert, null, null);
             var view0 = new ViewChange(5,0,1, checkcert, protocerts);
             view0.SignMessage(pri0);
@@ -101,7 +101,7 @@ namespace PBFT.Tests.Replica.Protocol
             view2.SignMessage(pri2);
             var view3 = new ViewChange(5,3,1, checkcert, protocerts);
             view3.SignMessage(pri3);
-            viewlistener.Listen(viewcert, keys, ListenForEmit);
+            viewlistener.Listen(viewcert, keys, ListenForEmit, null);
             
             _scheduler.Schedule(() =>
             {
@@ -128,8 +128,8 @@ namespace PBFT.Tests.Replica.Protocol
             view22.SignMessage(pri2);
             var view32 = new ViewChange(5,3,2, checkcert, protocerts);
             view32.SignMessage(pri3);
-            var viewlistener2 = new ViewChangeListener(2, Quorum.CalculateFailureLimit(4), vp2, viewbridge);
-            viewlistener2.Listen(viewcert2, keys, ListenForEmit);
+            var viewlistener2 = new ViewChangeListener(2, Quorum.CalculateFailureLimit(4), vp2, viewbridge, false);
+            viewlistener2.Listen(viewcert2, keys, ListenForEmit, null);
             
             _scheduler.Schedule(() =>
             {

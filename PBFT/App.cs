@@ -65,19 +65,23 @@ namespace PBFT
                     Source<Request> reqSource = new Source<Request>();
                     Source<PhaseMessage> protSource = new Source<PhaseMessage>();
                     Source<PhaseMessage> redistSource = new Source<PhaseMessage>();
-                    Source<bool> viewSource = new Source<bool>();
-                    Source<bool> shutdownSource = new Source<bool>();
+                    Source<ViewChange> viewSource = new Source<ViewChange>();
+                    Source<Checkpoint> checkSource = new Source<Checkpoint>();
+                    Source<bool> viewfinSource = new Source<bool>();
+                    Source<bool> shutdownfinSource = new Source<bool>();
                     Source<PhaseMessage> shutdownPhaseSource = new Source<PhaseMessage>();
                     Source<NewView> newviewSource = new Source<NewView>();
-                    Source<CheckpointCertificate> checkSource = new Source<CheckpointCertificate>();
+                    Source<CheckpointCertificate> checkfinSource = new Source<CheckpointCertificate>();
                     SourceHandler sh = new (
                         reqSource, 
                         protSource, 
-                        viewSource, 
-                        shutdownSource, 
+                        viewSource,
+                        viewfinSource, 
+                        shutdownfinSource, 
                         newviewSource, 
                         redistSource, 
-                        checkSource
+                        checkSource,
+                        checkfinSource
                     );
                     PseudoApp = new CList<string>();
                     Console.WriteLine("Starting application");
@@ -91,9 +95,9 @@ namespace PBFT
                         protSource, 
                         redistSource, 
                         shutdownPhaseSource, 
-                        viewSource, 
+                        viewfinSource, 
                         newviewSource, 
-                        shutdownSource
+                        shutdownfinSource
                     );
                     scheduler.Schedule(() =>
                     {
@@ -175,7 +179,8 @@ namespace PBFT
                             Console.WriteLine("APP OPERATION FINISHED");
                             execute.Serv.ChangeClientStatus(req.ClientID);
                             if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
                             Console.WriteLine("FINISHED TASK");
                             //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
                             await Sync.Next();
@@ -189,11 +194,12 @@ namespace PBFT
                             await scheduler.Schedule(() =>
                                 shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
                                 ));
-                            await execute.HandlePrimaryChange();
+                            await execute.HandlePrimaryChange2();
                             Console.WriteLine("View-Change completed");
                             serv.UpdateSeqNr();
                             if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
-                                serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                                serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
                             execute.Active = true;
                             serv.ProtocolActive = true;
                             serv.GarbageViewChangeRegistry(serv.CurView);

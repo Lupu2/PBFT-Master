@@ -99,7 +99,7 @@ namespace PBFT.Tests.Persistency
             
             CDictionary<int, string> con = new CDictionary<int, string>();
             con[1] = "127.0.0.1:9001";
-            var sh = new SourceHandler(null, null, null, null, null, null, testsource);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, testsource);
             var testserv = new Server(1, 1, 4, scheduler, 10, con[1], sh, con);
             var cert = new CheckpointCertificate(2, testdigest, testserv.EmitCheckpoint);
            //var listener = ListenforCheckpointMessage(testsource).GetAwaiter();
@@ -134,7 +134,7 @@ namespace PBFT.Tests.Persistency
                 var copyserv = Roots.Resolve<Server>();
                 var copysource = Roots.Resolve<Source<CheckpointCertificate>>();
 
-                copyserv.Subjects.CheckpointSubject = copysource;
+                copyserv.Subjects.CheckpointFinSubject = copysource;
                 copyserv.CurSeqNr = 2;
                 copycert.EmitCheckpoint = copyserv.EmitCheckpoint;
                 

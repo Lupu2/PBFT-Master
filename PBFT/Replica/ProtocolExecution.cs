@@ -337,6 +337,72 @@ namespace PBFT.Replica
             if (!val) goto ViewChange;
             cancel2.Cancel();
         }
+        
+        public async CTask HandlePrimaryChange2()
+        {
+            Console.WriteLine("HandlePrimaryChange");
+            ViewChange:
+            
+            //Step 1.
+            Serv.CurPrimary.NextPrimary();
+            Serv.CurView++;
+            ViewChangeCertificate vcc;
+            Console.WriteLine("Initialize ViewChangeCertificate");
+            if (!Serv.ViewMessageRegister.ContainsKey(Serv.CurView))
+            {
+                Console.WriteLine("Adding viewcert to registry");
+                vcc = new ViewChangeCertificate(Serv.CurPrimary, Serv.StableCheckpointsCertificate, null, null);
+                Serv.ViewMessageRegister[Serv.CurView] = vcc;
+                ViewChangeListener vclListener = new ViewChangeListener(
+                    Serv.CurView, 
+                    Quorum.CalculateFailureLimit(Serv.TotalReplicas), 
+                         Serv.CurPrimary, 
+                         Serv.Subjects.ViewChangeSubject, 
+                    false
+                );
+                _ = vclListener.Listen(vcc, Serv.ServPubKeyRegister, Serv.EmitViewChange, null);
+            }
+            else
+            {
+                vcc = Serv.ViewMessageRegister[Serv.CurView];
+                Console.WriteLine("Obtained viewcert from registry");
+            }
+            var listener = ListenForViewChange();
+            var shutdownsource = new Source<bool>();
+            ViewChange vc;
+            CDictionary<int, ProtocolCertificate> preps;
+            if (Serv.StableCheckpointsCertificate == null)
+            {
+                preps = Serv.CollectPrepareCertificates(-1);
+                vc = new ViewChange(0,Serv.ServID, Serv.CurView, null, preps);
+            }
+            else
+            {
+                int stableseq = Serv.StableCheckpointsCertificate.LastSeqNr;
+                preps = Serv.CollectPrepareCertificates(stableseq);
+                vc = new ViewChange(stableseq,Serv.ServID, Serv.CurView, Serv.StableCheckpointsCertificate, preps);
+            } 
+            //Step 2.
+            Serv.SignMessage(vc, MessageType.ViewChange);
+            //vcc.AppendViewChange(vc, Serv.Pubkey, FailureNr);
+            Serv.EmitViewChangeLocally(vc);
+            Serv.Multicast(vc.SerializeToBuffer(), MessageType.ViewChange);
+            CancellationTokenSource cancel = new CancellationTokenSource();
+            _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource, 10000, cancel.Token);
+            bool vcs = await WhenAny<bool>.Of(listener, ListenForShutdown(shutdownsource));
+            Console.WriteLine("vcs: " + vcs);
+            if (!vcs) goto ViewChange;
+            cancel.Cancel();
+            
+            //Step 3 -->.
+            Source<bool> shutdownsource2 = new Source<bool>();
+            CancellationTokenSource cancel2 = new CancellationTokenSource();
+            _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(shutdownsource2, 15000, cancel2.Token);
+            bool val = await WhenAny<bool>.Of(ViewChangeProtocol(preps, vcc), ListenForShutdown(shutdownsource2));
+            Console.WriteLine("val: " + val);
+            if (!val) goto ViewChange;
+            cancel2.Cancel();
+        }
 
         public async CTask<bool> ListenForViewChange()
         {

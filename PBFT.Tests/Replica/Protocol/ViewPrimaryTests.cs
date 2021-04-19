@@ -8,7 +8,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 
-namespace PBFT.Tests.Replica
+namespace PBFT.Tests.Replica.Protocol
 {
     [TestClass]
     public class ViewPrimaryTests
@@ -37,10 +37,12 @@ namespace PBFT.Tests.Replica
             var sh = new SourceHandler(
                 new Source<Request>(),
                 new Source<PhaseMessage>(),
+                new Source<ViewChange>(),
                 new Source<bool>(),
                 new Source<bool>(),
                 new Source<NewView>(), 
                 new Source<PhaseMessage>(),
+                new Source<Checkpoint>(),
                 new Source<CheckpointCertificate>()
             );
             Server testserv = new Server(0, 0, 4, null, 50, "127.0.0.1:9000", sh, new CDictionary<int, string>());
