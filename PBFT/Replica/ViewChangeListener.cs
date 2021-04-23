@@ -55,7 +55,11 @@ namespace PBFT.Replica
                         prooflist.Add(message);
                         return prooflist;
                     })
-                    .Where(_ => vcc.ShutdownReached(FailureNr))
+                    .Where(_ =>
+                    {
+                        Console.WriteLine("ShutdownReached");
+                        return vcc.ShutdownReached(FailureNr);
+                    })
                     .Next();
                 Console.WriteLine("Calling shutdown");
                 shutdownCallback();

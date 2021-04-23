@@ -94,6 +94,7 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int nextview)
         {
+            Console.WriteLine("Validating message: " + this);
             var copy = (ViewChange) CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
             Console.WriteLine("Passed NewViewNr check");

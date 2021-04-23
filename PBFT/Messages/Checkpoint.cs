@@ -67,6 +67,7 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey)
         {
+            Console.WriteLine("Validating: " + this);
             if (StableSeqNr < 0) return false;
             if (StateDigest == null) return false;
             var clone = (Checkpoint) CreateCopyTemplate();

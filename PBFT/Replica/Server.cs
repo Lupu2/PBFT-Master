@@ -587,6 +587,7 @@ namespace PBFT.Replica
                                         if (StableCheckpointsCertificate == null || 
                                             StableCheckpointsCertificate.LastSeqNr != check.StableSeqNr
                                             )
+                                            Console.WriteLine("EMITTING Found EXISTING CERTIFICATE IN SERVER");
                                             Subjects.CheckpointSubject.Emit(check);
                                     }
                                     else if(!CheckpointLog.ContainsKey(check.StableSeqNr))
@@ -594,7 +595,7 @@ namespace PBFT.Replica
                                         Console.WriteLine("Could not find existing certificate");
                                         Console.WriteLine("Adding new Checkpoint to checkpoint log");
                                         if (StableCheckpointsCertificate == null ||
-                                            StableCheckpointsCertificate.LastSeqNr > check.StableSeqNr)
+                                            StableCheckpointsCertificate.LastSeqNr < check.StableSeqNr)
                                         {
                                             CheckpointCertificate cert = new CheckpointCertificate(
                                                 check.StableSeqNr,
@@ -609,6 +610,7 @@ namespace PBFT.Replica
                                                  Subjects.CheckpointSubject
                                             );
                                             _= checklistener.Listen(cert, ServPubKeyRegister, EmitCheckpoint);
+                                            Console.WriteLine("EMITTING NOT FIND EXISTING CERTIFICATE IN SERVER");
                                             Subjects.CheckpointSubject.Emit(check);
                                         }
                                     }

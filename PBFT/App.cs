@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -43,18 +44,18 @@ namespace PBFT
                 CDictionary<int, string> serversInfo;
                 Console.WriteLine(paramid);
                 Console.WriteLine(testparam);
-                if (testparam) servInfo = LoadJSONValues.GetServerData("testServerInfo.json",paramid).GetAwaiter().GetResult();
-                else servInfo = LoadJSONValues.GetServerData("serverInfo.json",paramid).GetAwaiter().GetResult();
+                if (testparam) servInfo = LoadJSONValues.GetServerData("JSONFiles/testServerInfo.json",paramid).GetAwaiter().GetResult();
+                else servInfo = LoadJSONValues.GetServerData("JSONFiles/serverInfo.json",paramid).GetAwaiter().GetResult();
 
                 var id = servInfo.Item1;
                 var ipaddr = servInfo.Item2;
                 Console.WriteLine("Result");
                 Console.WriteLine(id);
                 Console.WriteLine(ipaddr);
-                if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("testServerInfo.json").Result;
-                else serversInfo = LoadJSONValues.LoadJSONFileContent("serverInfo.json").Result;
+                if (testparam) serversInfo = LoadJSONValues.LoadJSONFileContent("JSONFiles/testServerInfo.json").Result;
+                else serversInfo = LoadJSONValues.LoadJSONFileContent("JSONFiles/serverInfo.json").Result;
                 //var con = File.Exists("./PBFTStorage.txt");
-                var con = File.Exists("./PBFTStorage" + id + ".txt");
+                var con = File.Exists("Storage/PBFTStorage" + id + ".txt");
                 Console.WriteLine("Found storage:" + con);
                 Console.WriteLine(con);
                 Engine scheduler;
@@ -153,14 +154,17 @@ namespace PBFT
             serv.ProtocolActive = true;
             while (true)
             {
-                //TODO redesign to operate based on seqNr instead of req!
                 var req = await requestMessage.Next();
                 Console.WriteLine("Received Client Request");
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]) && serv.CurSeqNr < serv.CurSeqRange.End.Value)
                 {
+                    Console.WriteLine("Checking if it is active:");
                     if (execute.Active)
                     {
-                        Console.WriteLine("Handling client request");
+                        int seq = ++serv.CurSeqNr;
+                        Console.WriteLine("Curseq: " + seq + " for request: " + req);
+                        _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
+                        /*Console.WriteLine("Handling client request");
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
                             serv.Subjects.ShutdownSubject, 
@@ -205,12 +209,62 @@ namespace PBFT
                             serv.GarbageViewChangeRegistry(serv.CurView);
                             serv.ResetClientStatus();
                             await Sync.Next();
-                        }
+                        }*/
                     }
                 }
             }
         }
-        
+
+        public static async CTask PerformProtocol(ProtocolExecution execute, Server serv, Engine scheduler, Source<PhaseMessage> shutdownPhaseSource, Request req, int seq)
+        {
+            Console.WriteLine("Handling client request");
+            CancellationTokenSource cancel = new CancellationTokenSource();
+            _ = TimeoutOps.AbortableProtocolTimeoutOperation(
+                serv.Subjects.ShutdownSubject,
+                10000,
+                cancel.Token,
+                scheduler
+            );
+            execute.Serv.ChangeClientStatus(req.ClientID);
+
+            bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
+                ListenForShutdown(serv.Subjects.ShutdownSubject));
+            Console.WriteLine("Result: " + res);
+            if (res)
+            {
+                Console.WriteLine("APP OPERATION FINISHED");
+                execute.Serv.ChangeClientStatus(req.ClientID);
+                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+                    ) //really shouldn't call this at seq nr 0, but just incase
+                    //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                    serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
+                Console.WriteLine("FINISHED TASK");
+                //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                await Sync.Next();
+                Console.WriteLine("Finished Sync");
+            }
+            else
+            {
+                Console.WriteLine("View-Change commence :)");
+                execute.Active = false;
+                serv.ProtocolActive = false;
+                await scheduler.Schedule(() =>
+                    shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
+                    ));
+                await execute.HandlePrimaryChange2();
+                Console.WriteLine("View-Change completed");
+                serv.UpdateSeqNr();
+                if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0)
+                    //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                    serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
+                execute.Active = true;
+                serv.ProtocolActive = true;
+                serv.GarbageViewChangeRegistry(serv.CurView);
+                serv.ResetClientStatus();
+                await Sync.Next();
+            }
+        }
+
         public static async CTask<bool> ListenForShutdown(Source<bool> shutdown)
         {
             Console.WriteLine("ListenForShutdown");
