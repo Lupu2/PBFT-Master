@@ -15,9 +15,9 @@ namespace PBFTClient
             if (testparam)
             {
                 Directory.SetCurrentDirectory(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\NewRepository\PBFT-Master\PBFTClient");
-                cli.LoadServerInfo("../PBFT/testServerInfo.json");
+                cli.LoadServerInfo("JSONFiles/testServerInfo.json");
             }
-            else cli.LoadServerInfo("../PBFT/testServerInfo.json");
+            else cli.LoadServerInfo("JSONFiles/serverInfo.json");
             cli.SetFNumber();
             var connections = cli.InitializeConnections();
             connections.Wait();
