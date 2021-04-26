@@ -331,6 +331,7 @@ namespace PBFT.Replica
                                 break;
                             case MessageType.Request:
                                 Request reqmes = (Request) mes;
+                                Console.WriteLine(reqmes);
                                 if (ClientConnInfo.ContainsKey(reqmes.ClientID) &&
                                     ClientPubKeyRegister.ContainsKey(reqmes.ClientID))
                                 {

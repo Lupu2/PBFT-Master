@@ -48,6 +48,7 @@ namespace PBFT.Replica
         {
             Console.WriteLine("HandleRequest");
             //await Sync.Next();
+            Console.WriteLine("Initial sequence number: " + leaderseq);
             try
             {
                 byte[] digest;
@@ -58,6 +59,7 @@ namespace PBFT.Replica
                 if (Serv.IsPrimary()) //Primary
                 {
                     curSeq = leaderseq;
+                    Console.WriteLine("CurSeq:" + curSeq);
                     Serv.InitializeLog(curSeq);
                     PhaseMessage preprepare = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.PrePrepare);
                     Serv.SignMessage(preprepare, MessageType.PhaseMessage);
@@ -67,6 +69,7 @@ namespace PBFT.Replica
                 }else{ //Replicas
                     var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                        .Where(pm => pm.Digest != null && pm.Digest.SequenceEqual(digest))
                         .Where(pm =>
                         {
                             Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
@@ -99,13 +102,14 @@ namespace PBFT.Replica
                     throw new TimeoutException("Timeout Occurred! System is no longer active!");
                 }
                 //Prepare phase
+                Console.WriteLine("CertPreSeq:" + qcertpre.SeqNr);
                 ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.SeqNr == qcertpre.SeqNr)
                     .Where(pm =>
                     {
-                        Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE");
+                        Console.WriteLine("MESSAGEBRIDGE VALIDATING MESSAGE for request " +clireq);
                         return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange,
                                 qcertpre);
                     })
@@ -190,8 +194,10 @@ namespace PBFT.Replica
                     //await Sleep.Until(1000); //causes object not initialized execption for test fsr
                     Thread.Sleep(1000);
                 }else{ //Replicas
-                    var preprepared = await MesBridge.Merge(ShutdownBridgePhase)
+                    var preprepared = await MesBridge
                         .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                        //.Where(pm => pm.Digest == null || pm.Digest != null && pm.Digest.SequenceEqual(digest))
+                        .Where(pm => pm.Digest != null && pm.Digest.SequenceEqual(digest))
                         .Where(pm => {
                                 Console.WriteLine("PRE-Prepare MESSAGEBRIDGE VALIDATING MESSAGE");
                                 return pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange);

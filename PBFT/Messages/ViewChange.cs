@@ -97,10 +97,7 @@ namespace PBFT.Messages
             Console.WriteLine("Validating message: " + this);
             var copy = (ViewChange) CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
-            Console.WriteLine("Passed NewViewNr check");
             if(!Crypto.VerifySignature(Signature,copy.SerializeToBufferSignature(), pubkey)) return false;
-            Console.WriteLine("Passed All checks");
-            //Verify Checkout Certificate... 
             return true;
         }
 
