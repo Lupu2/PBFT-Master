@@ -1,22 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Network;
-using PBFT.Replica;
+using PBFT.Replica.Network;
 
 namespace PBFT.Client
 {

@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace PBFT.Network
+namespace PBFT.Replica.Network
 {
     public class TempConnListener
     {

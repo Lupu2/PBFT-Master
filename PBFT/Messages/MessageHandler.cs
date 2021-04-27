@@ -1,7 +1,7 @@
 
 using System;
 using PBFT.Helper;
-using PBFT.Network;
+using PBFT.Replica.Network;
 using PBFT.Replica;
 
 namespace PBFT.Messages

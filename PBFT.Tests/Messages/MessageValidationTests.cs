@@ -8,7 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
-using PBFT.Network;
+using PBFT.Replica.Network;
 using PBFT.Replica;
 
 namespace PBFT.Tests

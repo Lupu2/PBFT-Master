@@ -8,7 +8,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 
-namespace PBFT.Tests.Replica.Protocol
+namespace PBFT.Tests.Replica
 {
     [TestClass]
     public class ViewPrimaryTests

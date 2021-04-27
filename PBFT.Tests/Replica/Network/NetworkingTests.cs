@@ -13,10 +13,10 @@ using Cleipnir.StorageEngine.InMemory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Network;
+using PBFT.Replica.Network;
 using PBFT.Replica;
 
-namespace PBFT.Tests.Replica
+namespace PBFT.Tests.Replica.Network
 {
     [TestClass]
     public class NetworkingTests

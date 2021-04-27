@@ -11,7 +11,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 
-namespace PBFT.Tests.Replica
+namespace PBFT.Tests.Certificates
 {
     [TestClass]
     public class CheckpointTests

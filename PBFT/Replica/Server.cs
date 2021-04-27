@@ -15,10 +15,10 @@ using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
 using Newtonsoft.Json;
 using PBFT.Certificates;
-using PBFT.Network;
+using PBFT.Replica.Network;
 using PBFT.Helper;
-using PBFT.Helper.JsonObjects;
 using PBFT.Messages;
+using PBFT.Replica.Protocol;
 
 namespace PBFT.Replica
 {

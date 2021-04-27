@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Network
+namespace PBFT.Replica.Network
 {
     public static class NetworkFunctionality
     {

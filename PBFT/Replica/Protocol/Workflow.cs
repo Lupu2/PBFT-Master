@@ -1,23 +1,22 @@
-using Cleipnir.ObjectDB.Persistency;
-using Cleipnir.ObjectDB.Persistency.Serialization;
-using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
-using Cleipnir.Rx;
-using PBFT.Helper;
-using PBFT.Messages;
-using PBFT.Certificates;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
+using Cleipnir.ObjectDB.Persistency;
+using Cleipnir.ObjectDB.Persistency.Serialization;
+using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
+using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
+using Cleipnir.Rx;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
+using PBFT.Helper;
+using PBFT.Messages;
+using PBFT.Certificates;
 
-namespace PBFT.Replica
+namespace PBFT.Replica.Protocol
 {
     public class ProtocolExecution : IPersistable
     {

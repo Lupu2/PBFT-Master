@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 using PBFT.Certificates;
 using PBFT.Messages;
 
-namespace PBFT.Replica
+namespace PBFT.Replica.Protocol
 {
     public class ViewChangeListener : IPersistable
     {

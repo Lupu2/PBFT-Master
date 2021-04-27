@@ -12,7 +12,7 @@ using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Replica
+namespace PBFT.Replica.Protocol
 {
     public class CheckpointListener : IPersistable
     {

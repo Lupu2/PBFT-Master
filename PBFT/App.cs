@@ -7,11 +7,11 @@ using Cleipnir.ObjectDB.TaskAndAwaitable.Awaitables;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.SimpleFile;
-using Newtonsoft.Json.Serialization;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
+using PBFT.Replica.Protocol;
 
 namespace PBFT
 {
