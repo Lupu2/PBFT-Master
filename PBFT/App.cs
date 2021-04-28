@@ -167,8 +167,12 @@ namespace PBFT
                     {
                         int seq = ++serv.CurSeqNr;
                         Console.WriteLine("Curseq: " + seq + " for request: " + req);
-                        //TODO Ask Leander whether or not he believes it necessary to create a queue like system here
-                        _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
+                        _= scheduler.Schedule(() =>
+                        {
+                            Console.WriteLine("Schedule operation: " + seq);
+                            _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
+                        });
+                        Console.WriteLine("Totally not blocking :)");
                         /*Console.WriteLine("Handling client request");
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
@@ -239,6 +243,7 @@ namespace PBFT
             {
                 Console.WriteLine($"APP OPERATION {seq} FINISHED");
                 execute.Serv.ChangeClientStatus(req.ClientID);
+                Console.WriteLine("Finished Sync");
                 if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
                     ) //really shouldn't call this at seq nr 0, but just incase
                     //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
@@ -261,7 +266,6 @@ namespace PBFT
                     await execute.HandlePrimaryChange2();
                     Console.WriteLine("View-Change completed");
                     serv.UpdateSeqNr();
-                    
                     
                     //if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0)
                         //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);

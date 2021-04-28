@@ -45,7 +45,7 @@ namespace PBFT.Messages
             Signature = sign;
         }
         
-        public byte[] SerializeToBuffer() //TODO is the reason why the signature fails, the object signed includes all of the original certs and proofs, this changes the format
+        public byte[] SerializeToBuffer()
         {
             Action<CheckpointCertificate> temp = null;
             if (CertProof != null)

@@ -525,7 +525,7 @@ namespace PBFT.Replica.Protocol
                 }
                 
                 await preps;
-                await Sleep.Until(500);
+                await Sleep.Until(750);
                 Console.WriteLine("Prepare certificate: " + precert.SeqNr + " is finished");
                 Serv.AddProtocolCertificate(prepre.SeqNr, precert);
                 Console.WriteLine("Finished adding the new certificate to server!");
