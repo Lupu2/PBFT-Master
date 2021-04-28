@@ -9,6 +9,6 @@ Create network:
 docker network create --subnet=#ipaddress/subnetmask #networkname //ip address range should include atleast the addresses 192.168.2.0-192.168.2.5 need atleast 1 ekstra address for client container. Recommend 192.168.0.0/16
 
 running image:
-client: docker run -it --name #containername --net #networkname -ip #ipaddress pbftclient id=#clientid test=false
-server: docker run -it --name #containername --net #networkname -ip #ipaddress pbftserver id=#serverid test=false per=false
+client: docker run -it --name #containername --net #networkname --ip #ipaddress pbftclient id=#clientid test=false
+server: docker run -it --name #containername --net #networkname --ip #ipaddress pbftserver id=#serverid test=false per=false
 
