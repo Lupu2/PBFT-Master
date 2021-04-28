@@ -4,7 +4,7 @@ services:
     image: pbftserver
     command: ["id=0","test=false","per=false"]
     ports:
-      - "9001-9010"
+      - "9000-9010"
     networks: 
       pbftnetwork:
         ipv4_address: 192.168.2.0:9000
@@ -13,7 +13,7 @@ services:
     image: pbftserver
     command: ["id=1","test=false","per=false"]
     ports:
-      - "9001-9010"
+      - "9000-9010"
     networks:
       pbftnetwork:
         ipv4_address: 192.168.2.1:9000
@@ -24,7 +24,7 @@ services:
     image: pbftserver
     command: ["id=2","test=false","per=false"]
     ports:
-      - "9001-9010"
+      - "9000-9010"
     networks:
       pbftnetwork:
         ipv4_address: 192.168.2.2:9000
@@ -36,7 +36,7 @@ services:
     image: pbftserver
     command: ["id=3","test=false","per=false"]
     ports:
-      - "9001-9010"
+      - "9000-9010"
     networks:
       pbftnetwork:
         ipv4_address: "192.168.2.3:9000"
