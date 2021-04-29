@@ -102,13 +102,13 @@ namespace PBFT.Tests
             orgreq1.SignMessage(pri);
             orgreq2.SignMessage(pri2);
 
-            var rep1 = new Reply(1, 1, 1, true, orgreq1.Message, createtime);
+            var rep1 = new Reply(1, 1, 1, 1, true, orgreq1.Message, createtime);
             rep1.SignMessage(pri);
             Assert.IsTrue(rep1.Validate(pub, orgreq1));
             Assert.IsFalse(rep1.Validate(pub2, orgreq1));
             Assert.IsFalse(rep1.Validate(pub, orgreq2));
 
-            var rep2 = new Reply(1, 1, 1, true, orgreq2.Message, cretetime2);
+            var rep2 = new Reply(1, 2, 1, 1, true, orgreq2.Message, cretetime2);
             Assert.IsFalse(rep2.Validate(pub2, orgreq2));
             rep2.SignMessage(pri2);
             Assert.IsFalse(rep2.Validate(pub, orgreq1));

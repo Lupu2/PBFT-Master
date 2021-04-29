@@ -15,18 +15,19 @@ namespace PBFT.Messages
 {
     public class Reply : IProtocolMessages, ISignedMessage, IPersistable
     {  
-        public int ServID{get; set;}
-        public int SeqNr{get; set;}
-        public int ViewNr{get; set;}
-        public bool Status{get; set;}
-        public string Result {get; set;} //might be changed to object later
-        public string Timestamp{get; set;}
-        public byte[] Signature{get;set;}
+        public int ServID { get; set; }
+        public int ClientID { get; set; }
+        public int SeqNr { get; set; }
+        public int ViewNr { get; set; }
+        public bool Status { get; set; }
+        public string Result { get; set; } //might be changed to object later
+        public string Timestamp { get; set; }
+        public byte[] Signature { get;set; }
 
-
-        public Reply(int id, int seqnr, int vnr, bool success, string res, string timestamp)
+        public Reply(int id, int clid, int seqnr, int vnr, bool success, string res, string timestamp)
         {
             ServID = id;
+            ClientID = clid;
             SeqNr = seqnr;
             ViewNr = vnr;
             Status = success;
@@ -35,9 +36,10 @@ namespace PBFT.Messages
         }
 
         [JsonConstructor]
-        public Reply(int id, int seqnr, int vnr, bool success, string res, string timestamp, byte[] sign)
+        public Reply(int id, int clid, int seqnr, int vnr, bool success, string res, string timestamp, byte[] sign)
         {
             ServID = id;
+            ClientID = clid;
             SeqNr = seqnr;
             ViewNr = vnr;
             Status = success;
@@ -83,6 +85,7 @@ namespace PBFT.Messages
             Console.WriteLine(this);
             Console.WriteLine(orgreq.Timestamp);
             if(!Timestamp.Equals(orgreq.Timestamp)) return false;
+            if (ClientID != orgreq.ClientID) return false;
             Console.WriteLine("Passed Timeout test");
             var copy = (Reply) CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, copy.SerializeToBuffer(), pubkey)) return false;
@@ -90,13 +93,14 @@ namespace PBFT.Messages
             return true;
         }
             
-        public override string ToString() => $"ID: {ServID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
+        public override string ToString() => $"ID: {ServID}, ClientID: {ClientID}, SequenceNr: {SeqNr}, CurrentView: {ViewNr}, Time:{Timestamp}, Status: {Status}, Result: {Result}, Sign:{Signature}";
         
-        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, SeqNr, ViewNr, Status, Result, Timestamp);
+        public IProtocolMessages CreateCopyTemplate() =>  new Reply(ServID, ClientID, SeqNr, ViewNr, Status, Result, Timestamp);
 
         public bool Compare(Reply rep)
         {
             if (rep.ServID != ServID) return false;
+            if (rep.ClientID != ClientID) return false;
             if (rep.SeqNr != SeqNr) return false;
             if (rep.ViewNr != ViewNr) return false;
             if (rep.Status != Status) return false;
@@ -110,6 +114,7 @@ namespace PBFT.Messages
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);
+            stateToSerialize.Set(nameof(ClientID), ClientID);
             stateToSerialize.Set(nameof(SeqNr), SeqNr);
             stateToSerialize.Set(nameof(ViewNr), ViewNr);
             stateToSerialize.Set(nameof(Status), Status);
@@ -121,6 +126,7 @@ namespace PBFT.Messages
         private static Reply Deserialize(IReadOnlyDictionary<string, object> sd)
             => new Reply(
                 sd.Get<int>(nameof(ServID)),
+                sd.Get<int>(nameof(ClientID)),
                 sd.Get<int>(nameof(SeqNr)),
                 sd.Get<int>(nameof(ViewNr)),
                 sd.Get<bool>(nameof(Status)),

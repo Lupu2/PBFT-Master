@@ -38,7 +38,7 @@ namespace PBFT.Tests.Persistency
             );
             var serv = new Server(0, 0, 4, null, 20, "127.0.0.1:9000", sh, new CDictionary<int, string>());
             serv.ServerContactList[0] = "127.0.0.1:9000";
-            var rep = new Reply(1, 1, 1, false, "error", DateTime.Now.ToString());
+            var rep = new Reply(1, 1, 1, 1, false, "error", DateTime.Now.ToString());
             rep.SignMessage(_prikey);
             serv.ReplyLog.Set(1, rep);
             serv.ClientActive.Set(1,true);

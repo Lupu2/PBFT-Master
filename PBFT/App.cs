@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Threading;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -41,6 +42,12 @@ namespace PBFT
                     testparam = Boolean.Parse(args[1].Split("test=")[1]);
                     usememory = Boolean.Parse(args[2].Split("per=")[1]);
                 }
+
+                Console.WriteLine("IPS:");
+                IPAddress[] localIPs = Dns.GetHostAddresses(Dns.GetHostName());
+                foreach (var ip in localIPs)
+                    Console.WriteLine(ip.ToString());
+                
                 var storageEngine = new SimpleFileStorageEngine("PBFTStorage"+paramid+".txt", !usememory); //change to false when done debugging
                 (int, string) servInfo;
                 CDictionary<int, string> serversInfo;
@@ -160,6 +167,7 @@ namespace PBFT
             {
                 var req = await requestMessage.Next();
                 Console.WriteLine("Received Client Request");
+                Console.WriteLine(req);
                 if (Crypto.VerifySignature(req.Signature, req.CreateCopyTemplate().SerializeToBuffer(), serv.ClientPubKeyRegister[req.ClientID]) && serv.CurSeqNr < serv.CurSeqRange.End.Value)
                 {
                     Console.WriteLine("Checking if it is active:");
@@ -167,12 +175,7 @@ namespace PBFT
                     {
                         int seq = ++serv.CurSeqNr;
                         Console.WriteLine("Curseq: " + seq + " for request: " + req);
-                        _= scheduler.Schedule(() =>
-                        {
-                            Console.WriteLine("Schedule operation: " + seq);
-                            _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
-                        });
-                        Console.WriteLine("Totally not blocking :)");
+                        _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
                         /*Console.WriteLine("Handling client request");
                         CancellationTokenSource cancel = new CancellationTokenSource();
                         _ = TimeoutOps.AbortableProtocolTimeoutOperation(
@@ -243,10 +246,7 @@ namespace PBFT
             {
                 Console.WriteLine($"APP OPERATION {seq} FINISHED");
                 execute.Serv.ChangeClientStatus(req.ClientID);
-                Console.WriteLine("Finished Sync");
-                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
-                    ) //really shouldn't call this at seq nr 0, but just incase
-                    //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+                if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
                     serv.CreateCheckpoint2(seq, PseudoApp);
                 Console.WriteLine("FINISHED TASK");
                 //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
@@ -273,7 +273,6 @@ namespace PBFT
                         || serv.StableCheckpointsCertificate == null && serv.CurSeqNr > serv.CheckpointConstant
                         || serv.StableCheckpointsCertificate != null && 
                            (serv.StableCheckpointsCertificate.LastSeqNr + serv.CheckpointConstant) < serv.CurSeqNr)
-                        //TODO ASK Leander whether or not to enforce checkpoint at only checkpoint constant intervals
                         serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
                     execute.Active = true;
                     serv.ProtocolActive = true;

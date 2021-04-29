@@ -143,6 +143,7 @@ namespace PBFT.Replica.Protocol
                 Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
+                Console.WriteLine("Multicasting commit message");
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage); //Send async message Commit
                 Serv.EmitPhaseMessageLocally(commitmes);
                 Console.WriteLine("Waiting for commits");
@@ -153,7 +154,7 @@ namespace PBFT.Replica.Protocol
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 Console.WriteLine($"Completing operation: {clireq.Message}");
                 
-                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, clireq.ClientID,curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
                 Serv.ReplyLog[curSeq] = rep;
                 Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
@@ -163,7 +164,7 @@ namespace PBFT.Replica.Protocol
             {
                 Console.WriteLine("Error in ProtocolExecution!");
                 Console.WriteLine(e);
-                var rep = new Reply(Serv.ServID, -1, Serv.CurView, false, "Failure", clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, clireq.ClientID, -1, Serv.CurView, false, "Failure", clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
                 Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
                 return rep;
@@ -268,7 +269,7 @@ namespace PBFT.Replica.Protocol
                 //Reply
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom);
                 Console.WriteLine($"Completing operation: {clireq.Message}");
-                var rep = new Reply(Serv.ServID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, clireq.ClientID, curSeq, Serv.CurView, true, clireq.Message,clireq.Timestamp);
                 Serv.SignMessage(rep, MessageType.Reply);
                 Serv.ReplyLog[curSeq] = rep;
                 //Serv.SendMessage(rep.SerializeToBuffer(), Serv.ClientConnInfo[clireq.ClientID].Socket, MessageType.Reply);
@@ -278,7 +279,7 @@ namespace PBFT.Replica.Protocol
             {
                 Console.WriteLine("Error in ProtocolExecution!");
                 Console.WriteLine(e);
-                var rep = new Reply(Serv.ServID, Serv.CurSeqNr++, Serv.CurView, false, "Failure", clireq.Timestamp);
+                var rep = new Reply(Serv.ServID, clireq.ClientID, -1, Serv.CurView, false, "Failure", clireq.Timestamp);
                 
                 return rep;
             }

@@ -78,7 +78,7 @@ namespace PBFT.Certificates
             Console.WriteLine("Checking proofs");
             foreach (var vc in ProofList)
             {
-                Console.WriteLine(vc);
+                Console.WriteLine($"Validating View Change: Server{vc.ServID}, View {vc.NextViewNr}, StableCheckNr {vc.StableSeqNr}");
                 if (vc.NextViewNr != ViewInfo.ViewNr) 
                     return false;
                 if (CurSystemState == null && vc.CertProof != null || CurSystemState != null && vc.CertProof == null)

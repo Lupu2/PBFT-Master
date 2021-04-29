@@ -3,31 +3,31 @@ services:
   server0:
     image: pbftserver
     command: ["id=0","test=false","per=false"]
-    ports:
-      - "9000-9010"
+    #ports:
+    #  - "9000-9010"
     networks: 
       pbftnetwork:
-        ipv4_address: 192.168.2.0:9000
+        ipv4_address: 192.168.2.0
   
   server1:
     image: pbftserver
     command: ["id=1","test=false","per=false"]
-    ports:
-      - "9000-9010"
+    #ports:
+    #  - "9000-9010"
     networks:
       pbftnetwork:
-        ipv4_address: 192.168.2.1:9000
+        ipv4_address: 192.168.2.1
     depends_on: 
       - server0
   
   server2:
     image: pbftserver
     command: ["id=2","test=false","per=false"]
-    ports:
-      - "9000-9010"
+    # ports:
+    #  - "9000-9010"
     networks:
       pbftnetwork:
-        ipv4_address: 192.168.2.2:9000
+        ipv4_address: 192.168.2.2
     depends_on:
       - server0
       - server1
@@ -35,11 +35,11 @@ services:
   server3:
     image: pbftserver
     command: ["id=3","test=false","per=false"]
-    ports:
-      - "9000-9010"
+    # ports:
+    #  - "9000-9010"
     networks:
       pbftnetwork:
-        ipv4_address: 192.168.2.3:9000
+        ipv4_address: 192.168.2.3
     depends_on:
       - server0
       - server1
@@ -48,3 +48,6 @@ services:
 networks:
   pbftnetwork:
     external: true
+ #   ipam:
+ #     config:
+ #       - subnet: "192.168.0.0/16"

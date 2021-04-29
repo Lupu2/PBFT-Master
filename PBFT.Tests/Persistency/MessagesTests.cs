@@ -102,7 +102,7 @@ namespace PBFT.Tests.Persistency
         public void ReplyTest()
         {
             var now = DateTime.Now;
-            Reply rep = new Reply(1, 1, 1, true, "Hello World", now.ToString());
+            Reply rep = new Reply(1, 1, 1, 1, true, "Hello World", now.ToString());
             rep.SignMessage(_pri);
             Assert.AreEqual(rep.ServID,1);
             Assert.AreEqual(rep.SeqNr,1);

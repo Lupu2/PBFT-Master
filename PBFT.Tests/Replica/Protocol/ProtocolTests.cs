@@ -302,7 +302,7 @@ namespace PBFT.Tests
            var reply = await exec.HandleRequestTest(req, 1, cancel);
            Console.WriteLine("Received Reply");
            var copyreply = (Reply) reply.CreateCopyTemplate();
-           var solutionreply = new Reply(1, 1, 0, true, "Hello Galaxy!", "12:00");
+           var solutionreply = new Reply(1, 1, 1, 0, true, "Hello Galaxy!", "12:00");
            return copyreply.Compare(solutionreply);
        }
 

@@ -58,7 +58,7 @@ namespace PBFT.Tests
         {
             var request = new Request(1, "Hello World", DateTime.Now.ToString());
             byte[] dig = Crypto.CreateDigest(request);
-            var reply = new Reply(1, 1, 1, true, "Hello World", DateTime.Now.ToString());
+            var reply = new Reply(1, 1, 1, 1, true, "Hello World", DateTime.Now.ToString());
             var pm = new PhaseMessage(1, 1, 1, dig, PMessageType.PrePrepare);
             var pm2 = new PhaseMessage(2, 2, 2, dig, PMessageType.Prepare);
             var (pri,pub) = Crypto.InitializeKeyPairs();

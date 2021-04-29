@@ -62,7 +62,7 @@ namespace PBFT.Tests.Replica
             var sh = new SourceHandler(null, null, null, null, null, null, null, null, null);
             var server = new Server(0,0,4,null,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
            
-            var replymes = new Reply(server.ServID, 1, server.CurView, true, "Result", DateTime.Now.ToString());
+            var replymes = new Reply(server.ServID, 1, 1, server.CurView, true, "Result", DateTime.Now.ToString());
             Assert.IsFalse(Crypto.VerifySignature(replymes.Signature,replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));
             server.SignMessage(replymes, MessageType.Reply);
             Assert.IsTrue(Crypto.VerifySignature(replymes.Signature, replymes.CreateCopyTemplate().SerializeToBuffer(), server.Pubkey));

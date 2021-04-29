@@ -35,6 +35,9 @@ namespace PBFT.Helper
         
         public static byte[] MakeStateDigest(CList<string> appstate)
         {
+            Console.WriteLine("AppState");
+            foreach (string state in appstate)
+                Console.WriteLine(state);
             var seriastate = JsonConvert.SerializeObject((appstate));
             var bytesstate = Encoding.ASCII.GetBytes(seriastate);
             using (var sha = SHA256.Create())
