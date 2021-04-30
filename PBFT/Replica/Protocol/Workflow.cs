@@ -102,7 +102,6 @@ namespace PBFT.Replica.Protocol
                 }
                 //Prepare phase
                 Console.WriteLine("CertPreSeq:" + qcertpre.SeqNr);
-                ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var prepared = MesBridge
                     .Where(pm => pm.PhaseType == PMessageType.Prepare)
                     .Where(pm => pm.SeqNr == qcertpre.SeqNr)
@@ -120,7 +119,7 @@ namespace PBFT.Replica.Protocol
                     })
                     .Where(_ => qcertpre.ValidateCertificate(FailureNr))
                     .Next();
-                
+                ProtocolCertificate qcertcom = new ProtocolCertificate(qcertpre.SeqNr, Serv.CurView, digest, CertType.Committed);   
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     .Where(pm => pm.SeqNr == qcertcom.SeqNr)

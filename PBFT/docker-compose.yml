@@ -46,6 +46,9 @@ services:
       - server2
 
 networks:
+# default:
+#    external: 
+#      name: pbftnetwork
   pbftnetwork:
     external: true
  #   ipam:

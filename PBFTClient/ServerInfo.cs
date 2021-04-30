@@ -1,10 +1,7 @@
-using System.Linq;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using Cleipnir.ObjectDB.PersistentDataStructures;
-using PBFT.Messages;
 
-namespace PBFT.Client
+namespace PBFTClient
 {
     public class ServerInfo
     {

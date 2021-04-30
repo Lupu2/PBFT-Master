@@ -367,7 +367,15 @@ namespace PBFT.Replica
                                 if (ServConnInfo.ContainsKey(pesmes.ServID) &&
                                     ServPubKeyRegister.ContainsKey(pesmes.ServID))
                                 {
-                                    if (pesmes.ViewNr == CurView && ProtocolActive)
+                                    MessageHandler.HandlePhaseMessage(
+                                        pesmes, 
+                                        CurView, 
+                                        ProtocolActive, 
+                                        _scheduler, 
+                                        Subjects.ProtocolSubject, 
+                                        Subjects.RedistSubject
+                                    );
+                                    /*if (pesmes.ViewNr == CurView && ProtocolActive)
                                     {
                                         Console.WriteLine("Emitting Protocol PhaseMessage"); //protocol, emit
                                         await _scheduler.Schedule(() => { Subjects.ProtocolSubject.Emit(pesmes); });
@@ -376,7 +384,7 @@ namespace PBFT.Replica
                                     {
                                         Console.WriteLine("Emitting Redistribute PhaseMessage");
                                         await _scheduler.Schedule(() => { Subjects.RedistSubject.Emit(pesmes); });
-                                    }
+                                    }*/
                                 }
                                 else //Rules broken, terminate connection
                                 {
@@ -393,7 +401,8 @@ namespace PBFT.Replica
                                     ServPubKeyRegister.ContainsKey(CurPrimary.ServID) ||
                                     CurPrimary.ServID == ServID)
                                 {
-                                    bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
+                                    MessageHandler.HandleViewChange2(vc, this, _scheduler);
+                                    /*bool val = vc.Validate(ServPubKeyRegister[vc.ServID], vc.NextViewNr);
                                     Console.WriteLine("ViewChange validation result: " + val);
                                     if (val && ViewMessageRegister.ContainsKey(vc.NextViewNr)) //will already have a view-change message for view n, therefore count = 2
                                     {
@@ -436,7 +445,7 @@ namespace PBFT.Replica
                                         //Console.WriteLine("Connection terminated, rules were broken");
                                         //conn.Dispose();
                                         //return;
-                                    }
+                                    }*/
                                 }
 
                                 /*ViewChange vc = (ViewChange) mes;
@@ -580,7 +589,8 @@ namespace PBFT.Replica
                                 foreach (var (key, _) in CheckpointLog) Console.WriteLine("Key: " + key);
                                 await _scheduler.Schedule(() =>
                                 {
-                                    Console.WriteLine("Scheduling checkpoint in server");
+                                    MessageHandler.HandleCheckpoint2(check, this);
+                                    /*Console.WriteLine("Scheduling checkpoint in server");
                                     if (CheckpointLog.ContainsKey(check.StableSeqNr))
                                     {
                                         Console.WriteLine("Found existing certificate");
@@ -614,7 +624,7 @@ namespace PBFT.Replica
                                             Console.WriteLine("EMITTING NOT FIND EXISTING CERTIFICATE IN SERVER");
                                             Subjects.CheckpointSubject.Emit(check);
                                         }
-                                    }
+                                    }*/
                                 });
                                 break;
                             default:

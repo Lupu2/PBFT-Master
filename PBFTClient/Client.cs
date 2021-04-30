@@ -12,7 +12,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica.Network;
 
-namespace PBFT.Client
+namespace PBFTClient
 {
     public class Client
     {
@@ -89,7 +89,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write Operation:");
                 op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 done = true;
             }
             return op;
@@ -104,7 +108,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write operation:");
                 string op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 operations.Add(op);
                 Console.WriteLine("Done creating operations?[y/n]"); //https://stackoverflow.com/questions/37359161/how-would-i-make-a-yes-no-prompt-in-console-using-c
                 bool conf = false;
