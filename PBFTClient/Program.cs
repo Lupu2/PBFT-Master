@@ -13,6 +13,7 @@ namespace PBFTClient
             Client cli = new Client(paramid);
             if (testparam)
             {
+                //Change SetCurrentDirectory to your own path leading to PBFTClient
                 Directory.SetCurrentDirectory(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\NewRepository\PBFT-Master\PBFTClient");
                 cli.LoadServerInfo("JSONFiles/testServerInfo.json");
             }

@@ -1,3 +1,39 @@
+# Practical Byzantine Fault Tolerance Implementation
+
+## Contents
+
+### PBFT Implementation Info
+
+#### Introduction
+In this github directory you can find Jørgen Melstveit's implementation of the consensus algorithm Practical Byzantine Fault Tolerance(PBFT) using the .Net framework Cleipnir. The Cleipnir framework is made by Thomas Sylvest Stidsborg. Information regarding Cleipnir is presented in this [section](#-Cleipnir-=-Persistent-Programming-in-.Net-=-Sagas Simplified). Additionally, the official github repository for Cleipnir can be found: [https://github.com/stidsborg/Cleipnir].
+
+The PBFT implementation consist of the code found in the folders PBFT and PBFTClient. The source code for the Cleipnir framework is found in the Cleipnir folders. The PBFT.Tests folders consist of the unit tests performed for the PBFT implementation. It is important that the referances listed in PBFT.csproj and PBFTClient.csporj are all working, before attempting to run the PBFT implementation. 
+
+##### General info about Server
+
+##### General info about Clients
+
+#### Run on local machine
+Running the project locally requires Microsoft Dotnet SDK version 5, this can be downloaded from this page: [https://dotnet.microsoft.com/download/dotnet/5.0].
+
+#### Run through docker
+Steps for running the PBFT implementation using docker containers is listed under:
+
+1. Go to root directory PBFT-Master
+2. Build the server image: ```docker build -t pbftserver -f PBFT/Dockerfile .```
+3. Build the client image: ```docker build -t pbftclient -f PBFTClient/Dockerfile .```
+4. Set up docker network: ```docker network create --subnet=192.168.2.0/16 pbftnetwork(Make sure the new network does not intersect any other docker network! Alternatively change ip addresses for servers in PBFT/JSONFiles/serverInfo and PBFTClient/JSONFiles/serverInfo)```
+5. Run Containers: Need atleast 5 terminals: 4 servers and 1 client! 
+Example: 
+``` Serv0: docker run -it --name serv0 --net pbftnetwork --ip 192.168.2.0 --rm pbftserver id=0 test=false per=false
+    Serv1: docker run -it --name serv1 --net pbftnetwork --ip 192.168.2.1 --rm pbftserver id=1 test=false per=false
+    Serv2: docker run -it --name serv2 --net pbftnetwork --ip 192.168.2.2 --rm pbftserver id=2 test=false per=false
+    Serv3: docker run -it --name serv3 --net pbftnetwork --ip 192.168.2.3 --rm pbftserver id=3 test=false per=false
+    Client0: docker run -it --name client0 --net pbftnetwork --ip 192.168.2.5 --rm pbftclient id=0 test=false
+    Client1: docker run -it --name client1 --net pbftnetwork --ip 192.168.2.6 --rm pbftclient id=1 test=false
+```
+### Cleipnir Information presented by Thomas Stidsborg Sylvest
+
 # Cleipnir = Persistent Programming in .NET = Sagas Simplified 
 
 Cleipnir is a .NET (still experimental) framework allowing persistent programming on the .NET platform.

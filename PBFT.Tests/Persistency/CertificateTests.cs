@@ -1,7 +1,5 @@
 using System;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Threading;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB;
 using Cleipnir.ObjectDB.PersistentDataStructures;

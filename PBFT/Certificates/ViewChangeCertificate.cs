@@ -98,8 +98,6 @@ namespace PBFT.Certificates
         {
             Console.WriteLine("Validate Certificate");
             Console.WriteLine(ProofList.Count);
-            Console.WriteLine(QReached(nodes));
-            Console.WriteLine(ProofsAreValid());
             if (QReached(nodes) && ProofsAreValid()) Valid = true;
             return Valid;
         }

@@ -1,4 +1,3 @@
-
 using System;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.Rx;
@@ -25,7 +24,6 @@ namespace PBFT.Replica
                     serv.ClientActive[id] = false;
                     serv.ClientConnInfo[id] = conn;
                     serv.AddPubKeyClientRegister(id, sesmes.Publickey);
-                    //serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                 }
                 else
                 {
@@ -34,7 +32,6 @@ namespace PBFT.Replica
                         serv.ClientConnInfo[id].Dispose();
                         serv.ClientConnInfo[id] = conn;
                         serv.AddPubKeyClientRegister(id, sesmes.Publickey);
-                        //serv.ClientPubKeyRegister[id] = sesmes.Publickey;
                     }
                 }
             }
@@ -43,9 +40,7 @@ namespace PBFT.Replica
                 if (!serv.ServConnInfo.ContainsKey(id)) //New Server Connections
                 {
                     Console.WriteLine("Adding server");
-                    //serv.ServConnInfo[id] = servconn;
                     serv.ServConnInfo[id] = conn;
-                    //serv.ServPubKeyRegister[id] = sesmes.Publickey;
                     serv.AddPubKeyServerRegister(id, sesmes.Publickey);
                 }
                 else
@@ -53,7 +48,6 @@ namespace PBFT.Replica
                     if (!serv.ServPubKeyRegister[id].Equals(sesmes.Publickey)) // Updated Server Connection
                     {
                         serv.ServConnInfo[id] = conn;
-                        //serv.ServPubKeyRegister[id] = sesmes.Publickey;
                         serv.AddPubKeyServerRegister(id, sesmes.Publickey);
                     }
                 }
@@ -68,6 +62,7 @@ namespace PBFT.Replica
             Source<PhaseMessage> protocolSource, 
             Source<PhaseMessage> redistSource)
         {
+            Console.WriteLine("Handling PhaseMessage");
             if (pesmes.ViewNr == curView && protocolActive)
             {
                 Console.WriteLine("Emitting Protocol PhaseMessage"); //protocol, emit
@@ -82,6 +77,7 @@ namespace PBFT.Replica
 
         public static void HandleViewChange(ViewChange vc, Server serv, Engine scheduler)
         {
+            Console.WriteLine("Handling view-change message");
             bool val = vc.Validate(serv.ServPubKeyRegister[vc.ServID], vc.NextViewNr);
             Console.WriteLine("ViewChange validation result: " + val);
             if (val && serv.ViewMessageRegister.ContainsKey(vc.NextViewNr))
@@ -127,18 +123,13 @@ namespace PBFT.Replica
                 });
             }
             else
-            {
                 Console.WriteLine("Things did not go as planned :(");
-                //
-                //Console.WriteLine("Connection terminated, rules were broken");
-                //conn.Dispose();
-                //return;
-                //
-            }
+            
         }
         
         public static void HandleViewChange2(ViewChange vc, Server serv, Engine scheduler)
         {
+            Console.WriteLine("Handling view-change message");
             bool val = vc.Validate(serv.ServPubKeyRegister[vc.ServID], vc.NextViewNr);
             Console.WriteLine("ViewChange validation result: " + val);
             if (val && serv.ViewMessageRegister.ContainsKey(vc.NextViewNr)
@@ -178,17 +169,12 @@ namespace PBFT.Replica
                 });
             }
             else
-            {
                 Console.WriteLine("Things did not go as planned :(");
-                //
-                //Console.WriteLine("Connection terminated, rules were broken");
-                //conn.Dispose();
-                //return;
-            }
         }
 
         public static void HandleCheckpoint(Checkpoint check, Server serv)
         {
+            Console.WriteLine("Handling checkpoint message");
             if (serv.CheckpointLog.ContainsKey(check.StableSeqNr))
             {
                 Console.WriteLine("Found existing certificate");
@@ -228,6 +214,7 @@ namespace PBFT.Replica
         
         public static void HandleCheckpoint2(Checkpoint check, Server serv)
         {
+            Console.WriteLine("Handling checkpoint message");
             Console.WriteLine("Scheduling checkpoint in server");
             if (serv.CheckpointLog.ContainsKey(check.StableSeqNr))
             {

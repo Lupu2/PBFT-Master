@@ -1,17 +1,14 @@
 using System;
-using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Threading;
-using System.Threading.Tasks;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
-using PBFT.Replica.Network;
 using PBFT.Replica;
 
-namespace PBFT.Tests
+namespace PBFT.Tests.Messages
 {
     [TestClass]
     public class MessageValidationTests

@@ -15,7 +15,7 @@ using PBFT.Messages;
 using PBFT.Replica;
 using PBFT.Replica.Protocol;
 
-namespace PBFT.Tests
+namespace PBFT.Tests.Replica.Protocol
 {
     [TestClass]
     public class ProtocolTests

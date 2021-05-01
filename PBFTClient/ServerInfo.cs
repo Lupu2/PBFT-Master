@@ -7,9 +7,7 @@ namespace PBFTClient
     {
         public int ServID {get;}
         public string IPAddress { get; }
-
         private RSAParameters _pubKey;
-        //private CDictionary<int, Reply> _finishedRequests;
         public Socket Socket { get; set; }
         public bool Active { get; set; }
         
@@ -23,8 +21,6 @@ namespace PBFTClient
         public void AddPubKeyInfo(RSAParameters pubkey) => _pubKey = pubkey;
 
         public RSAParameters GetPubkeyInfo() => _pubKey;
-
-        //public void AddReply(Reply rep) => _finishedRequests[rep.SeqNr] = rep;
     }
     
     

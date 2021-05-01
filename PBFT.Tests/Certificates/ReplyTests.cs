@@ -7,7 +7,7 @@ using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Tests.Replica.Protocol
+namespace PBFT.Tests.Certificates
 {
     [TestClass]
     public class ReplyCertificateTests

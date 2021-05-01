@@ -35,11 +35,7 @@ namespace PBFT.Replica.Protocol
             Console.WriteLine("Checkpoint Listener: " + StableSeqNr);
             await CheckpointBridge
                 .Where(check => check.StableSeqNr == StableSeqNr)
-                .Where(check =>
-                {
-                    Console.WriteLine("Checkpoint VALIDATING MESSAGE");
-                    return check.Validate(keys[check.ServID]);
-                })
+                .Where(check => check.Validate(keys[check.ServID]))
                 .Scan(cpc.ProofList, (prooflist, message) =>
                 {
                     prooflist.Add(message);

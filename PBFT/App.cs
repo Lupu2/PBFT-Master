@@ -129,7 +129,6 @@ namespace PBFT
                     scheduler = ExecutionEngineFactory.Continue(storageEngine);
                     scheduler.Schedule(() =>
                     {
-                        //server = Roots.Resolve<Server>();
                         PseudoApp = Roots.Resolve<CList<string>>();
                         protexec = Roots.Resolve<ProtocolExecution>();
                         server = protexec.Serv;
@@ -176,52 +175,6 @@ namespace PBFT
                         int seq = ++serv.CurSeqNr;
                         Console.WriteLine("Curseq: " + seq + " for request: " + req);
                         _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
-                        /*Console.WriteLine("Handling client request");
-                        CancellationTokenSource cancel = new CancellationTokenSource();
-                        _ = TimeoutOps.AbortableProtocolTimeoutOperation(
-                            serv.Subjects.ShutdownSubject, 
-                            10000,
-                            cancel.Token,
-                            scheduler
-                        );
-                        int seq = ++serv.CurSeqNr;
-                        execute.Serv.ChangeClientStatus(req.ClientID);
-                        
-                        bool res = await WhenAny<bool>.Of(AppOperation(req, serv, execute, seq, cancel),
-                            ListenForShutdown(serv.Subjects.ShutdownSubject));
-                        Console.WriteLine("Result: " + res);
-                        if (res)
-                        {
-                            Console.WriteLine("APP OPERATION FINISHED");
-                            execute.Serv.ChangeClientStatus(req.ClientID);
-                            if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) //really shouldn't call this at seq nr 0, but just incase
-                                //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
-                            Console.WriteLine("FINISHED TASK");
-                            //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
-                            await Sync.Next();
-                            Console.WriteLine("Finished Sync");
-                        }
-                        else
-                        {
-                            Console.WriteLine("View-Change commence :)");
-                            execute.Active = false;
-                            serv.ProtocolActive = false;
-                            await scheduler.Schedule(() =>
-                                shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
-                                ));
-                            await execute.HandlePrimaryChange2();
-                            Console.WriteLine("View-Change completed");
-                            serv.UpdateSeqNr();
-                            if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
-                                //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
-                                serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
-                            execute.Active = true;
-                            serv.ProtocolActive = true;
-                            serv.GarbageViewChangeRegistry(serv.CurView);
-                            serv.ResetClientStatus();
-                            await Sync.Next();
-                        }*/
                     }
                 }
             }
@@ -248,8 +201,7 @@ namespace PBFT
                 execute.Serv.ChangeClientStatus(req.ClientID);
                 if (seq % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0) 
                     serv.CreateCheckpoint2(seq, PseudoApp);
-                Console.WriteLine("FINISHED TASK");
-                //await scheduler.Sync(); //doesn't work properly , Wait() causes inf-loop
+                Console.WriteLine("Finished task");
                 await Sync.Next();
                 Console.WriteLine("Finished Sync");
             }
@@ -257,7 +209,7 @@ namespace PBFT
             {
                 if (execute.Active)
                 {
-                    Console.WriteLine("View-Change commence :)");
+                    Console.WriteLine("View-Change starting");
                     execute.Active = false;
                     serv.ProtocolActive = false;
                     await scheduler.Schedule(() =>
@@ -266,9 +218,7 @@ namespace PBFT
                     await execute.HandlePrimaryChange2();
                     Console.WriteLine("View-Change completed");
                     serv.UpdateSeqNr();
-                    
-                    //if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0)
-                        //serv.CreateCheckpoint(execute.Serv.CurSeqNr, PseudoApp);
+     
                     if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0 
                         || serv.StableCheckpointsCertificate == null && serv.CurSeqNr > serv.CheckpointConstant
                         || serv.StableCheckpointsCertificate != null && 
@@ -296,7 +246,5 @@ namespace PBFT
             Console.WriteLine("AppCount:" + PseudoApp.Count);
             return true;
         }
-        
-        //public static async Task ViewChangeOperation(ProtocolExecution execute) => await execute.HandlePrimaryChange();
     }
 }

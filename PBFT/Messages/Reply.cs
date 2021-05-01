@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Metadata.Ecma335;
 using System.Security.Cryptography;
 using System.Text;
 using Cleipnir.ObjectDB.Persistency;
@@ -81,15 +80,12 @@ namespace PBFT.Messages
         public bool Validate(RSAParameters pubkey, Request orgreq)
         {
             //Console.WriteLine("Pubkey: " + BitConverter.ToString(pubkey.Modulus));
-            Console.WriteLine("Validating");
-            Console.WriteLine(this);
-            Console.WriteLine(orgreq.Timestamp);
+            Console.WriteLine($"Validating reply from server: {ServID}");
             if(!Timestamp.Equals(orgreq.Timestamp)) return false;
             if (ClientID != orgreq.ClientID) return false;
-            Console.WriteLine("Passed Timeout test");
             var copy = (Reply) CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, copy.SerializeToBuffer(), pubkey)) return false;
-            Console.WriteLine("Passed signature test");
+            Console.WriteLine("Validation successful");
             return true;
         }
             

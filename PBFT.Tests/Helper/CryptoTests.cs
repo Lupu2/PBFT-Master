@@ -4,7 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Tests
+namespace PBFT.Tests.Helper
 {
     [TestClass]
     public class CryptoTests

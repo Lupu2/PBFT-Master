@@ -1,14 +1,15 @@
-docker commands needed for pbft
-
+Explanation for docker commands needed for pbft
+# - indicates arguments that can be modified
 Build commands:
 be in github root directory
-docker build -t pbftclient -f PBFTClient/Dockerfile .
-docker build -t pbftserver -f PBFT/Dockerfile .
+docker build -t #serverimagename -f PBFTClient/Dockerfile .
+docker build -t #clientimagename -f PBFT/Dockerfile .
 
 Create network:
 docker network create --subnet=#ipaddress/subnetmask #networkname //ip address range should include atleast the addresses 192.168.2.0-192.168.2.5 need atleast 1 ekstra address for client container. Recommend 192.168.0.0/16
 
 running image:
-client: docker run -it --name #containername --net #networkname --ip #ipaddress pbftclient id=#clientid test=false
-server: docker run -it --name #containername --net #networkname --ip #ipaddress pbftserver id=#serverid test=false per=false
+Serv0: docker run -it --name serv0 --net pbftnetwork --ip 192.168.2.0 --rm pbftserver id=0 test=false per=false
+client: docker run -it --name #containername --net #networkname --ip #ipaddress --rm #clientimagename id=#clientid test=false
+server: docker run -it --name #containername --net #networkname --ip #ipaddress --rm #serverimagename id=#serverid test=false per=false
 

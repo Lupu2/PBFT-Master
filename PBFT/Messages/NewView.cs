@@ -91,18 +91,14 @@ namespace PBFT.Messages
             Console.WriteLine("Validating NewView");
             var copymes = (NewView) CreateCopyTemplate();
             if (!Crypto.VerifySignature(Signature, copymes.SerializeToBufferSignature(), pubkey)) return false;
-            Console.WriteLine("Gotten passed Signature");
             if (NewViewNr != nextview) return false;
-            Console.WriteLine("Gotten passed viewnr");
             foreach (var prepre in PrePrepMessages)
             {
                 var copypre = prepre.CreateCopyTemplate();
                 if (!Crypto.VerifySignature(prepre.Signature, copypre.SerializeToBuffer(), pubkey)) return false;
                 if (prepre.PhaseType != PMessageType.PrePrepare) return false;
-            }
-            Console.WriteLine("Gotten passed signature for pre-prepare messages");
+            } ;
             if (ViewProof == null) return false;
-            Console.WriteLine("Gotten passed ViewProof");
             if (!ViewProof.IsValid()) return false;
             Console.WriteLine("All tests passes");
             return true;

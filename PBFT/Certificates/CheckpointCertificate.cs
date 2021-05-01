@@ -74,7 +74,6 @@ namespace PBFT.Certificates
         {
             Console.WriteLine("ValidateCertificate");
             Console.WriteLine(ProofList.Count);
-            Console.WriteLine(QReached(nodes));
             if (QReached(nodes) && ProofsAreValid()) Stable = true;
             Console.WriteLine(Stable);
             return Stable;

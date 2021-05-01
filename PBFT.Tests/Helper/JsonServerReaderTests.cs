@@ -3,7 +3,7 @@ using System.IO;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 
-namespace PBFT.Tests
+namespace PBFT.Tests.Helper
 {
     [TestClass]
     public class JsonServerReaderTests
