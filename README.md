@@ -25,8 +25,9 @@ Steps for running the PBFT implementation using docker containers is listed unde
 1. Go to root directory PBFT-Master
 2. Build the server image: ```docker build -t pbftserver -f PBFT/Dockerfile .```
 3. Build the client image: ```docker build -t pbftclient -f PBFTClient/Dockerfile .```
-4. Set up docker network: ```docker network create --subnet=192.168.2.0/16 pbftnetwork(Make sure the new network does not intersect any other docker network! Alternatively change ip addresses for servers in PBFT/JSONFiles/serverInfo and PBFTClient/JSONFiles/serverInfo)```
-5. Run Containers: Need atleast 5 terminals: 4 servers and 1 client! 
+4. Set up docker network: ```docker network create --subnet=192.168.2.0/16 pbftnetwork```
+Make sure the new network does not intersect any other docker network! Alternatively change ip addresses for servers in PBFT/JSONFiles/serverInfo and PBFTClient/JSONFiles/serverInfo
+6. Run Containers: Need atleast 5 terminals: 4 servers and 1 client! 
 Example: 
 ``` 
 Serv0: docker run -it --name serv0 --net pbftnetwork --ip 192.168.2.0 --rm pbftserver id=0 test=false per=false
