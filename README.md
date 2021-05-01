@@ -37,11 +37,13 @@ After installing the correct SDK version for your system:
 To start a server:
 
 3a. Move to the PBFT directory ```cd PBFT```
+
 3b. Call dotnet run using the test=true argument. Example running server 0 requires the command: ```dotent run id=0 test=true per=false```
 
 To start a client:
 
 4a. Move to the PBFTClient directory: ```cd PBFTClient```
+
 4b. Call dotnet run using the test=true argument. Example running client 0 requires the command: ```dotnet run id=0 test=true```
 
 #### Run through docker
