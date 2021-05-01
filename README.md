@@ -8,7 +8,7 @@
 
 ## Practical Byzantine Fault Tolerance Implementation
 #### Introduction
-In this github directory you can find Jørgen Melstveit's implementation of the consensus algorithm Practical Byzantine Fault Tolerance(PBFT) using the .Net framework Cleipnir. The Cleipnir framework is made by Thomas Sylvest Stidsborg. Information regarding Cleipnir is presented in this [section](#-Cleipnir-=-Persistent-Programming-in-.Net-=-Sagas Simplified). Additionally, the official github repository for Cleipnir can be found: [https://github.com/stidsborg/Cleipnir].
+In this github directory you can find Jørgen Melstveit's implementation of the consensus algorithm Practical Byzantine Fault Tolerance(PBFT) using the .Net framework Cleipnir. The Cleipnir framework is made by Thomas Sylvest Stidsborg. Information regarding Cleipnir is presented in this [section](#Cleipnir = Persistent Programming in .NET = Sagas Simplified ). Additionally, the official github repository for Cleipnir can be found: [https://github.com/stidsborg/Cleipnir].
 
 The PBFT implementation consist of the code found in the folders PBFT and PBFTClient. The source code for the Cleipnir framework is found in the Cleipnir folders. The PBFT.Tests folders consist of the unit tests performed for the PBFT implementation. It is important that the referances listed in PBFT.csproj and PBFTClient.csporj are all working, before attempting to run the PBFT implementation. 
 
@@ -33,8 +33,10 @@ After installing the correct SDK version for your system:
 1. Restore dependencies listed in PBFT.csproj and PBFTClient.csproj: ```dotnet restore```.
 2. Build the dotnet project: ```dotnet build```.
 To start a server:
+
 3a. Move to the PBFT directory ```cd PBFT```
 3b. Call dotnet run using the test=true argument. Example running server 0 requires the command: ```dotent run id=0 test=true per=false```
+
 To start a client:
 4a. Move to the PBFTClient directory: ```cd PBFTClient```
 4b. Call dotnet run using the test=true argument. Example running client 0 requires the command: ```dotnet run id=0 test=true```
