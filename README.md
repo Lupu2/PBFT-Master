@@ -28,12 +28,13 @@ Steps for running the PBFT implementation using docker containers is listed unde
 4. Set up docker network: ```docker network create --subnet=192.168.2.0/16 pbftnetwork(Make sure the new network does not intersect any other docker network! Alternatively change ip addresses for servers in PBFT/JSONFiles/serverInfo and PBFTClient/JSONFiles/serverInfo)```
 5. Run Containers: Need atleast 5 terminals: 4 servers and 1 client! 
 Example: 
-``` Serv0: docker run -it --name serv0 --net pbftnetwork --ip 192.168.2.0 --rm pbftserver id=0 test=false per=false
-    Serv1: docker run -it --name serv1 --net pbftnetwork --ip 192.168.2.1 --rm pbftserver id=1 test=false per=false
-    Serv2: docker run -it --name serv2 --net pbftnetwork --ip 192.168.2.2 --rm pbftserver id=2 test=false per=false
-    Serv3: docker run -it --name serv3 --net pbftnetwork --ip 192.168.2.3 --rm pbftserver id=3 test=false per=false
-    Client0: docker run -it --name client0 --net pbftnetwork --ip 192.168.2.5 --rm pbftclient id=0 test=false
-    Client1: docker run -it --name client1 --net pbftnetwork --ip 192.168.2.6 --rm pbftclient id=1 test=false
+``` 
+Serv0: docker run -it --name serv0 --net pbftnetwork --ip 192.168.2.0 --rm pbftserver id=0 test=false per=false
+Serv1: docker run -it --name serv1 --net pbftnetwork --ip 192.168.2.1 --rm pbftserver id=1 test=false per=false
+Serv2: docker run -it --name serv2 --net pbftnetwork --ip 192.168.2.2 --rm pbftserver id=2 test=false per=false
+Serv3: docker run -it --name serv3 --net pbftnetwork --ip 192.168.2.3 --rm pbftserver id=3 test=false per=false
+Client0: docker run -it --name client0 --net pbftnetwork --ip 192.168.2.5 --rm pbftclient id=0 test=false
+Client1: docker run -it --name client1 --net pbftnetwork --ip 192.168.2.6 --rm pbftclient id=1 test=false
 ```
 ### Cleipnir Information presented by Thomas Stidsborg Sylvest
 
