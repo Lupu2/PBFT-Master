@@ -8,7 +8,7 @@
 
 ## Practical Byzantine Fault Tolerance Implementation
 #### Introduction
-In this github directory you can find Jørgen Melstveit's implementation of the consensus algorithm Practical Byzantine Fault Tolerance(PBFT) using the .Net framework Cleipnir. The Cleipnir framework is made by Thomas Sylvest Stidsborg. Information regarding Cleipnir is presented in this [section](#Cleipnir = Persistent Programming in .NET = Sagas Simplified). Additionally, the official github repository for Cleipnir can be found: [https://github.com/stidsborg/Cleipnir].
+In this github directory you can find Jørgen Melstveit's implementation of the consensus algorithm Practical Byzantine Fault Tolerance(PBFT) using the .Net framework Cleipnir. The Cleipnir framework is made by Thomas Sylvest Stidsborg. Information regarding Cleipnir is presented in this [section](#Cleipnir Information presented by Thomas Stidsborg Sylvest). Additionally, the official github repository for Cleipnir can be found: [https://github.com/stidsborg/Cleipnir].
 
 The PBFT implementation consist of the code found in the folders PBFT and PBFTClient. The source code for the Cleipnir framework is found in the Cleipnir folders. The PBFT.Tests folders consist of the unit tests performed for the PBFT implementation. It is important that the referances listed in PBFT.csproj and PBFTClient.csporj are all working, before attempting to run the PBFT implementation. 
 
