@@ -58,7 +58,6 @@ namespace PBFT.Certificates
                 .GroupBy(c => new {c.ServID, c.Signature})
                 .Where(c => c.Count() > 1)
                 .Sum(c => c.Count()-1);
-            Console.WriteLine(count);
             return count;
         }
 
@@ -79,7 +78,7 @@ namespace PBFT.Certificates
             Console.WriteLine("Checking proofs");
             foreach (var vc in ProofList)
             {
-                Console.WriteLine(vc);
+                Console.WriteLine($"Validating View Change: Server{vc.ServID}, View {vc.NextViewNr}, StableCheckNr {vc.StableSeqNr}");
                 if (vc.NextViewNr != ViewInfo.ViewNr) 
                     return false;
                 if (CurSystemState == null && vc.CertProof != null || CurSystemState != null && vc.CertProof == null)
@@ -97,6 +96,8 @@ namespace PBFT.Certificates
 
         public bool ValidateCertificate(int nodes)
         {
+            Console.WriteLine("Validate Certificate");
+            Console.WriteLine(ProofList.Count);
             if (QReached(nodes) && ProofsAreValid()) Valid = true;
             return Valid;
         }

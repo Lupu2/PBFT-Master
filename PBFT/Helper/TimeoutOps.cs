@@ -5,7 +5,6 @@ using Cleipnir.ExecutionEngine;
 using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using PBFT.Certificates;
 
 namespace PBFT.Helper
 {

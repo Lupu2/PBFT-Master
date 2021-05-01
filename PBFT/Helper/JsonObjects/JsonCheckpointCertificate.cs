@@ -8,10 +8,10 @@ namespace PBFT.Helper.JsonObjects
 {
     public class JsonCheckpointCertificate
     {
-        public int LastSeqNr {get; set;}
-        public byte[] StateDigest {get; set;}
-        public bool Stable {get; set;}
-        public List<Checkpoint> ProofList {get; set;}
+        public int LastSeqNr { get; set; }
+        public byte[] StateDigest { get; set; }
+        public bool Stable { get; set; }
+        public List<Checkpoint> ProofList { get; set; }
 
         [JsonConstructor]
         public JsonCheckpointCertificate(int seq, byte[] dig, bool stable, List<Checkpoint> proofs)

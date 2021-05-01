@@ -1,0 +1,56 @@
+version: "3.8"
+services: 
+  server0:
+    image: pbftserver
+    command: ["id=0","test=false","per=false"]
+    #ports:
+    #  - "9000-9010"
+    networks: 
+      pbftnetwork:
+        ipv4_address: 192.168.2.0
+  
+  server1:
+    image: pbftserver
+    command: ["id=1","test=false","per=false"]
+    #ports:
+    #  - "9000-9010"
+    networks:
+      pbftnetwork:
+        ipv4_address: 192.168.2.1
+    depends_on: 
+      - server0
+  
+  server2:
+    image: pbftserver
+    command: ["id=2","test=false","per=false"]
+    # ports:
+    #  - "9000-9010"
+    networks:
+      pbftnetwork:
+        ipv4_address: 192.168.2.2
+    depends_on:
+      - server0
+      - server1
+  
+  server3:
+    image: pbftserver
+    command: ["id=3","test=false","per=false"]
+    # ports:
+    #  - "9000-9010"
+    networks:
+      pbftnetwork:
+        ipv4_address: 192.168.2.3
+    depends_on:
+      - server0
+      - server1
+      - server2
+
+networks:
+# default:
+#    external: 
+#      name: pbftnetwork
+  pbftnetwork:
+    external: true
+ #   ipam:
+ #     config:
+ #       - subnet: "192.168.0.0/16"

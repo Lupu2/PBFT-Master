@@ -4,7 +4,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Certificates;
 
-namespace PBFT.Tests.Replica
+namespace PBFT.Tests.Certificates
 {
     [TestClass]
     public class QCertificateTests

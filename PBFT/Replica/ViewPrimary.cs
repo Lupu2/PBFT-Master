@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
@@ -15,10 +14,10 @@ namespace PBFT.Replica
 {
     public class ViewPrimary : IPersistable
     {
-        public int ServID {get; set;}
-        public int ViewNr {get; set;}
+        public int ServID { get; set; }
+        public int ViewNr { get; set; }
 
-        public int NrOfNodes {get; set;}
+        public int NrOfNodes { get; set; }
         
         public ViewPrimary(int numberofReplicas)
         {
@@ -50,9 +49,6 @@ namespace PBFT.Replica
         
         public CList<PhaseMessage> MakePrepareMessages(CDictionary<int, ProtocolCertificate> protcerts, int lowbound, int highbound)
         {
-            Console.WriteLine("MakePrepareMessages");
-            Console.WriteLine(lowbound);
-            Console.WriteLine(highbound);
             CList<PhaseMessage> premessages = new CList<PhaseMessage>();
             for (int i = lowbound; i <= highbound; i++)
             {

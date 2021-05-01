@@ -5,9 +5,9 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Network;
+using PBFT.Replica.Network;
 
-namespace PBFT.Tests.Network
+namespace PBFT.Tests.Replica.Network
 {
     [TestClass]
     public class NetworkTests

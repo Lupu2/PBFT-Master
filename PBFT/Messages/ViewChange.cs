@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ConstrainedExecution;
 using Newtonsoft.Json;
 using System.Text;
 using System.Security.Cryptography;
@@ -45,7 +44,7 @@ namespace PBFT.Messages
             Signature = sign;
         }
         
-        public byte[] SerializeToBuffer() //TODO is the reason why the signature fails, the object signed includes all of the original certs and proofs, this changes the format
+        public byte[] SerializeToBuffer()
         {
             Action<CheckpointCertificate> temp = null;
             if (CertProof != null)
@@ -94,12 +93,10 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int nextview)
         {
+            Console.WriteLine("Validating message: " + this);
             var copy = (ViewChange) CreateCopyTemplate();
             if (nextview != NextViewNr) return false;
-            Console.WriteLine("Passed NewViewNr check");
             if(!Crypto.VerifySignature(Signature,copy.SerializeToBufferSignature(), pubkey)) return false;
-            Console.WriteLine("Passed All checks");
-            //Verify Checkout Certificate... 
             return true;
         }
 

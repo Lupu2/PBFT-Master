@@ -58,7 +58,7 @@ namespace PBFT.Tests.Helper
         [TestMethod]
         public void SerializeDeserializeReply()
         {
-            var repmes = new Reply(1,1,1,true,"hello world", DateTime.Now.ToString());
+            var repmes = new Reply(1,1,1,1,true,"hello world", DateTime.Now.ToString());
             byte[] serpmes = repmes.SerializeToBuffer();
             byte[] readybuff = Serializer.AddTypeIdentifierToBytes(serpmes, MessageType.Reply);
             Assert.IsFalse(BitConverter.ToString(serpmes).Equals(BitConverter.ToString(readybuff)));

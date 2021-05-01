@@ -1,28 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
-using System.Data;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Network;
-using PBFT.Replica;
+using PBFT.Replica.Network;
 
-namespace PBFT.Client
+namespace PBFTClient
 {
     public class Client
     {
-        //TODO fix/redesign client to get failed requests and not resend them automatically, make sure it can survive a server going down
         public int ClientID { get; }
         private RSAParameters _prikey{ get; } //Keep private key secret, can't leak info about: p,q & d
         public RSAParameters Pubkey { get; } //Contains only info for Exponent e & Modulus n
@@ -96,7 +89,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write Operation:");
                 op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 done = true;
             }
             return op;
@@ -111,7 +108,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write operation:");
                 string op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 operations.Add(op);
                 Console.WriteLine("Done creating operations?[y/n]"); //https://stackoverflow.com/questions/37359161/how-would-i-make-a-yes-no-prompt-in-console-using-c
                 bool conf = false;

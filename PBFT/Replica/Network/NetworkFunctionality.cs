@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Network
+namespace PBFT.Replica.Network
 {
     public static class NetworkFunctionality
     {
@@ -30,7 +30,7 @@ namespace PBFT.Network
                 var mesobjects = jsonstringobj.Split('|', StringSplitOptions.RemoveEmptyEntries);
                 if (mesobjects.Length > 1)
                 {
-                    Console.WriteLine("THIS IS A MESSAGE FROM LORD REX, WE ARE NOW IN BIG TROUBLE!");
+                    Console.WriteLine("Duplicates detected!");
                     int idx = 0;
                     foreach (var mesjson in mesobjects)
                     {
@@ -59,7 +59,6 @@ namespace PBFT.Network
                     types.Add(mestype);
                     incommingMessages.Add(mes);
                 }
-                Console.WriteLine("finished reveived mes");
                 return (types, incommingMessages);
             }
             catch (Exception e)

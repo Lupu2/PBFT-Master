@@ -11,7 +11,7 @@ using PBFT.Helper;
 using PBFT.Messages;
 using PBFT.Replica;
 
-namespace PBFT.Tests.Replica
+namespace PBFT.Tests.Certificates
 {
     [TestClass]
     public class CheckpointTests
@@ -89,8 +89,8 @@ namespace PBFT.Tests.Replica
             //int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList
             var checksource = new Source<CheckpointCertificate>();
             var checksource2 = new Source<CheckpointCertificate>();
-            var sh = new SourceHandler(null, null, null, null, null, null, checksource);
-            var sh2 = new SourceHandler(null, null, null, null, null, null, checksource2);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, checksource);
+            var sh2 = new SourceHandler(null, null, null, null, null, null, null, null, checksource2);
             var testserv = new Server(1,1,4,_scheduler,5,"127.0.0.1:9001",sh, new CDictionary<int, string>());
             var testserv2 = new Server(2,1,4,_scheduler,5,"127.0.0.1:9002",sh2, new CDictionary<int, string>());
             testserv.InitializeLog(0);
@@ -172,7 +172,7 @@ namespace PBFT.Tests.Replica
         public void ListenForStableCheckpointTest()
         {
             var checksource = new Source<CheckpointCertificate>();
-            var sh = new SourceHandler(null, null, null, null, null, null, checksource);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, checksource);
             var testserv = new Server(1,1,4, _scheduler,5,"127.0.0.1:9001", sh, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
@@ -239,7 +239,7 @@ namespace PBFT.Tests.Replica
         public void AppendCheckpointCertificateTest()
         {
             var checksource = new Source<CheckpointCertificate>();
-            var sh = new SourceHandler(null, null, null, null, null, null, checksource);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, checksource);
             var testserv = new Server(1,1,4,_scheduler,5,"127.0.0.1:9001", sh,new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
@@ -303,7 +303,7 @@ namespace PBFT.Tests.Replica
         public void FaultyCheckpointValidationTest()
         {
             var checksource = new Source<CheckpointCertificate>();
-            var sh = new SourceHandler(null, null, null, null, null, null, checksource);
+            var sh = new SourceHandler(null, null, null, null, null, null, null, null, checksource);
              var testserv = new Server(1,1,4, _scheduler,5,"127.0.0.1:9001",sh, new CDictionary<int, string>());
             testserv.InitializeLog(0);
             testserv.InitializeLog(1);
