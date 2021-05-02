@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
@@ -11,12 +12,12 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Checkpoint : IProtocolMessages, SignedMessage, IPersistable
+    public class Checkpoint : IProtocolMessages, ISignedMessage, IPersistable
     {
-        public int ServID {get; set;}
-        public int StableSeqNr{get; set;}
-        public byte[] StateDigest {get; set;} //Digest of the state
-        public byte[] Signature{get; set;}
+        public int ServID { get; set; }
+        public int StableSeqNr{ get; set; }
+        public byte[] StateDigest { get; set; } //Digest of the state
+        public byte[] Signature{ get; set; }
         
         public Checkpoint(int id, int seqnr, byte[] statedigest)
         {
@@ -53,7 +54,7 @@ namespace PBFT.Messages
                 byte[] hashmes;
                 using (var shaalgo = SHA256.Create())
                 {
-                    var serareq = this.SerializeToBuffer();
+                    var serareq = SerializeToBuffer();
                     hashmes = shaalgo.ComputeHash(serareq);
                 }
                 rsa.ImportParameters(prikey);
@@ -66,10 +67,10 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey)
         {
+            Console.WriteLine("Validating: " + this);
             if (StableSeqNr < 0) return false;
             if (StateDigest == null) return false;
-            if (Signature == null) return false;
-            var clone = CreateCopyTemplate();
+            var clone = (Checkpoint) CreateCopyTemplate();
             if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                 return false;
             return true;
@@ -77,7 +78,13 @@ namespace PBFT.Messages
         
         public IProtocolMessages CreateCopyTemplate() => new Checkpoint(ServID, StableSeqNr, StateDigest);
 
-        public override string ToString() => $"ServID: {ServID}, SeqNumber: {StableSeqNr}, Digest: {StateDigest}, Signature: {Signature} ";
+        public override string ToString()
+        {
+            string tostring = $"ServID: {ServID}, SeqNumber: {StableSeqNr},";
+            if (StateDigest != null) tostring += $"Digest: {BitConverter.ToString(StateDigest)},";
+            tostring += $"Signature: {Signature}";
+            return tostring;
+        }
         
         public bool Compare(Checkpoint check)
         {

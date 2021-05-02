@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
@@ -14,10 +14,10 @@ namespace PBFT.Replica
 {
     public class ViewPrimary : IPersistable
     {
-        public int ServID {get; set;}
-        public int ViewNr {get; set;}
+        public int ServID { get; set; }
+        public int ViewNr { get; set; }
 
-        private int NrOfNodes {get; set;}
+        public int NrOfNodes { get; set; }
         
         public ViewPrimary(int numberofReplicas)
         {
@@ -36,6 +36,7 @@ namespace PBFT.Replica
         
         public void NextPrimary()
         {
+            Console.WriteLine("Next Primary Called");
             ViewNr++;
             ServID = ViewNr % NrOfNodes;
         }
@@ -65,7 +66,9 @@ namespace PBFT.Replica
             }
             return premessages;
         }
-        
+
+        public override string ToString() => $"Primary ServID: {ServID}, ViewNr: {ViewNr}, NrOfNodes: {NrOfNodes}";
+
         public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
         {
             stateToSerialize.Set(nameof(ServID), ServID);

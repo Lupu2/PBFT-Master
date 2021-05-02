@@ -2,7 +2,7 @@ using System.Security.Cryptography;
 
 namespace PBFT.Messages
 {
-    public interface SignedMessage
+    public interface ISignedMessage
     {
          public void SignMessage(RSAParameters prikey, string haspro="SHA256");
 

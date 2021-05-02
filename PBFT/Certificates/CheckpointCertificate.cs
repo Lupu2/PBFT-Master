@@ -15,14 +15,11 @@ namespace PBFT.Certificates
 {
     public class CheckpointCertificate : IQCertificate, IPersistable
     {
-        public int LastSeqNr {get; set;}
-        public byte[] StateDigest {get; set;}
-        public bool Stable {get; set;}
-        public CList<Checkpoint> ProofList {get; set;}
-
-        //public Source<CheckpointCertificate> CheckpointBridge {get; set;}
-
-        public Action<CheckpointCertificate> EmitCheckpoint;
+        public int LastSeqNr { get; set;}
+        public byte[] StateDigest { get; set;}
+        public bool Stable { get; set; }
+        public CList<Checkpoint> ProofList { get; set; }
+        public Action<CheckpointCertificate> EmitCheckpoint { get; set; }
 
         public CheckpointCertificate(int seqLimit, byte[] digest, Action<CheckpointCertificate> emitCheckpoint)
         {
@@ -30,7 +27,6 @@ namespace PBFT.Certificates
             StateDigest = digest;
             Stable = false;
             ProofList = new CList<Checkpoint>();
-            //CheckpointBridge = check;
             EmitCheckpoint = emitCheckpoint;
         }
         
@@ -41,7 +37,6 @@ namespace PBFT.Certificates
             StateDigest = digest;
             Stable = stable;
             ProofList = proofs;
-            //CheckpointBridge = check;
             EmitCheckpoint = emitCheckpoint;
         }
         
@@ -59,6 +54,7 @@ namespace PBFT.Certificates
 
         public bool ProofsAreValid()
         {
+            Console.WriteLine("ProofsAreValid");
             if (ProofList.Count < 1) return false;
             foreach (var check in ProofList)
             {
@@ -69,15 +65,17 @@ namespace PBFT.Certificates
                     return false;
                 if (check.Signature == null) return false;
             }
+
+            Console.WriteLine("All proofs are valid");
             return true;
         }
 
         public bool ValidateCertificate(int nodes)
         {
-            //Console.WriteLine("Validate Checkpoint Certficate");
-            //Console.WriteLine("QReached: " + QReached(nodes));
-            //Console.WriteLine("ProofsAreValid: " + ProofsAreValid());
+            Console.WriteLine("ValidateCertificate");
+            Console.WriteLine(ProofList.Count);
             if (QReached(nodes) && ProofsAreValid()) Stable = true;
+            Console.WriteLine(Stable);
             return Stable;
         }
 
@@ -89,28 +87,32 @@ namespace PBFT.Certificates
 
         public void AppendProof(Checkpoint check, RSAParameters pubkey, int failureNr)
         {
-            //validate message
-            //validate certificate
-            //if certificate becomes stable call emit CheckpointCertificate
             if (!Stable)
             {
-                //Console.WriteLine(BitConverter.ToString(check.StateDigest));
-                //Console.WriteLine(BitConverter.ToString(StateDigest));
-                //Console.WriteLine(LastSeqNr);
+                Console.WriteLine("Before:");
+                //SeeProofs();
                 if (check.Validate(pubkey) && check.StableSeqNr == LastSeqNr && check.StateDigest.SequenceEqual(StateDigest))
                 {
                     Console.WriteLine("ADDING CHECKPOINT");
-                    ProofList.Add(check); 
-                    //Console.WriteLine("FailureNr: " + failureNr);
-                    //Console.WriteLine($"Proof Count: {ProofList.Count}");
-                    //Console.WriteLine($"Valid Proof Count: {ProofList.Count-AccountForDuplicates()}");
+                    ProofList.Add(check);
                     Stable = ValidateCertificate(failureNr);
-                    //Console.WriteLine("Stable: " + Stable);
-                    if (Stable) EmitCertificate();    
+                    Console.WriteLine("Validation: " + Stable);
+                    if (!Stable)
+                    {
+                        Console.WriteLine("After:");
+                        SeeProofs();
+                    }
+                    if (Stable && EmitCheckpoint != null) EmitCertificate();    
                 }
             }
         }
 
+        public void SeeProofs()
+        {
+            foreach (var proof in ProofList)
+                Console.WriteLine(proof);
+        }
+        
         public bool CompareAndValidate(CheckpointCertificate ccert)
         {
             if (!ccert.Stable) return false;
@@ -121,8 +123,8 @@ namespace PBFT.Certificates
         private void EmitCertificate()
         {
             Console.WriteLine("calling callback function");
-            //CheckpointBridge.Emit(this);
             EmitCheckpoint(this);
+            EmitCheckpoint = null;
         }
 
         public override string ToString()
@@ -140,7 +142,6 @@ namespace PBFT.Certificates
             stateToSerialize.Set(nameof(Stable), Stable);
             stateToSerialize.Set(nameof(EmitCheckpoint), EmitCheckpoint);
             stateToSerialize.Set(nameof(ProofList), ProofList);
-            //stateToSerialize.Set(nameof(CheckpointBridge), CheckpointBridge);
         }
         
         private static CheckpointCertificate Deserialize(IReadOnlyDictionary<string, object> sd)
@@ -149,7 +150,6 @@ namespace PBFT.Certificates
                 Deserializer.DeserializeHash(sd.Get<string>(nameof(StateDigest))),
                 sd.Get<bool>(nameof(Stable)),
                 sd.Get<Action<CheckpointCertificate>>(nameof(EmitCheckpoint)),
-                //sd.Get<Source<CheckpointCertificate>>(nameof(CheckpointBridge)),
                 sd.Get<CList<Checkpoint>>(nameof(ProofList))
             );
     }

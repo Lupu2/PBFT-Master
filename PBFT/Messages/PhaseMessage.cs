@@ -16,18 +16,14 @@ using PBFT.Certificates;
 namespace PBFT.Messages
 {
 
-    public class PhaseMessage : IProtocolMessages, SignedMessage, IPersistable
+    public class PhaseMessage : IProtocolMessages, ISignedMessage, IPersistable
     {
-        public int ServID {get; set;}
-
-        public int SeqNr {get; set;}
-        
-        public int ViewNr{get; set;}
-        public byte[] Digest{get; set;}
-        
-        public byte[] Signature{get; set;}
-
-        public PMessageType PhaseType{get; set;}
+        public int ServID { get; set; }
+        public int SeqNr { get; set; }
+        public int ViewNr{ get; set; }
+        public byte[] Digest{ get; set; }
+        public byte[] Signature{ get; set; }
+        public PMessageType PhaseType{ get; set; }
 
         public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase)
         {
@@ -58,9 +54,6 @@ namespace PBFT.Messages
         public static PhaseMessage DeSerializeToObject(byte[] buffer)
         {
             string jsonobj = Encoding.ASCII.GetString(buffer);
-            //Console.WriteLine("JSON OBJECT:");
-            //Console.WriteLine(BitConverter.ToString(buffer));
-            //Console.WriteLine(jsonobj);
             return JsonConvert.DeserializeObject<PhaseMessage>(jsonobj);
         }
         
@@ -84,18 +77,14 @@ namespace PBFT.Messages
 
         public bool Validate(RSAParameters pubkey, int cviewNr, Range curSeqInterval, ProtocolCertificate cert = null)
         {
-            //try
-            //{
-                Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
+            Console.WriteLine($"VALIDATING PhaseMes {ServID} {PhaseType}");
                 int seqLow = curSeqInterval.Start.Value;
                 int seqHigh = curSeqInterval.End.Value;
-                var clone = CreateCopyTemplate();
+                var clone = (PhaseMessage) CreateCopyTemplate();
                 if (Signature == null || !Crypto.VerifySignature(Signature, clone.SerializeToBuffer(), pubkey))
                     return false;
                 if (ViewNr != cviewNr) return false;
-                Console.WriteLine("Passed view check");
                 if (SeqNr < seqLow || SeqNr > seqHigh) return false;
-                Console.WriteLine("Passed Range check");
                 if (cert != null && cert.ProofList.Count > 0)
                     if (PhaseType == PMessageType.PrePrepare
                     ) //check if already exist a stored prepare with seqnr = to this message
@@ -110,13 +99,6 @@ namespace PBFT.Messages
                     }
                 Console.WriteLine($"PhaseMes Validation {ServID},{PhaseType} True");
                 return true;
-            //}
-            //catch (Exception e)
-            //{
-                //Console.WriteLine("Error in Validate (PhaseMessage)");
-                //Console.WriteLine(e);
-                //throw;
-            //}
         }
         
         public bool ValidateRedo(RSAParameters pubkey, int cviewNr)

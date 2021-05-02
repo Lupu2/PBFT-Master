@@ -1,31 +1,24 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
-using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
-using Cleipnir.ObjectDB.PersistentDataStructures;
-using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
 using Cleipnir.StorageEngine.InMemory;
 using PBFT.Certificates;
 using PBFT.Helper;
 using PBFT.Messages;
-using PBFT.Network;
+using PBFT.Replica.Network;
 
-namespace PBFT.Client
+namespace PBFTClient
 {
     public class Client
     {
-        
         public int ClientID { get; }
         private RSAParameters _prikey{ get; } //Keep private key secret, can't leak info about: p,q & d
         public RSAParameters Pubkey { get; } //Contains only info for Exponent e & Modulus n
-
-        public Request CurReq { get; set; }
         
         public Dictionary<Request, ReplyCertificate> FinishedRequest;
         
@@ -76,9 +69,6 @@ namespace PBFT.Client
                 default:
                     throw new IndexOutOfRangeException($"Server number {nrservers} not manageable!");
             }
-            {
-                
-            }
         }
 
         public void ClientOperation()
@@ -99,7 +89,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write Operation:");
                 op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 done = true;
             }
             return op;
@@ -114,7 +108,11 @@ namespace PBFT.Client
             {
                 Console.WriteLine("Write operation:");
                 string op = Console.ReadLine();
-                if (String.IsNullOrEmpty(op)) continue;
+                if (String.IsNullOrEmpty(op) || op.Contains("|"))
+                {
+                    Console.WriteLine("Not a valid operation!");
+                    continue;
+                }
                 operations.Add(op);
                 Console.WriteLine("Done creating operations?[y/n]"); //https://stackoverflow.com/questions/37359161/how-would-i-make-a-yes-no-prompt-in-console-using-c
                 bool conf = false;
@@ -143,7 +141,7 @@ namespace PBFT.Client
             Request req = CreateRequest(op);
             Req:
             await SendRequest(req);
-            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(6000)).Result;
+            bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(15000)).GetAwaiter().GetResult();
             //bool val = await ValidateRequest(req);
             Console.WriteLine("Finished await");
             if (val) return;
@@ -168,8 +166,7 @@ namespace PBFT.Client
                     Serializer.AddTypeIdentifierToBytes(
                         ses.SerializeToBuffer(), MessageType.SessionMessage)
                     );
-                
-                await servinfo.Socket.SendAsync(sesbuff, SocketFlags.None);
+                await Send(servinfo.Socket, sesbuff);
             }
         }
 
@@ -181,17 +178,46 @@ namespace PBFT.Client
                     Serializer.AddTypeIdentifierToBytes(
                         req.SerializeToBuffer(), MessageType.Request)
                     );
-                await servinfo.Socket.SendAsync(reqbuff, SocketFlags.None);
+                if (!servinfo.Active)
+                {
+                    var newsock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    var conn = await NetworkFunctionality.Connect(newsock, IPEndPoint.Parse(servinfo.IPAddress));
+                    if (conn)
+                    {
+                        servinfo.Socket = newsock;
+                        servinfo.Active = true;
+                        Session climes = new Session(DeviceType.Client, Pubkey, ClientID);
+                        await SendSessionMessage(climes);
+                        _ = ListenForResponse(newsock, id);
+                    }
+                }
+                var res = await Send(servinfo.Socket, reqbuff); 
+                if (!res) servinfo.Active = false;
             }
         }
 
+        private async Task<bool> Send(Socket sock, byte[] buff)
+        {
+            try
+            {
+                await sock.SendAsync(buff, SocketFlags.None);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to send message");
+                Console.WriteLine(e);
+                return false;
+            }
+        }
+        
         public async Task InitializeConnections()
         {
             foreach (var (id,info) in ServerInformation)
             {
                 Socket sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
                 var endpoint = IPEndPoint.Parse(info.IPAddress);
-                while (!sock.Connected) await sock.ConnectAsync(endpoint);
+                while (!sock.Connected) await NetworkFunctionality.Connect(sock, endpoint);
                 info.Socket = sock;
                 info.Active = true;
                 _ = ListenForResponse(sock, id);
@@ -239,6 +265,7 @@ namespace PBFT.Client
                     Console.WriteLine("ERROR Listen Response");
                     Console.WriteLine(e);
                     ServerInformation[id].Active = false;
+                    sock.Dispose();
                     return;
                 }
             }
@@ -249,9 +276,7 @@ namespace PBFT.Client
             try
             {
                 var repCert = new ReplyCertificate(req, true); //most reply certificates are set to f+1 validation
-
-                //Set timeout for validateRequest and return false if it occurs
-                //Console.WriteLine("Validating");
+                
                 await ReplySource
                     .Where(rep => rep.Validate(ServerInformation[rep.ServID].GetPubkeyInfo(), req))
                     .Scan(repCert.ProofList, (prooflist, message) =>
@@ -272,7 +297,6 @@ namespace PBFT.Client
                 Console.WriteLine(e);
                 return false;
             }
-            
         }
     }
 }

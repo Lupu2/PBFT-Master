@@ -9,9 +9,9 @@ namespace PBFT.Messages
     
     public class Session : IProtocolMessages
     {
-        public DeviceType Devtype {get; set;}
-        public RSAParameters Publickey{get; set;}
-        public int DevID {get; set;}
+        public DeviceType Devtype { get; set; }
+        public RSAParameters Publickey{ get; set; }
+        public int DevID { get; set; }
         
         public Session(DeviceType type, RSAParameters pubkey, int devid) 
         {

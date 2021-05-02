@@ -1,9 +1,8 @@
-using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace PBFT.Network
+namespace PBFT.Replica.Network
 {
     public class TempInteractiveConn
     {
@@ -12,7 +11,7 @@ namespace PBFT.Network
         public IPEndPoint Address { get; }
         public Socket Socket { get; }
 
-        private bool _active = false;
+        public bool Active { get; set; }
 
         public TempInteractiveConn(Socket sock)
         {
@@ -26,19 +25,20 @@ namespace PBFT.Network
             _ipAddress = ipAddress;
             Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp); //IPv4 network
             Address = IPEndPoint.Parse(ipAddress);
-            _active = false;
+            Active = false;
         }
         
-        public async Task Connect() 
+        public async Task Connect()
         {
-            while (!Socket.Connected) await Socket.ConnectAsync(Address);
-            _active = true;
+            while (!Socket.Connected)
+                await NetworkFunctionality.Connect(Socket, Address);
+            Active = true;
         }
         
         public void Dispose()
         {
             Socket.Dispose();
-            _active = false;
+            Active= false;
         }
     }
 }

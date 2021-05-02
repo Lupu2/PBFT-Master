@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using PBFT.Helper;
 using PBFT.Messages;
 
-namespace PBFT.Network
+namespace PBFT.Replica.Network
 {
     public static class NetworkFunctionality
     {
@@ -15,7 +16,7 @@ namespace PBFT.Network
         {
             try
             { 
-                var buffer = new byte[1024];
+                var buffer = new byte[16000];
                 var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
                 List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();
                 List<int> types = new List<int>();
@@ -29,7 +30,7 @@ namespace PBFT.Network
                 var mesobjects = jsonstringobj.Split('|', StringSplitOptions.RemoveEmptyEntries);
                 if (mesobjects.Length > 1)
                 {
-                    Console.WriteLine("THIS IS A MESSAGE FROM LORD REX, WE ARE NOW IN BIG TROUBLE!");
+                    Console.WriteLine("Duplicates detected!");
                     int idx = 0;
                     foreach (var mesjson in mesobjects)
                     {
@@ -58,7 +59,6 @@ namespace PBFT.Network
                     types.Add(mestype);
                     incommingMessages.Add(mes);
                 }
-                Console.WriteLine("finished reveived mes");
                 return (types, incommingMessages);
             }
             catch (Exception e)
@@ -77,6 +77,32 @@ namespace PBFT.Network
             return resobj;
         }
         
+        public static void Send(Socket sock, byte[] buffer)
+        {
+            try
+            {
+                sock.Send(buffer, SocketFlags.None);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to send message!");
+                Console.WriteLine(e);
+            }
+        }
         
+        public static async Task<bool> Connect(Socket sock, IPEndPoint endpoint)
+        {
+            try
+            {
+                await sock.ConnectAsync(endpoint);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
+                Console.WriteLine(e);
+                return false;
+            }
+        }
     }
 }

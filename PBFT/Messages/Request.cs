@@ -12,13 +12,13 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    public class Request : IProtocolMessages, SignedMessage, IPersistable 
+    public class Request : IProtocolMessages, ISignedMessage, IPersistable 
     {
-        public int ClientID {get; set;}
-        public string Message{get; set;} //operation might be changed to object later on
-        public string Timestamp{get; set;}
-        public byte[] Signature{get; set;}
-        //Potentially add a t value that increments after each signature in order to avoid replay attacks...
+        public int ClientID { get; set; }
+        public string Message{ get; set; } //operation might be changed to object later on
+        public string Timestamp{ get; set; }
+        public byte[] Signature{ get; set; }
+
         public Request(int id, string op)
         {
             ClientID = id;

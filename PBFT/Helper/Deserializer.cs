@@ -9,11 +9,9 @@ namespace PBFT.Helper
         public static (int, IProtocolMessages) ChooseDeserialize(byte[] sermessage)
         {
             if (sermessage.Length < 4)
-            {
                 throw new IndexOutOfRangeException("INVALID INPUT ARGUMENT");
-            }
-            //Collect the last 4bytes to get MessageType value
             
+            //Collect the last 4bytes to get MessageType value
             int formatByte = BitConverter.ToInt32(sermessage.Reverse()
                                                                .Take(4)
                                                                .Reverse()
@@ -22,9 +20,6 @@ namespace PBFT.Helper
             
             byte[] serobj = sermessage.Take(sermessage.Length-4)
                                       .ToArray();
-            Console.WriteLine("Message:" + BitConverter.ToString(sermessage));
-            Console.WriteLine(formatByte);
-            //Console.WriteLine(BitConverter.ToString(serobj));
             switch (formatByte) 
             {
                 case (int) MessageType.SessionMessage:
@@ -46,7 +41,11 @@ namespace PBFT.Helper
                     throw new ArgumentOutOfRangeException(); 
             }
         }
-        
-        public static byte[] DeserializeHash(string hashstring) => Convert.FromBase64String(hashstring);
+
+        public static byte[] DeserializeHash(string hashstring)
+        {
+            if (hashstring != null) return Convert.FromBase64String(hashstring);
+            return null;
+        }
     }
 }

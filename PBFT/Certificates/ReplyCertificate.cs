@@ -7,13 +7,10 @@ namespace PBFT.Certificates
 {
     public class ReplyCertificate :IQCertificate
     {
-        public Request RequestOrg {get; set;}
-        
+        public Request RequestOrg { get; set; }
         public bool ValStrength { get; set; }
-        
-        private bool Valid{get; set;}
-
-        public CList<Reply> ProofList {get; set;}
+        private bool Valid{ get; set; }
+        public CList<Reply> ProofList { get; set; }
 
         public ReplyCertificate(Request req)
         {
@@ -61,20 +58,18 @@ namespace PBFT.Certificates
                     proofvalid = false;
                     break;
                 }
-                Console.WriteLine("PASSED timestamp");
                 if (proof.Signature == null || proof.Result.Equals("") || proof.Result == null || !curres.Equals(proof.Result) || curstatus != proof.Status)
                 {
                     proofvalid = false;
                     break;
                 }
-                Console.WriteLine("PASSED result signature, status test");
             }
             return proofvalid;
         }
         
         public bool ValidateCertificate(int fNodes)
         {
-            Console.WriteLine("Validating!");
+            Console.WriteLine("Validating Reply Certificate");
             if (!Valid)
                 if (ValStrength)
                 {
@@ -92,6 +87,12 @@ namespace PBFT.Certificates
         {
             Valid = false;
             ProofList = new CList<Reply>();
+        }
+        
+        public void SeeProofs()
+        {
+            foreach (var proof in ProofList)
+                Console.WriteLine(proof);
         }
     }
 }

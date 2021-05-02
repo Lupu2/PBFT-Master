@@ -1,9 +1,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Cleipnir.ExecutionEngine;
+using Cleipnir.ExecutionEngine.Providers;
 using Cleipnir.ObjectDB.TaskAndAwaitable.StateMachine;
 using Cleipnir.Rx;
-using PBFT.Certificates;
 
 namespace PBFT.Helper
 {
@@ -17,24 +18,47 @@ namespace PBFT.Helper
         } 
         
         //Server
-        public static async CTask ProtocolTimeoutOperation(Source<ViewChangeCertificate> shutdown, int length)
+        public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length, int id)
         {
-            await Task.Delay(length);
-            Console.WriteLine("Timeout occurred");
-            shutdown.Emit(null);
+            await Sleep.Until(length);
+            Console.WriteLine("Timeout occurred " +id);
+            shutdown.Emit(false);
         }
 
-        public static async CTask AbortableProtocolTimeoutOperation(
-            Source<ViewChangeCertificate> shutdown, 
+        public static async Task AbortableProtocolTimeoutOperation(
+            Source<bool> shutdown, 
             int length,
-            CancellationToken cancel
+            CancellationToken cancel,
+            Engine scheduler
             )
         {
             try
             {
+                Console.WriteLine("Starting timeout with length: " + length);
                 await Task.Delay(length, cancel);
                 Console.WriteLine("Timeout occurred");
-                shutdown.Emit(null);
+                await scheduler.Schedule(() =>
+                {
+                    shutdown.Emit(false);
+                });
+            }
+            catch (TaskCanceledException te)
+            {
+                Console.WriteLine("Timeout cancelled!");
+            }
+        }
+
+        public static async CTask AbortableProtocolTimeoutOperationCTask(
+            Source<bool> shutdown,
+            int length,
+            CancellationToken cancel)
+        {
+            try
+            {
+                Console.WriteLine("Starting timeout with length: " + length);
+                await Task.Delay(length, cancel);
+                Console.WriteLine("Timeout occurred");
+                shutdown.Emit(false);
             }
             catch (TaskCanceledException te)
             {
