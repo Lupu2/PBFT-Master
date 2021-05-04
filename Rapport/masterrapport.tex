@@ -37,7 +37,7 @@
 \usepackage{tikz}
 \usetikzlibrary{trees}
 \usepackage{wrapfig}
-
+\usepackage[acronym]{glossaries}
 \usepackage{hyperref} % for autoref command
 \def\chapterautorefname{Chapter}
 \def\sectionautorefname{Section}
@@ -47,6 +47,9 @@
 \def\tableautorefname{Table}
 \def\equationautorefname{Equation}
 
+%Acronym list
+%\newacronym{PBFT}{PBFT}{Practical Byzantine Fault Tolerance}
+\makeglossaries
 %\definecolor{dkgreen}{rgb}{0,0.6,0}
 %\definecolor{gray}{rgb}{0.5,0.5,0.5}
 %\definecolor{mauve}{rgb}{0.58,0,0.82}
@@ -144,13 +147,20 @@
 	\maketitle
 	\tableofcontents
 	\newpage
-	
+
 	%Content
 	\abstract{Test abstract... This is a message from Lord Nergal! I await you at the dread islands.}
 	\section*{Acknowledgement}
-	I acknowledge that I have gotten massive amount of support as I would not possibly be able to this by my lonely self. 	
+	I acknowledge that I have gotten massive amount of support as I would not possibly be able to this by my lonely self! 	
 	NB, can't copy titles in verbatim, change name that fit you thesis better
+	\newpage	
+	\iffalse	
+	\section*{Glossary}
+	%\input{sections/glossary}
+	\newacronym{PBFT}{PBFT}{Practical Byzantine Fault Tolerance}
+	\printglossaries
 	\newpage
+	\fi
 	
 	\setlength{\parindent}{0em} 
 	\pagenumbering{arabic}
@@ -205,4 +215,7 @@
 		%\include{sections/appendix/appendixMain}
 	%\end{spacing}
 \printbibliography[heading=bibintoc]
+%\printglossary[type=\acronymtype]
+%\printglossary
+%\printglossaries
 \end{document}

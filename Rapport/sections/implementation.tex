@@ -1,3 +1,12 @@
 \chapter{Implementation}
 \label{chapter:Imp}
-Implementation talks about the actual algorithm implementation that is run in protocol execution, includes process of checkpoints and view-changes. Should have figures to simplify explanation. Go over briefly the different phases, show some pseudocode. keeps to take note of, maybe include a model to show the persistency layers present. The importance of using the cleipnir scheduler and CTask, where you have used them etc.
+Implementation talks about the actual algorithm implementation that is run in protocol execution, includes process of checkpoints and view-changes. Should have figures to simplify explanation. Go over briefly the different phases, show some pseudocode. keeps to take note of, maybe include a model to show the persistency layers present. The importance of using the Cleipnir scheduler and CTask, where you have used them etc.
+
+%outline aka what needs to be talked about, note not in any particular order
+%interaction between server side, protocol workflow and how they interact with eachother
+%detailed explanation of how the general workflow for the PBFT algorithm is performed, with code snippets.
+%the simplicity of some of the necessary tools needed in PBFT is handled. Object oriented programming for Messages, Certificates. Static function for workflow, including Listeners, and handlers
+%detailed explanation for how the checkpointing are handled
+%detailed explanation for how the view-changes are handled
+%Describe how you though of persistency during implementation(not much since its not general focus, and ofcourse doesn't work fully)
+%small description on how clients are working, how they use the same reactive operators to count number of replies received.
