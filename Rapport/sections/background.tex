@@ -35,7 +35,7 @@ The code in \autoref{code:asyncawaitex} is the function that is responsible for 
 %TODO find/write a better example.
 \begin{figure}[h]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:asyncawaitex, caption=Example of async/await workflow, captionpos=b, basicstyle=\scriptsize]
 public async Task SendMessage(byte[] sermessage, 
                               Socket sock, 
@@ -43,8 +43,7 @@ public async Task SendMessage(byte[] sermessage,
 {
     Console.WriteLine($"Sending: {type} message");
     var mesidentbytes = Serializer
-                        .AddTypeIdentifierToBytes(sermessage, 
-                                                  type);
+                        .AddTypeIdentifierToBytes(sermessage, type);
     var fullbuffmes = NetworkFunctionality
                       .AddEndDelimiter(mesidentbytes);
     await sock.SendAsync(fullbuffmes, SocketFlags.None);

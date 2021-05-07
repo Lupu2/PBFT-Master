@@ -22,7 +22,7 @@ In this chapter we discuss the how the PBFT workflow was implemented. This inclu
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:StartProtocol, caption=Code section from the request handler, captionpos = b, basicstyle=\scriptsize]
 while (true)
 {
@@ -50,7 +50,7 @@ while (true)
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:Pre-Prepare, caption= Source code for pre-prepare phase for primary replica, captionpos = b, basicstyle=\scriptsize]
 byte[] digest;
 ProtocolCertificate qcertpre;
@@ -84,7 +84,7 @@ if (Serv.IsPrimary()) //Primary
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:Pre-Prepare nonprimary, caption= Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
 else	//Not Primary
 { 
@@ -130,7 +130,7 @@ else	//Not Primary
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:PrepareAndCommit, caption= Prepare and Commit phase, captionpos = b, basicstyle=\scriptsize]
 	
 //Prepare phase
@@ -210,5 +210,3 @@ Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate 
 \subsection{Reactive Operators}
 
 \subsection{Persistency}
-
-\subsection{Conflict between async and CTask}

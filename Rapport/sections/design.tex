@@ -56,25 +56,25 @@ The \emph{Workflow.cs} file is where the code for normal protocol workflow is st
 
 \newpage
 
-\section{Server and protocol interaction}
+\section{Persistent vs Ephemeral}
 %This will be a very large part, just need to figure out how to structure it.
-Before we can introduce the main PBFT implementation workflow, it is first important to introduce the relationship between the server side and the protocol workflow. The server side is responsible for handling any received messages from the mesh network and properly emit the message to its proper reactive operator waiting for new messages to arrive. There are a few exceptions to this rule, case in point if the message the message is needed for server-side rather than the PBFT protocol, the message is used directly by the server and no emits are made. An example of this being session messages. Meanwhile the protocol itself is only responsible for performing the PBFT phase steps sequentially for any request received from the clients. Therefore, the primary relationship between the server side and the PBFT protocol implementation is simply that the server will emit any messages it receives from the network layer and then emit these messages to the PBFT protocol so that it can continue on with the workflow. As it is required for the PBFT protocol to multicast protocol messages during its workflow, the PBFT implementation also has a direct reference to the server, meaning it can easily send any messages it needs to the server in order for the server to multicast any messages out of its active sockets. This interaction may seem simple, however there is one aspect of their relationship that can be quite bothersome. 
+%Before we can introduce the main PBFT implementation workflow, it is first important to introduce the relationship between the server side and the protocol workflow. 
 
-As mention in \autoref{chapter:Cleipnir}, Cleipnir's main goal is to help make persistent consensus algorithms easier to implement. We already demonstrated how to assign the serialization and deserialization for an object to be persisted in Cleipnir in Listing \autoref{code:seriadeseria}, however 
+An important detail when using the Cleipnir framework is to have a general idea for which part of the system is desired to be persistent. As mentioned in \autoref{section:PersistentProgramming}, Cleipnir allows for hybrid persistent programming. Therefore, it is important to know which data is needed to be persisted for the consensus algorithm, so that it can be easily reinstated after a system shutdown. In addition, it is important to avoid storing unnecessary data as it will generally slow down the synchronization period. Another reason as to why making a distinct divide between persistent and ephemeral parts of the code is important is due to the difficulties encountered when using \code{CTask} together with traditional asynchronous operations as mention in \autoref{section:PersistentProgramming}. In our case, because our goal is to evaluate both async/await and Cleipnir for implementation of consensus algorithms, its important to not interchange these tools as it would in most cases lead to race conditions.
 
-%To use this functionality properly, the part of the code in which waits for changes to the source object the asynchronous function in question needs to use return an instance of \emph{CTask} rather than the traditional \emph{Task} class. When a function returns  
+\autoref{fig:PersistencyEphemeral} shows parts of our PBFT implementation being divided into persistent parts and ephemeral parts. In general, static functions and objects unrelated to the PBFT workflow are treated as ephemeral. Meanwhile objects related to the PBFT implementations, \code{Source} objects and functions that handles workflow related to the PBFT protocol are persisted. The server is an exception as some parts are persistent while others parts are not. As an example, the protocol logger is stored in the server and is persisted, on the other hand anything related to networking is not persisted. In a sense the operations occurring in the server are treated as a bridge between the persistent parts as well as the ephemeral parts. By this we mean the server is responsible for handling any messages received from the socket connections. These messages are then emitted to their respective reactive operators which are run in the persistent part and are waiting for changes to occur. There are a few exceptions to this rule, case in point if the message is needed for server-side rather than any PBFT protocol workflows, the message is instead used directly by the server. A primary example of this being session messages. However, in order for the servers non-persistent network handler to be perform operations which affects the persistent part run by Cleipnir, the operation must be scheduled by Cleipnir's execution engine. There are two reasons for this syntax. Firstly, code run by Cleipnir is not supposed to be affected by code outside of Cleipnir. Similarly to the case where using an asynchronous operations within \code{CTask}, attempting to emit a message or perform an operation which changes the state of a persisted object, will most of the time cause the same scenario we discussed earlier. New threads will occur and Cleipnir will attempt to perform the operation concurrently, however this scenario is not thread safe and sooner or later will affect the state of the system negatively. Secondly, running the operations by the Cleipnir's execution engine attempts to enforce the FCFS approach as mention in \autoref{section:CleipnirOv}. This will in turn make it a lot easier to keep track of the operations as it will give the illusion of synchronously system. The only situation we experienced where the Cleipnir execution engine didn't follow the FCFS scheduling algorithm was then the next operations was stuck, in which the second operation in the queue was executed instead and so forth. \autoref{code:schedulerEmit} shows an example of where the server uses the Cleipnir engine reference to schedule a phase message to be emitted to the \emph{ProtocolSubject} \code{Source} object. To summarize the primary relationship between the server, the network layer and the persistent workflow implementations is simply that the server will emit any messages it receives from the network layer and then emit these messages to the persistent workflows. As it is required for the PBFT protocol and view-change protocol to multicast messages during their process, these implementations have a direct reference to the server. In order to accomplish this, both persistent workflow shares a common persistent object known as \code{ProtocolExecution}. This means the protocol algorithms can easily send any messages it needs to the server through the server referance in the \code{ProtocolExecution}. 
 
-In Figure \autoref{fig:PersistencyEphemeral} parts of the PBFT implementation being divided into persistent parts and ephemeral parts. 
+This design is unfortunately not perfect. Because the server requires to schedule the operations in order for protocol execution to move on with its execution. In some scenarios we've encountered where the scheduled process never finishes its execution. Normally this wouldn't be a problem, however in some cases it is quite a severe problem. Usually when scheduling an operation which requires emitting to a \code{source} object without any receivers, the operation obviously will never finish. Nevertheless, when the server attempts to schedule an additional operations afterwards, the operation is never scheduled, which in turn leads to the application being deadlocked. This situation seems to be similar to sending messages to a channel without any receivers in Golang\cite{WEB:golangChannels}, in spite of that this is an issue which rarely occur, but when it does it is detrimental to the system. Therefore, to counteract this issue, strict conditions are placed in the server to avoid sending messages to reactive subjects in the situations where there are no listeners. %may be too vague.
 
-\begin{figure}[h]
-	\includegraphics[width=\linewidth]{figures/CleipnirStructurever1}
+\begin{figure}[H]
+	\includegraphics[width=\linewidth]{figures/CleipnirStructure}
 	\caption{Application divided into persistent parts and ephermeral parts and how they interact}
 	\label{fig:PersistencyEphemeral}
 \end{figure}
 
 \begin{figure}[h]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:schedulerEmit, caption= Example of server and protocol interaction using Cleipnir scheduler, captionpos=b, basicstyle=\scriptsize]
 	public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
@@ -86,19 +86,6 @@ In Figure \autoref{fig:PersistencyEphemeral} parts of the PBFT implementation be
                     Subjects.ProtocolSubject.Emit(mes);
                 });    
             }
-        }
-	\end{lstlisting}
-\end{figure}
-
-\begin{figure}[h]
-	\centering
-	\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:CTaskEx, caption= Example of a CTask function, captionpos = b, basicstyle=\scriptsize]
-	public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
-        {
-            var test = await shutemit.Next();
-            Console.WriteLine("View Change Received Shutdown");
-            return test;
         }
 	\end{lstlisting}
 \end{figure}

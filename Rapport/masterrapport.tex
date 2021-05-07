@@ -24,8 +24,24 @@
 \usepackage{setspace}
 \usepackage{csquotes}
 \usepackage[titletoc]{appendix}
-\usepackage{listings}
+%\usepackage{color}
 \usepackage{xcolor}
+\definecolor{bluekeywords}{RGB} {0,0,255}%{0.13,0.13,1}
+\definecolor{greencomments}{RGB} {0,128,0} %{0,0.5,0}
+\definecolor{redstrings}{RGB} {204,0,0} %{0.9,0,0}
+\usepackage{listings}
+\lstset{language=[Sharp]C, %https://tex.stackexchange.com/questions/18376/beautiful-listing-for-csharp
+  showspaces=false,
+  showtabs=false,
+  breaklines=true,
+  showstringspaces=false,
+  breakatwhitespace=true,
+  escapeinside={(*@}{@*)},
+  commentstyle=\color{greencomments},
+  keywordstyle=\color{bluekeywords},
+  stringstyle=\color{redstrings},
+  %basicstyle=\ttfamily
+}
 \usepackage{enumerate}
 \usepackage{enumitem}
 \usepackage{environ}

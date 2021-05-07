@@ -15,7 +15,7 @@ The information that are presented in this chapter is based on the Cleipnir pape
 
 %Motivation
 \section{Cleipnir Overview}
-
+\label{section:CleipnirOv}
 There are three main tools that Cleipnir provide developers to help design their application.
 These three tools are:
 \begin{itemize}
@@ -47,7 +47,7 @@ In \autoref{code:objectstore} shows a short example of how to use the object sto
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:objectstore, caption=Object Store example, captionpos=b, basicstyle=\scriptsize]
 _storage = new SimpleFileStorageEngine("PersistentStorage.txt");
 _objectStore = ObjectStore.New(_storage);
@@ -71,7 +71,7 @@ The Cleipnir execution engines overall architecture is constructed so that the s
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:executionEngine, caption=Execution engine example, captionpos=b, basicstyle=\scriptsize]
 var storageEngine = new SimpleFileStorageEngine(".PBFTStorage"+paramid+".txt", false);
 scheduler = ExecutionEngineFactory.StartNew(storageEngine);
@@ -90,7 +90,7 @@ Cleipnir reactive layer support less reactive operators compared to most other c
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:operatorreq, caption=Chaining Cleipnir Operators, captionpos=b, basicstyle=\scriptsize]
 var preprepared = await MesBridge
                   .Where(pm => pm.PhaseType == PMessageType.PrePrepare) 
@@ -105,7 +105,7 @@ Cleipnir supports reactive subject functionality, and it is called a \code{Sourc
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:sourcereq, caption=Source object example, captionpos=b, basicstyle=\scriptsize]
 Source<Request> reqbridge = new Source<Request>();
 reqbridge.Emit(new Request(1, "Hello World!", DateTime.Now.ToString());
@@ -126,7 +126,7 @@ However, the storage engine cannot store all types of data. The storage engine c
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:interfaceexample, caption=Persistent initialize process, captionpos=b, basicstyle=\scriptsize]
 public class PhaseMessage : IPersistable %inherit interface
 		
@@ -145,7 +145,7 @@ public PhaseMessage(int id, int seq, int view, byte[] dig, PMessageType phase, b
 
 \begin{figure}[H]
 	\centering
-	\lstset{style=sharpc}
+	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:seriadeseria, caption=Serialize/Deserialize code example, captionpos=b, basicstyle=\scriptsize]
 public void Serialize(StateMap stateToSerialize, SerializationHelper helper)
 {
@@ -173,4 +173,17 @@ private static PhaseMessage Deserialize(IReadOnlyDictionary<string, object> sd)
 
 Finally, an introduction to the Cleipnir class \emph{CTask} needs to be introduced. As the name suggests \code{CTask} shares similar traits with the \code{Task} object. An asynchronous function which returns a \code{CTask} is an asynchronous operation which is to be run by the Cleipnir execution engine. In a sense using \code{CTask} for an asynchronous operation means the operation performed inside the asynchronous function is meant to be persistable. In order for an object to be persisted during execution it needs to be run synchronously or in an asynchronous \code{CTask} operation. An example of this would be if the user wanted to persist one of the reactive Cleipnir \code{Source} objects, than the function waiting for emitted items need to return a \code{CTask} rather than a \code{Task}. Otherwise Clepnir storage engine will crash upon attempting to persist it. 
 
-Keep in mind \code{CTask} are not meant to be used on asynchronous functions unless you intend to use Cleipnir to persist the data. Using asynchronous operations inside a \code{CTask} will cause Cleipnir to create a new thread to handle the asynchronous operations while continuing on with the rest of the operations inside the function. This also applies when the \code{await} operator is used, meaning the \code{await} becomes redundant and will not work as intended. This also applies when scheduling new operations for Cleipnir inside a \code{CTask} function, since the schedule function for the Cleipnir execution engine is treated as an asynchronous operation. It is important for a user of Cleipnir to keep this in mind as to avoid creating potential race conditions within implementation. Normally it is best to try and avoid this situation entirely. Thereby restricting a \code{CTask} function to only operate with synchronous operations, while any asynchronous operations required should be performed instead using the TAP workflow with async/await operators discussed in \autoref{section:AsyncProgramming}
+Keep in mind \code{CTask} are not meant to be used on asynchronous functions unless you intend to use Cleipnir to persist the data. Using asynchronous operations inside a \code{CTask} will cause Cleipnir to create a new thread to handle the asynchronous operations while continuing on with the rest of the operations inside the function. This also applies when the \code{await} operator is used, meaning the \code{await} becomes redundant and will not work as intended. This also applies when scheduling new operations for Cleipnir inside a \code{CTask} function, since the schedule function for the Cleipnir execution engine is treated as an asynchronous operation. It is important for a user of Cleipnir to keep this in mind as to avoid creating potential race conditions within implementation. Normally it is best to try and avoid this situation entirely. Thereby restricting a \code{CTask} function to only operate with synchronous operations, while any asynchronous operations required should be performed instead using the TAP workflow with async/await operators discussed in \autoref{section:AsyncProgramming}. An example of a \code{CTask} function can be seen in \autoref{code:CTaskEx}, where we have to use \code{CTask} to listen for new items in the \emph{shutemit} \code{Source} object which is to be persisted. The code here would result in an error in Cleipnir objectstore if a normal asynchronous TAP workflow was used.
+
+\begin{figure}[h]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:CTaskEx, caption= Example of a CTask function, captionpos = b, basicstyle=\scriptsize]
+	public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
+        {
+            var test = await shutemit.Next();
+            Console.WriteLine("View Change Received Shutdown");
+            return test;
+        }
+	\end{lstlisting}
+\end{figure}
