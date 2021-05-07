@@ -104,7 +104,7 @@ namespace PBFT.Replica.Protocol
                         PMessageType.Prepare
                     );
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
-                    qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
+                    qcertpre.ProofList.Add(prepare);
                     Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
 
@@ -139,7 +139,8 @@ namespace PBFT.Replica.Protocol
                     .Next();
                 ProtocolCertificate qcertcom = new ProtocolCertificate(
                     qcertpre.SeqNr, 
-                    Serv.CurView, digest, 
+                    Serv.CurView, 
+                    digest, 
                     CertType.Committed
                 );   
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached

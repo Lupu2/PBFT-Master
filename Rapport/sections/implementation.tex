@@ -1,6 +1,8 @@
 \chapter{Implementation}
 \label{chapter:Imp}
-Implementation talks about the actual algorithm implementation that is run in protocol execution, includes process of checkpoints and view-changes. Should have figures to simplify explanation. Go over briefly the different phases, show some pseudocode. keeps to take note of, maybe include a model to show the persistency layers present. The importance of using the Cleipnir scheduler and CTask, where you have used them etc.
+In this chapter we discuss the how the PBFT workflow was implemented. This includes the normal protocol workflow, view-changes and checkpointing. We will also discuss how the Cleipnir framework has been used to create the working PBFT implementation as well as discuss some limitations within the current implementation design.
+
+%Implementation talks about the actual algorithm implementation that is run in protocol execution, includes process of checkpoints and view-changes. Should have figures to simplify explanation. Go over briefly the different phases, show some pseudocode. keeps to take note of, maybe include a model to show the persistency layers present. The importance of using the Cleipnir scheduler and CTask, where you have used them etc.
 
 %outline aka what needs to be talked about, note not in any particular order
 %interaction between server side, protocol workflow and how they interact with eachother
@@ -10,3 +12,203 @@ Implementation talks about the actual algorithm implementation that is run in pr
 %detailed explanation for how the view-changes are handled
 %Describe how you though of persistency during implementation(not much since its not general focus, and ofcourse doesn't work fully)
 %small description on how clients are working, how they use the same reactive operators to count number of replies received.
+%Add comment on how well they work, don't work do to design, this is an evaluation afterall.
+
+\section{Implementation}
+
+\subsection{Protocol Workflow Implementation}
+
+\subsubsection{Starting protocol instance}
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:StartProtocol, caption=Code section from the request handler, captionpos = b, basicstyle=\scriptsize]
+while (true)
+{
+    var req = await requestMessage.Next();
+    if (Crypto.VerifySignature(
+        	req.Signature, 
+            req.CreateCopyTemplate().SerializeToBuffer(), 
+            serv.ClientPubKeyRegister[req.ClientID]
+            ) 
+            && serv.CurSeqNr < serv.CurSeqRange.End.Value
+    )
+    {
+        if (execute.Active)
+        {
+            int seq = ++serv.CurSeqNr;
+            Console.WriteLine("Curseq: " + seq + " for request: " + req);
+            _ = PerformProtocol(execute, serv, scheduler, shutdownPhaseSource, req, seq);
+        }
+    }
+}
+	\end{lstlisting}
+\end{figure}
+
+\subsubsection{Pre-Prepare phase}
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:Pre-Prepare, caption= Source code for pre-prepare phase for primary replica, captionpos = b, basicstyle=\scriptsize]
+byte[] digest;
+ProtocolCertificate qcertpre;
+digest = Crypto.CreateDigest(clireq);
+int curSeq; 
+if (Serv.IsPrimary()) //Primary
+{
+    curSeq = leaderseq;
+    Console.WriteLine("CurSeq:" + curSeq);
+    Serv.InitializeLog(curSeq);
+    PhaseMessage preprepare = new PhaseMessage(
+        Serv.ServID, 
+    	curSeq, 
+        Serv.CurView, 
+        digest, 
+        PMessageType.PrePrepare
+    );
+    Serv.SignMessage(preprepare, MessageType.PhaseMessage);
+    qcertpre = new ProtocolCertificate(
+        preprepare.SeqNr, 
+        preprepare.ViewNr, 
+        digest, 
+        CertType.Prepared, 
+        preprepare
+    );
+    await Sleep.Until(1000);
+    Serv.Multicast(preprepare.SerializeToBuffer(), MessageType.PhaseMessage);
+}
+	\end{lstlisting}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:Pre-Prepare nonprimary, caption= Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
+else	//Not Primary
+{ 
+    var preprepared = await MesBridge
+    	              .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                      .Where(pm => pm.Digest != null && pm.Digest.SequenceEqual(digest))
+                      .Where(pm => pm.Validate(
+                        Serv.ServPubKeyRegister[pm.ServID],
+                        Serv.CurView, 
+                        Serv.CurSeqRange)
+                       )
+                       .Merge(ShutdownBridgePhase)
+                       .Next();
+                
+    if (preprepared.ServID == -1 && preprepared.PhaseType == PMessageType.End) 
+        throw new TimeoutException("Timeout Occurred! System is no longer active!");
+    qcertpre = new ProtocolCertificate(
+        preprepared.SeqNr, 
+        Serv.CurView, 
+        digest, 
+        CertType.Prepared, 
+        preprepared
+    );
+    curSeq = qcertpre.SeqNr; 
+    Serv.InitializeLog(curSeq);
+    PhaseMessage prepare = new PhaseMessage(
+        Serv.ServID, 
+        curSeq, 
+        Serv.CurView, 
+        digest, 
+        PMessageType.Prepare
+    );
+    Serv.SignMessage(prepare, MessageType.PhaseMessage);
+    qcertpre.ProofList.Add(prepare);
+    Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
+}
+	\end{lstlisting}
+\end{figure}		
+
+\subsubsection{Prepare phase and Commit phase}
+
+
+
+\begin{figure}[H]
+	\centering
+	\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:PrepareAndCommit, caption= Prepare and Commit phase, captionpos = b, basicstyle=\scriptsize]
+	
+//Prepare phase
+var prepared = MesBridge
+               .Where(pm => pm.PhaseType == PMessageType.Prepare)
+               .Where(pm => pm.SeqNr == qcertpre.SeqNr)
+               .Where(pm => pm.Validate(
+                Serv.ServPubKeyRegister[pm.ServID], 
+                Serv.CurView, 
+                Serv.CurSeqRange, 
+                qcertpre)
+                )
+                .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
+                .Scan(qcertpre.ProofList, (prooflist, message) =>
+                {
+                    prooflist.Add(message);
+                    return prooflist;
+                })
+                .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                .Next();
+ProtocolCertificate qcertcom = new ProtocolCertificate(
+    qcertpre.SeqNr, 
+    Serv.CurView, 
+    digest, 
+    CertType.Committed
+);   
+var committed = MesBridge
+                .Where(pm => pm.PhaseType == PMessageType.Commit)
+                .Where(pm => pm.SeqNr == qcertcom.SeqNr)
+                .Where(pm => pm.Validate(
+                    Serv.ServPubKeyRegister[pm.ServID], 
+                    Serv.CurView, 
+                    Serv.CurSeqRange, 
+                    qcertcom)
+                )
+                .Where(pm => pm.Digest.SequenceEqual(qcertcom.CurReqDigest))
+                .Scan(qcertcom.ProofList, (prooflist, message) =>
+                {
+                    prooflist.Add(message);
+                    return prooflist;
+                })
+                .Where(_ => qcertcom.ValidateCertificate(FailureNr))
+                .Where(_ => qcertpre.ValidateCertificate(FailureNr))
+                .Next();
+                
+Console.WriteLine("Waiting for prepares");
+if (Active) await prepared;
+else throw new ConstraintException("System is no longer active!");
+                
+//Commit phase
+Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
+PhaseMessage commitmes = new PhaseMessage(
+    Serv.ServID, 
+    curSeq, 
+    Serv.CurView, 
+   	digest, 
+    PMessageType.Commit
+);
+Serv.SignMessage(commitmes, MessageType.PhaseMessage);
+Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage);
+Serv.EmitPhaseMessageLocally(commitmes);
+Console.WriteLine("Waiting for commits");
+if (Active) await committed;
+else throw new ConstraintException("System is no longer active!");
+Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate to Log
+	\end{lstlisting}
+\end{figure}
+
+\subsubsection{Ending Protocol instance}
+
+\subsection{View Change Workflow Implementation}
+
+\subsection{Checkpoint Implementation}
+
+\section{Usage of Cleipnir}
+
+\subsection{Reactive Operators}
+
+\subsection{Persistency}
+
+\subsection{Conflict between async and CTask}
