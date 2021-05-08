@@ -1,11 +1,10 @@
 \chapter{Implementation}
 \label{chapter:Imp}
-In this chapter we discuss the how the PBFT workflow was implemented. This includes the normal protocol workflow, view-changes and checkpointing. We will also discuss how the Cleipnir framework has been used to create the working PBFT implementation as well as discuss some limitations within the current implementation design.
+In this chapter we introduce our PBFT implementation. We will introduce the implementation for the request handler, normal protocol workflow, view-changes and finally checkpointing. We will also discuss how the Cleipnir framework has been used to create the working PBFT implementation as well as discuss some benefits and limitations within the current implementation design.
 
 %Implementation talks about the actual algorithm implementation that is run in protocol execution, includes process of checkpoints and view-changes. Should have figures to simplify explanation. Go over briefly the different phases, show some pseudocode. keeps to take note of, maybe include a model to show the persistency layers present. The importance of using the Cleipnir scheduler and CTask, where you have used them etc.
 
 %outline aka what needs to be talked about, note not in any particular order
-%interaction between server side, protocol workflow and how they interact with eachother
 %detailed explanation of how the general workflow for the PBFT algorithm is performed, with code snippets.
 %the simplicity of some of the necessary tools needed in PBFT is handled. Object oriented programming for Messages, Certificates. Static function for workflow, including Listeners, and handlers
 %detailed explanation for how the checkpointing are handled
@@ -19,6 +18,7 @@ In this chapter we discuss the how the PBFT workflow was implemented. This inclu
 \subsection{Protocol Workflow Implementation}
 
 \subsubsection{Starting protocol instance}
+A normal sequence for the PBFT implementation begins once the request handler receives a request message from the server. The source code for the request handler can be seen in \autoref{code:StartProtocol}. The request handler listens for new requests messages emitted to the \code{Source} object \emph{requestMessage}. As mention in \autoref{sec:persvsephe}, the server is tasked with emitting messages its received in the network layer to the appropriate \code{Source} object in order for the protocol to access the message. The request handler will verify that the request is valid and that the client who sent the request does not already have an active request currently being processed. As mention in \autoref{sec:checkpoint}, PBFT will only allow a certain amount of requests be processed before a new checkpoint is required to be performed. Therefore, the request handler also needs to confirm that the system is not about the exceed the sequence number upperbound. The received request will not be processed if the system is about to exceed the upperbound. The last check verifies whether or not the protocol execution is active. If it is not active, then the replica is currently performing a view-change and will not accept any new requests until this operation is finished. Once all checks are passed the request handler will call the asynchronous \code{CTask} function \emph{PerformProtocol} which will initialize and start the PBFT protocol for the given request. It is important that the request handler does not wait for \emph{PerformProtocol} finishes as it is important to not block the \emph{requestMessage} as we desire an application which can process multiple requests from clients at the same time. 
 
 \begin{figure}[H]
 	\centering
@@ -47,11 +47,20 @@ while (true)
 \end{figure}
 
 \subsubsection{Pre-Prepare phase}
+The pre-prepare phase is the only part of the normal operation workflow which has different structure depending on whether or not the replica is the primary or not. If the replica is the primary, than it will take the sequence number initialized by its server and create a pre-prepare message using this sequence number together with its server id, current view and digest of the request. This pre-prepare message will dictate the other replicas sequence number for this given request. The primary will than initialize the protocol certificate used for storing the proof of the prepare phase. This protocol certificate for the prepare phase will always have the pre-prepare message as its first entry in its proof list. The protocol will then use its server reference to multicast this pre-prepare message to the other replicas in the network. The primary's source code for the pre-prepare phase can be seen in \autoref{code:Pre-PreparePrimary}.
+
+The source code of the other non-primary replicas can be seen in \autoref{code:Pre-PrepareNonPrimary}. The other non-primary replicas will subscribe to the \code{Source<PhaseMessage>} \emph{MesBridge} and attempt to listen for incoming phase messages. Since the replica only wants pre-prepare message in this reactive listener, it will use a \code{WHERE} clause to ignore any other phase message other than ones which uses the pre-prepare messages type. In addition, another \code{WHERE} clause is assigned to avoid any pre-prepare messages designated for other requests by comparing the request digests. The final \code{WHERE} clause validates the phase message where the validation  rules are the same as the once mention in \autoref{sec:detailedProtocol} for pre-prepare messages. Once the replica receives a pre-prepare phase message which passes all the \code{WHERE} clauses it will create its own protocol certificate which uses the sequence number given by the primary, which in turn means all protocol certificates for the prepare phase should match for each replica. The non-primary replica will finally end the pre-prepare phase and start the prepare phase by creating a prepare message and multicast this message using the same method the primary used for multicasting its pre-prepare phase. 
+
+The \code{MERGE} operator is used to ensure that the protocol execution is terminated if a view-change occurs. If the timeout occurs, a unique phase message will be emitted to the \code{Source<PhaseMessage>} \emph{ShutdownBridgePhase}. The \code{MERGE} operator will somewhat bind these reactive streams together. This essentially means the the \emph{MesBridge} will be unsubscribe for new phase messages if a phase message is detected in the \emph{ShutdownBridgePhase} and will return this phase message as the resulting phase message. The opposite situation will also apply for the \emph{ShutdownBridgePhase}. As this phase message is intentionally faulty it will not be allowed to be used in the prepare phase of the protocol. Therefore a timeout exception is called instead, which will properly close this instance of the protocol execution.
+
+The design for the source code for the pre-prepare phase is simple and follows a synchronous workflow as we desired, which in turn makes it easier for developers to write. Unfortunately there are two severe issues with our current implementation of the pre-prepare phase. These issues are caused by a combination of having to split the code based on primary vs non-primary and the importance of initializing instances of the reactive listeners early. Both issues are theoretically very similar as they both are caused by improper initialization of the reactive listeners used in the PBFT implementation. The first issue occurs when the primary sends out its pre-prepare phase message before the non-primary replicas as initialized the pre-prepare reactive listener. Which results in the phase message not being received by the non-replica, which means it fails the pre-prepare phase and the timeout will put the replica into view-change mode. The second issue occurs when a non-primary receives a prepare message before it has received the pre-prepare message from the primary. When this situation occurs the prepare message gets filtered out and will not be available once this non-primary reaces the prepare phase. In worst case scenario the replica loses all of the other replicas prepare message, meaning it gets stuck in the prepare phase once it finally receives its pre-prepare message.
+
+These issues mostly comes down to the application struggling on handling phase messages being received out of order. There are several workarounds to handling messages out of order, however most of the workarounds available would require adding a lot more complexity to the implementation. As our goal for this thesis being to create the simplest and most true implementation of PBFT when compared to the protocol description, it was decided not to redesign the protocol workflow to handle issues with pre-prepare messages out of order. As the pre-prepare message is meant to be responsible for getting the other non-primary to start processing the request and assigning the sequence number, we feel it would not be true to the original algorithm to change this design. One workaround to this issue would for instance be to simply initialize a prepare reactive listeners at the start and once the pre-prepare message was received, the prepare messages not related to the given request with different sequence numbers would be filtered out. Currently, in order to somewhat mitigate this issue, the primary is forced to wait for atleast a second before starting to multicast its pre-prepare message. This to allow the other replicas to catch up, meaning its less likely that a replica is far enough behind to lose out on prepare messages before getting handling their pre-prepare message. With this workaround, the issue is for the most part stable, with an average of 15 operations being processed before encountering this issue.
 
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:Pre-Prepare, caption= Source code for pre-prepare phase for primary replica, captionpos = b, basicstyle=\scriptsize]
+	\begin{lstlisting}[label = code:Pre-PreparePrimary, caption= Source code for pre-prepare phase for primary replica, captionpos = b, basicstyle=\scriptsize]
 byte[] digest;
 ProtocolCertificate qcertpre;
 digest = Crypto.CreateDigest(clireq);
@@ -85,7 +94,7 @@ if (Serv.IsPrimary()) //Primary
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:Pre-Prepare nonprimary, caption= Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
+	\begin{lstlisting}[label = code:Pre-PrepareNonPrimary, caption= Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
 else	//Not Primary
 { 
     var preprepared = await MesBridge
@@ -201,9 +210,11 @@ Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate 
 
 \subsubsection{Ending Protocol instance}
 
-\subsection{View Change Workflow Implementation}
+\subsection{View-change Workflow Implementation}
 
 \subsection{Checkpoint Implementation}
+
+\subsection{Client}
 
 \section{Usage of Cleipnir}
 
