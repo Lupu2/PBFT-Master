@@ -142,8 +142,7 @@ namespace PBFTClient
             Req:
             await SendRequest(req);
             bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(15000)).GetAwaiter().GetResult();
-            //bool val = await ValidateRequest(req);
-            Console.WriteLine("Finished await");
+            Console.WriteLine("Finished waiting! Result: " + val);
             if (val) return;
             goto Req;
         }

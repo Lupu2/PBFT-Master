@@ -13,12 +13,12 @@ In this chapter we introduce our PBFT implementation. We will introduce the impl
 %small description on how clients are working, how they use the same reactive operators to count number of replies received.
 %Add comment on how well they work, don't work do to design, this is an evaluation afterall.
 
-\section{Implementation}
+\section{Workflow Details}
 
 \subsection{Protocol Workflow Implementation}
 
 \subsubsection{Starting protocol instance}
-A normal sequence for the PBFT implementation begins once the request handler receives a request message from the server. The source code for the request handler can be seen in \autoref{code:StartProtocol}. The request handler listens for new requests messages emitted to the \code{Source} object \emph{requestMessage}. As mention in \autoref{sec:persvsephe}, the server is tasked with emitting messages its received in the network layer to the appropriate \code{Source} object in order for the protocol to access the message. The request handler will verify that the request is valid and that the client who sent the request does not already have an active request currently being processed. As mention in \autoref{sec:checkpoint}, PBFT will only allow a certain amount of requests be processed before a new checkpoint is required to be performed. Therefore, the request handler also needs to confirm that the system is not about the exceed the sequence number upperbound. The received request will not be processed if the system is about to exceed the upperbound. The last check verifies whether or not the protocol execution is active. If it is not active, then the replica is currently performing a view-change and will not accept any new requests until this operation is finished. Once all checks are passed the request handler will call the asynchronous \code{CTask} function \emph{PerformProtocol} which will initialize and start the PBFT protocol for the given request. It is important that the request handler does not wait for \emph{PerformProtocol} finishes as it is important to not block the \emph{requestMessage} as we desire an application which can process multiple requests from clients at the same time. 
+A normal sequence for the PBFT implementation begins once the request handler receives a request message from the server. The source code for the request handler can be seen in \autoref{code:StartProtocol}. The request handler listens for new requests messages emitted to the \code{Source} object \emph{requestMessage}. As mention in \autoref{sec:persvsephe}, the server is tasked with emitting messages its received in the network layer to the appropriate \code{Source} object in order for the protocol to access the message. The request handler will verify that the request is valid and that the client who sent the request does not already have an active request currently being processed. As mention in \autoref{sec:checkpoint}, PBFT will only allow a certain amount of requests be processed before a new checkpoint is required to be performed. Therefore, the request handler also needs to confirm that the system is not about the exceed the sequence number upperbound. The received request will not be processed if the system is about to exceed the upper bound. The last check verifies whether or not the protocol execution is active. If it is not active, then the replica is currently performing a view-change and will not accept any new requests until this operation is finished. Once all checks are passed the request handler will call the asynchronous \code{CTask} function \emph{PerformProtocol} which will initialize and start the PBFT protocol for the given request. It is important that the request handler does not wait for \emph{PerformProtocol} finishes as it is important to not block the \emph{requestMessage} as we desire an application which can process multiple requests from clients at the same time. 
 
 \begin{figure}[H]
 	\centering
@@ -90,7 +90,6 @@ if (Serv.IsPrimary()) //Primary
 }
 	\end{lstlisting}
 \end{figure}
-
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
@@ -134,8 +133,11 @@ else	//Not Primary
 \end{figure}		
 
 \subsubsection{Prepare phase and Commit phase}
+In comparison to the Pre-prepare phase and starting the prepare phase, the rest of the workflow in the implementation is relatively stable and straightforward. The prepare and commit phase source code can be seen in \autoref{code:PrepareAndCommit}. The first step is to initialize the reactive listeners for prepare and commit phase messages. This is done early for two reasons! The first is to mitigate the time between waiting for pre-prepare messages and prepare messages as two avoid potentially losing prepare messages. The other reason is so that the protocol can listen for both prepare messages and commit messages, which means there aren't any ordering issues between messages during the prepare and commit phase. If the pre-prepare message did not dictate the sequence number for non-primary replicas, this would have also been the ideal design for handling pre-prepare message. 
 
+The reactive listener used for the prepare phase are pretty much the same for both phases. The only major difference between the two is that they only accept phase messages for their respective protocol phase. Additionally a commit certificate is initialized early to be used together with the commit reactive listener. Since the prepare messages and prepare certificates are already been initialized in the pre-prepare phase, there is only one more thing to do in the prepare phase. The prepare phase will wait until the prepare certificate as received $2f+1$ unique prepare phase messages which passes all of the \code{WHERE} clauses assigned. In actuality it is to wait for $2f$ prepares and one pre-prepare message. To add the valid phase messages to the designated certificates, we use the \code{SCAN} operator to transform the original proof list for the certificate to include the messages received in the reactive listener. The final \code{WHERE} clause determines whether or not the certificate has received the desired number of unique valid phase messages. Essentially calculating the number of phase messages inside the proof list excluding duplicates, and making sure the phase messages in the list are valid. The asynchronous \code{await} operator is used to wait for the \emph{CAwaitable} to finish this all of the operators linked to the prepare reactive listener before moving on with the protocol. Once the prepare certificate has succeeded its validation process, the prepare certificate is added to protocol log in the server and the commit phase officially starts. 
 
+Like the other phases, the first step will be for each replica to create their commit phase messages and use the server to multicast their commit phase over the PBFT network. Afterwards the protocol will wait for the proof list for the commit certificate to reach $2f+1$. This rule applies to each of the replica as there are no difference in operations between primaries and non-primaries in the commit phase. The reactive listener for the commit phase will additionally check that prepare phase as already finished validating as to avoid finishing the commit certificate before the protocol certificate. However, this extra check does not effect the protocol workflow in either way, since the protocol certificate is awaited earlier in the process. After the commit certificate is successfully validated, the protocol workflow is essentially completed. The remaining operations performed in the protocol execution is to add the commit certificate to the logger similar to the prepare certificate. The server will now have two valid certificates for the given sequence number to request, meaning the replica now has proof that the protocol was successful for the given request. Finally a reply message will be created, signed and sent to the client that sent the processed request. Additionally the operation within the request will be performed by the application. In our PBFT implementation the 'operation' will simply be to write the operation to the console window and add the operation to a persistent list. The persistent list representing the application state will be more discussed in \autoref{section:ImpCheckpointing}.
 
 \begin{figure}[H]
 	\centering
@@ -147,10 +149,10 @@ var prepared = MesBridge
                .Where(pm => pm.PhaseType == PMessageType.Prepare)
                .Where(pm => pm.SeqNr == qcertpre.SeqNr)
                .Where(pm => pm.Validate(
-                Serv.ServPubKeyRegister[pm.ServID], 
-                Serv.CurView, 
-                Serv.CurSeqRange, 
-                qcertpre)
+                    Serv.ServPubKeyRegister[pm.ServID], 
+                    Serv.CurView, 
+                    Serv.CurSeqRange, 
+                    qcertpre)
                 )
                 .Where(pm => pm.Digest.SequenceEqual(qcertpre.CurReqDigest))
                 .Scan(qcertpre.ProofList, (prooflist, message) =>
@@ -208,16 +210,75 @@ Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate 
 	\end{lstlisting}
 \end{figure}
 
-\subsubsection{Ending Protocol instance}
-
-\subsection{View-change Workflow Implementation}
+\subsection{View-change Implementation}
 
 \subsection{Checkpoint Implementation}
+\label{section:ImpCheckpointing}
+The checkpointing process follows the checkpointinterval. This means it only gets used once the system has processed certain number of requests equal to the checkpoint interval. In our implementation the current checkpoint interval is set to five, meaning after processing five requests a new checkpoint is created. In our implementation we divided the workflow of the checkpointing into two parts. The first part is the creation part, which is essentially initializing the checkpoint certificate to the last sequence number using the current application state as digest. In our implementation, we create the system digest from a persistent list which represent the current state of the system. The list contains the operation messages from each of the requests that has been fully processed by the PBFT protocol. So assuming no errors occurs, than the checkpoint for sequence number 5 will be the digest of a list containing the operation from requests one to five. After creating the checkpoint certificate and the checkpoint message, a checkpoint reactive listener is initialized. This reactive listener works similar to how reactive listeners worked in the protocol workflow. The server once it receives a checkpoint message from network will emit the checkpoint message to the \code{Source<Checkpoint>} registered in the server. The checkpoint listener will listen for any item emitted by the server and the given checkpoint message will be first validated before transforming the proof list of the checkpoint  certificate to be a proof list which has the checkpoint message. Unlike the protocol workflow, checkpoints can theoretically not be completed during execution and runs seperate to the normal protocol workflow. This means if the protocol processes enough requests, a checkpoint checkpoint will be created with higher sequence number the previous one. This means it can be possible to have multiple checkpoint listeners active at the time. However, it becomes a race for the checkpoint certificates to see which one becomes next stable one. After the checkpoint listener has been created, than the replica will also emit its own local checkpoint to the checkpoint listener, meaning it will have to pass all of the same checks as the networked checkpoint messages has to. Since we're never sure which of the replica in the network is the fastest when it comes to setting up the checkpoint certificate, it means the server is also prepared to initialize the checkpoint processes if it receives a checkpoint with higher sequence number than the current stable checkpoint. Unlike the protocol certificates, the checkpoint certificates are added to the checkpoint logger once its been created, no validation is required. However, in order for a checkpoint to be deemed stable it will need to pass the certificate validation processes which follows the same guidelines as the protocol certificate. A replica can only have one stable checkpoint. The goal of the checkpoint process is to attempt to try replace this stable checkpoint, so we can garbage collect the protocol data from the logger. The garbage collection also includes active checkpoints in the checkpoint logger with lower or equal sequence number to the stable checkpoint certificate. The second part of the checkpoint functionality is rather simple. When the server side of a replica was initialized it also initialized another reactive listener, which is set to await for new stable checkpoint certificate. Once it receives a stable checkpoint certificate in the reactive \code{Source} object, it will overwrite the stable checkpoint registered on the system and then perform the garbage collection process. The \code{Source} is linked to the server and it schedules the new checkpoint certificate similar to schedules any message emit to the persistent layer. This is important because each checkpoint listener will have a reference to the callback function which schedules the emit to the \code{Source} object. This means that once the checkpoint certificate passes all of the reactive operators and the checkpoint is deemed valid, the callback function will be called with the resulting checkpoint certificate, which in turn will overwrite the stable checkpoint. Checkpoint process is then deemed successful and the garbage collection processes is started. The source code for the an instance of a checkpoint listener can be seen in \autoref{code:CreateCheckpoint}. The source code for listening for stable checkpoint certificate can be seen in \autoref{code:ListenForCheckpoint}
+
+\begin{figure}[H]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:CreateCheckpoint, caption=Listener for checkpoint messages, captionpos = b, basicstyle=\scriptsize]
+public async CTask Listen(
+CheckpointCertificate cpc, 
+Dictionary<int, RSAParameters> keys, 
+Action<CheckpointCertificate> finCallback
+)
+{
+    Console.WriteLine("Checkpoint Listener: " + StableSeqNr);
+    await CheckpointBridge
+    .Where(check => check.StableSeqNr == StableSeqNr)
+    .Where(check => check.Validate(keys[check.ServID]))
+    .Scan(cpc.ProofList, (prooflist, message) =>
+    {
+        prooflist.Add(message);
+        return prooflist;
+    })
+    .Where(_ => cpc.ValidateCertificate(FailureNr))
+    .Next();
+    finCallback(cpc);
+}
+    \end{lstlisting}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:ListenForCheckpoint, caption=Listener for valid checkpoint, captionpos = b, basicstyle=\scriptsize]
+
+public async CTask ListenForStableCheckpoint()
+{
+    Console.WriteLine("Listen for stable checkpoints");
+    while (true)
+    {
+    	var stablecheck = await Subjects.CheckpointFinSubject.Next();
+        Console.WriteLine("Update Checkpoint State");
+        Console.WriteLine(stablecheck);
+        StableCheckpointsCertificate = stablecheck;
+        GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
+        GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
+        GarbageCollectCheckpointLog(StableCheckpointsCertificate.LastSeqNr);
+        UpdateRange(stablecheck.LastSeqNr);
+     }
+}
+    \end{lstlisting}
+\end{figure}
 
 \subsection{Client}
+The client implementation created for the PBFT implementation is a primitive console application. Just like the replicas in the system, the client will take the network addresses stored in a JSON file and than create a socket connection to each of network addresses. Unfortunately, this means the client should be initialized only once the other replicas have already been initialized. The client requires user interaction, by prompting the user for the operation which the client sends to the PBFT network. Currently the PBFT implementation treats operations as simple strings, meaning mostly any value can be given to the operation. Although an exception to this rule is that the operation cannot contain a | in the operation. This is because | is used as an end delimiter for serialized message in order to resolve a TCP issue with messages being linked together.
 
-\section{Usage of Cleipnir}
+The workflow of the client is in principle very simple. The client will start by first initializing its connection to each of the replicas in the system. Then the user will be prompted for the value to be used in the operation. Once the operation is deemed valid, the client will create a new request message using the message provided by the user. This request will be signed by the client and be multicast to the replicas in the PBFT network. After a request is sent, the client will wait for a reply messages from the replicas essentially the same way as  the normal workflow will wait for a phase shift. A reply certificate is created and the client uses a \code{Source<Reply>} to wait reactively add new reply messages to the reply certificate until the certificate has received atleast $f+1$ valid replies from different replicas. The $f+1$ criteria is known as a weak certificate, which is a certificate that can provide that atleast \emph{f} non-faulty replica stored the request in its log\cites[p.~9]{PAPER:PBFTRecovery}[p.~2]{PAPER:DPBFT}. Because the client is not part of the PBFT system it only requires \emph{f} number replies in order to guarantee the success of the request\cites[p.~3]{PAPER:OGPBFT}[p.~9]{PAPER:PBFTRecovery}. 
 
-\subsection{Reactive Operators}
+If the reply certificate receives $f+1$ replies from different replicas the certificate will be stored in the clients log and application moves back to prompting user for the next operation to be sent to the server. However, if the reply certificate does not become valid within a specific time duration, a timeout will occur and the request will be once again multicasted to the PBFT network. This process will be repeated until the $f+1$ criteria is met. Unfortunately, if the PBFT application gets stuck on one of the client operations, the server will not accept the resent request if another request is currently processed. Which could potentially lead to an endless loop. A way to get out of this loop would be for a view-change to occur as the status of the clients are reset after a view-change, meaning the new request will be treated as a new one and the entire processing starts anew. 
 
-\subsection{Persistency}
+The client shares a lot of the network related code with the pbft replicas. The main difference lies in the client being responsible for initiating the socket connection. This also means the client needs to attempt to reconnect to a lost replica in the situation where a replica has been previously went down and the client is about to multicast a request to the PBFT network. In the case where the reconnection fails, the client will simply continue to ignore this replica until a new request is made.
+
+We decided to not include persistency for the client implementation. Despite this, the network portion of the client still uses the Cleipnir execution engine when sending replies from the network layer to the reactive listener. The reason for this is because scheduling the emit using Cleipnir execution engine will enforce synchrony and will avoid a race condition in this section of the code that frequently occurs. We are currently not sure what is causing this issue. We are running the reactive listener completely outside of Cleipnir's influence, which means additional threads should not be created despite very clearly appearing.
+\section{Evaluation}
+\subsection{Protocol Abstraction}
+TODO set a better title for this once you realize the word for code accuracy to its protocol description
+\subsection{Asynchronous workflow}
+\subsection{Usage of Cleipnir}
+\subsubsection{Reactive Operators}
+\subsubsection{Persistency}
