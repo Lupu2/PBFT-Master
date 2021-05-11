@@ -15,7 +15,7 @@ namespace PBFT.Tests.Helper
         {   //Update in order to work with your own directory!
             Console.WriteLine(Directory.GetCurrentDirectory());
             if (!Directory.GetCurrentDirectory()
-                .Equals(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\NewRepository\PBFT-Master\PBFT"))
+                .Equals(@"C:\Users\jorge\Documents\uis_10th_semester\githubrepos\FinalDirectory\PBFT-Master\PBFT"))
                 Directory.SetCurrentDirectory("../../../../PBFT");
         }
         

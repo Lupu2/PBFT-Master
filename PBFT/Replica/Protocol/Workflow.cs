@@ -43,15 +43,30 @@ namespace PBFT.Replica.Protocol
             ShutdownBridgePhase = shutdownphase;
         }
 
+        public async CTask<bool> ListenForViewChange()
+        {
+            var test = await ViewChangeBridge.Next();
+            Console.WriteLine("Received View-Change");
+            return test;
+        }
+
+        public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
+        {
+            var test = await shutemit.Next();
+            Console.WriteLine("View Change Received Shutdown");
+            return test;
+        }
+        
+        //HandleRequest performs the workflow for processing a request using the PBFT algorithm.
+        //When this an instance of this function finishes the pbft network will have reached consent and performed the request operation. 
         public async CTask<Reply> HandleRequest(Request clireq, int leaderseq, CancellationTokenSource cancel)
         {
             Console.WriteLine("HandleRequest");
             Console.WriteLine("Initial sequence number: " + leaderseq);
             try
             {
-                byte[] digest;
                 ProtocolCertificate qcertpre;
-                digest = Crypto.CreateDigest(clireq);
+                byte[] digest = Crypto.CreateDigest(clireq);
                 int curSeq;
 
                 if (Serv.IsPrimary()) //Primary
@@ -506,21 +521,7 @@ namespace PBFT.Replica.Protocol
             if (!val) goto ViewChange;
             cancel2.Cancel();
         }
-
-        public async CTask<bool> ListenForViewChange()
-        {
-            var test = await ViewChangeBridge.Next();
-            Console.WriteLine("Received View-Change");
-            return test;
-        }
-
-        public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
-        {
-            var test = await shutemit.Next();
-            Console.WriteLine("View Change Received Shutdown");
-            return test;
-        }
-
+        
         public async CTask<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
         {
             Console.WriteLine("ViewChangeProtocol");

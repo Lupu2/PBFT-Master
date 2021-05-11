@@ -22,7 +22,7 @@ To summarize these properties:\\
 \label{sec:detailedProtocol}
 The PBFT consensus protocol is divided into three phases. The Pre-Prepare, Prepare and the Commit phase. If the PBFT protocol operations are executed properly, consensus has been achieved for an operation once all three phases have transpired on $3f+1$ replicas~\cite[p.~257-259]{BOOK:BuildDepDistSyst}. Role of the pre-prepare phase and prepare phase is to propose an ordering for requests delivered to the system, while the combination of prepare phase and the commit phase establishes the execution order for the replicas in the system~\cite[p.~4]{PAPER:OGPBFT}. 
 
-The PBFT protocol starts once a client send a request containing their desired operation to the primary~\cite[p.~4]{PAPER:OGPBFT}. Sometimes the client will also multicast their request to the other replicas in the system as well, which is the model that we followed in our implementation~\cites[p.~2]{PAPER:DPBFT}[p.~406]{PAPER:PBFTRecovery}[p.~258]{BOOK:BuildDepDistSyst}. Regardless of which of these models is used for the request message, the primary is the one responsible for starting the \acrshort{PBFT} algorithm which processes the client's request. The primary will create a Pre-Prepare message and assign the request with a sequence number which is then multicasted to the other replicas in the network with the same view number as the primary. Once a replica receives the Pre-Prepare message it will validate the Pre-Prepare message. The validation process consist of the following~\cites[p.~4]{PAPER:OGPBFT} {SLIDES:PBFT}[p.~259]{BOOK:BuildDepDistSyst}
+The PBFT protocol starts once a client send a request containing their desired operation to the primary~\cite[p.~4]{PAPER:OGPBFT}. Sometimes the client will also multicast their request to the other replicas in the system as well, which is the model that we followed in our implementation~\cites[p.~2]{PAPER:DPBFT}[p.~406]{PAPER:PBFTRecovery}[p.~258]{BOOK:BuildDepDistSyst}. Regardless of which of these models is used for the request message, the primary is the one responsible for starting the PBFT algorithm which processes the client's request. The primary will create a Pre-Prepare message and assign the request with a sequence number which is then multicasted to the other replicas in the network with the same view number as the primary. Once a replica receives the Pre-Prepare message it will validate the Pre-Prepare message. The validation process consist of the following~\cites[p.~4]{PAPER:OGPBFT} {SLIDES:PBFT}[p.~259]{BOOK:BuildDepDistSyst}
 \begin{itemize}
 	\item[-]Validating the Signature in the message.
 	\item[-]Checking that the view number in the message match the current view number.
@@ -43,7 +43,7 @@ The replicas can only handle a certain amount of requests before the system is r
 
 \section{Checkpointing}
 \label{sec:checkpoint}
-\acrshort{PBFT} also incorporates checkpointing, which is a mechanism used for garbage collecting the logs. Checkpointing is required so that the replica does not use up all of its memory for logging messages~\cite[p.~261]{BOOK:BuildDepDistSyst}. Therefore, the replicas must agree upon a point in which the system is stable for all the replicas. Afterwards the replicas can delete any records in the logs prior to the consented state~\cites[p.~5]{PAPER:OGPBFT}[p.~410]{PAPER:PBFTRecovery}. 
+PBFT also incorporates checkpointing, which is a mechanism used for garbage collecting the logs. Checkpointing is required so that the replica does not use up all of its memory for logging messages~\cite[p.~261]{BOOK:BuildDepDistSyst}. Therefore, the replicas must agree upon a point in which the system is stable for all the replicas. Afterwards the replicas can delete any records in the logs prior to the consented state~\cites[p.~5]{PAPER:OGPBFT}[p.~410]{PAPER:PBFTRecovery}. 
 
 Checkpoints are essentially the state records of the system after progressing a specific interval of requests. The checkpoint has information regarding the last sequence number that was performed for the system. This sequence number is used on the garbage collector to put an upper bound on the records that are to be removed. For instance, if the stable sequence number was set to 50, then the garbage collector would remove set of logged data up to 50. The checkpoint will also have a digest of the system for that stable sequence number. This digest is used to confirm that the replicas have the same system state for the given sequence number~\cites[p.~5]{PAPER:OGPBFT}[p.~410]{PAPER:PBFTRecovery}. 
 
@@ -61,7 +61,7 @@ The view-change process starts by having the replica increment its view number. 
 
 \begin{figure}[!h]
 	\centering
-	\includegraphics[width=\linewidth]{figures/PBFTViewChange}
+	\includegraphics[width=1.1\textwidth]{figures/PBFTViewChange}
 	\caption{Practical Byzantine Fault Tolerance View-Change}
 	\label{fig:pbftviewchange}
 \end{figure}
