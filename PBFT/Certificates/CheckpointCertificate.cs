@@ -58,6 +58,7 @@ namespace PBFT.Certificates
             if (ProofList.Count < 1) return false;
             foreach (var check in ProofList)
             {
+                Console.WriteLine(check);
                 if (check.StableSeqNr != LastSeqNr) return false;
                 if (check.StateDigest == null && StateDigest != null || check.StateDigest != null && StateDigest == null) 
                     return false;

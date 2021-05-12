@@ -226,7 +226,7 @@ Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate 
 \end{figure}
 
 \subsection{View-change Implementation}
-
+As previously mention in \autoref{sec:view-change} the goal of a view-change is to successfully replace a faulty primary replica with another non-faulty replica. In order for a primary change to be successful, the replicas in the PBFT network needs to agree upon the state the program continues on after the primary change has occurred. Furthermore the view-change must ensure that the new replica selected for primary responsibility is not faulty. The operations to ensure these criteria were briefly mentioned in \autoref{sec:view-change}. Although in total there are a quite lot of operations needed for a successful view-change to take place. However, it is possible to divide up the operations into two based on which goal the operations attempt to fulfill. Excluding the processes of shutting down the protocol execution, the first part of the view-change process is for the replicas in the network to agree on that a view-change is necessary and the state of the system after the view-change. 
 \subsection{Checkpoint Implementation}
 \label{section:ImpCheckpointing}
 The checkpointing process follows the \emph{checkpointinterval}. This means it only gets used once the system has processed certain number of requests equal to the checkpoint interval. In our implementation the current checkpoint interval is set to five, meaning after processing five requests a new checkpoint is created. In our implementation we divided the workflow of the checkpointing into two parts. 

@@ -66,6 +66,37 @@ namespace PBFT.Replica
             }
             return premessages;
         }
+        
+        public CList<PhaseMessage> MakePrepareMessagesver2(ViewChangeCertificate vcc, int lowbound, int highbound)
+        {
+            CList<PhaseMessage> premessages = new CList<PhaseMessage>();
+            for (int i = lowbound; i <= highbound; i++)
+            {
+                bool foundproof = false;
+                int proofidx = -1;
+                PhaseMessage newpre;
+                for (int j = 0; j<vcc.ProofList.Count; j++)
+                {
+                    if (vcc.ProofList[j].RemPreProofs.ContainsKey(i))
+                    {
+                        foundproof = true;
+                        proofidx = j;
+                        break;
+                    }
+                }
+                if (foundproof)
+                    newpre = new PhaseMessage(
+                        ServID, 
+                        i, 
+                        ViewNr, 
+                        vcc.ProofList[proofidx].RemPreProofs[i].CurReqDigest,
+                        PMessageType.PrePrepare
+                    );
+                else newpre = new PhaseMessage(ServID, i, ViewNr, null, PMessageType.PrePrepare);
+                premessages.Add(newpre);
+            }
+            return premessages;
+        }
 
         public override string ToString() => $"Primary ServID: {ServID}, ViewNr: {ViewNr}, NrOfNodes: {NrOfNodes}";
 

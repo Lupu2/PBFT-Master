@@ -192,8 +192,10 @@ namespace PBFT
             );
             execute.Serv.ChangeClientStatus(req.ClientID);
 
-            bool res = await WhenAny<bool>.Of(AppOperation(req, execute, seq, cancel),
-                ListenForShutdown(serv.Subjects.ShutdownSubject));
+            bool res = await WhenAny<bool>.Of(
+                AppOperation(req, execute, seq, cancel),
+                ListenForShutdown(serv.Subjects.ShutdownSubject)
+            );
             Console.WriteLine("Result: " + res);
             if (res)
             {

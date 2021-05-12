@@ -534,7 +534,8 @@ namespace PBFT.Replica.Protocol
                 if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
                 else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
                 int high = Serv.CurSeqNr;
-                var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
+                //var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
+                var prepares = Serv.CurPrimary.MakePrepareMessagesver2(vcc, low, high);
                 for (var idx=0; idx<prepares.Count; idx++)
                     Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
                 Console.WriteLine("Creating NewView");
