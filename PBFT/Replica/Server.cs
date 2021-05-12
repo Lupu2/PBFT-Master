@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Cleipnir.ExecutionEngine;
 using Cleipnir.ObjectDB.Persistency;
@@ -491,7 +492,7 @@ namespace PBFT.Replica
                 });    
             }
         }
-
+        
         public void EmitViewChange()
         {
             Console.WriteLine("Received viewchange, emitting to start new view");
@@ -509,6 +510,11 @@ namespace PBFT.Replica
             {
                 Subjects.CheckpointFinSubject.Emit(cpc);
             });
+        }
+
+        public void StartTimer(int length, CancellationToken cancel)
+        {
+            _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(Subjects.ShutdownSubject, length, cancel);
         }
         
         public async Task InitializeConnections() //Add Client To Client Dictionaries

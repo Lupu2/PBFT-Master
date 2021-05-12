@@ -187,10 +187,13 @@ namespace PBFT.Replica.Protocol
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage);
                 Serv.EmitPhaseMessageLocally(commitmes);
+                //CancellationTokenSource cancel2 = new CancellationTokenSource();
+                //Serv.StartTimer(10000, cancel2.Token);
+                
                 Console.WriteLine("Waiting for commits");
                 if (Active) await committed;
                 else throw new ConstraintException("System is no longer active!");
-                
+                //cancel2.Cancel();
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate to Log
                 Console.WriteLine($"Completing operation: {clireq.Message}");
                 
