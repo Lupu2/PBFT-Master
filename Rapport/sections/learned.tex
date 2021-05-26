@@ -8,8 +8,23 @@
 -Lack of documentation can be quite fatal for continued support.
 -The multitude of potential issues that could occur that aren't necessary dealt with in the theoretical consensus algorithm or pseudo code.
 -Cleipnir and how it interacts with the other programming paradigms. Eks: A clear distinction has to made in regards to what code is run inside Cleipnir(the persistent part) and what is not called in Cleipnir (orthogonal part), mixing these will cause disastrous results, which we infact encountered several times during implementation.
--Unit testing, simplicity of C# unit testing, issues in regards to unit testing networking as running tests in parallel causes inconsistent results and at worst case inf-loops
+%-Unit testing, simplicity of C# unit testing, issues in regards to unit testing networking as running tests in parallel causes inconsistent results and at worst case inf-loops(don't think this is really all that useful)
 \fi
 %first draft, probably be heavly changed after writing the other parts of the thesis
 
-%The lessons I've learned for this project is that I'm useless
+\subsection{Consensus algorithm}
+During this thesis our knowledge of 
+
+\subsection{Asynchronous programming}
+Going into this thesis our experience using asynchronous programming were limited and were solely based on a few previous projects. In addition the asynchronous programming used in these previous projects were using the JavaScript asynchronous framework. Although the language barrier between the asynchronous tools were minimal, there were a few subtle differences. The naming conventions being different for similar operations were especially annoying. An example of this being how C\# \code{Task} not being far from JavaScript \code{Promise}. Overall since both the asynchronous frameworks supports the use of the async/await operators, programming asynchronous workflow were relatively similar. 
+
+On the other hand there were issues encountered in our application due to lack of understanding behind the details for the async and await operators early in development. Originally our application used asynchronous programming for a lot tasks related to both networking and protocol handling which caused a lot of internal nested state machines being created. Not only was it a pain to attempt to debug issues regarding nested state machines, but it further escalated when nested async/await operators were used inside \code{CTask}'s for normal \code{Task}, which created additional threads. The result being a lot of race conditions, inconsistent states and generally a nightmare to debug. The simple solution was to make any unecessary asynchronous task become synchronously operations, which in turn removed a lot of the nested state machines as well as removing the \code{CTask} threading issue.
+
+In short, due to our over usage of async/await workflow for tasks that didn't necessarily needed to be asynchronous lead to issues for our application. Therefore, it is important when designing an asynchronous application to have a clear view over which computing tasks requires asynchronous workflow and which can be satisfied by synchronous workflow. Using asynchronous programming for tasks were it is not needed only causes complexity to the code, is harder to debug and also unecessarily slows the system down.
+
+\subsection{Reactive programming}
+
+
+\subsection{Cleipnir}
+
+

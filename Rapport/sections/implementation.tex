@@ -45,11 +45,11 @@ while (true)
 {
     var req = await requestMessage.Next();
     if (Crypto.VerifySignature(
-        	req.Signature, 
+            req.Signature, 
             req.CreateCopyTemplate().SerializeToBuffer(), 
             serv.ClientPubKeyRegister[req.ClientID]
-            ) 
-            && serv.CurSeqNr < serv.CurSeqRange.End.Value
+        ) 
+        && serv.CurSeqNr < serv.CurSeqRange.End.Value
     )
     {
         if (execute.Active)
