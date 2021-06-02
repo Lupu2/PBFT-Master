@@ -1,7 +1,7 @@
 \section{System Model}
 \label{sec:systemModel}
 The PBFT consensus algorithm is implemented using \emph{R} number of servers referred to as \emph{replicas}. When a replica is down or behaving maliciously then we say that the replica is faulty. The number of faulty replicas is symbolized as \emph{f}.
-Quorum is a term used to refer to the limit of messages required to verify that the majority of replicas in the system agreed upon a decision\cites[p.~408-409]{PAPER:PBFTRecovery}. %Add another more detailed cite here!
+Quorum is a term used to refer to the limit of messages required to verify that the replicas in the system agreed upon a decision\cites[p.~408-409]{PAPER:PBFTRecovery}. %Add another more detailed cite here!
 A single replica is chosen as the leader called primary, and is represented as \emph{p}. The other replicas are referred to as backups. The responsibility of the primary is to order the request sent to the system by numerous clients~\cites[p.~456]{BOOK:MVstandver3}[p.~405]{PAPER:PBFTRecovery}. The replica that is chosen as the primary is based on the replica's identifier value~\cite[p.~258]{BOOK:BuildDepDistSyst}.
 
 According to~\cites[p.~3]{PAPER:OGPBFT}[p.~405]{PAPER:PBFTRecovery}, replicas in the distributed network move through "successions of configurations known as views". A simpler definition for a view is the number that defines the set of non-faulty replicas which are participating in the current PBFT protocol round set up by the current primary. The current view number is symbolized by the letter \emph{v}.
