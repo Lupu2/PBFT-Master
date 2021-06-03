@@ -15,7 +15,7 @@ namespace PBFT.Replica.Network
         public static async Task<(List<int> mestype, List<IProtocolMessages> mes)> Receive(Socket conn)
         {
             try
-            { 
+            {
                 var buffer = new byte[16000];
                 var bytesread = await conn.ReceiveAsync(buffer, SocketFlags.None);
                 List<IProtocolMessages> incommingMessages = new List<IProtocolMessages>();

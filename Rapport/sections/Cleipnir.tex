@@ -31,7 +31,7 @@ The \textbf{storage engine} is responsible for the actual storage procedure. It 
 \begin{itemize}
 	\item{Memory Storage}
 	\item{Simple File Storage}
-	\item{Relation Database Storage}
+	\item{Relational Database Storage}
 \end{itemize}
 \cites[p.~10,12]{PAPER:PaxosCleipnir}
 
@@ -39,7 +39,7 @@ The memory storage stores the persisted data directly into memory.
 The simple file storage stores the persisted data in a single text file.
 The relation database storage stores the persisted data into a Microsoft SQL Server~\cite{WEB:MSSQL}.
 
-The Cleipnir serialization process follows a graph-like structure. The original object graph that is to be serialized is called a \code{Roots} object. Most data objects usually have some form of system references. In some cases objects also have reference to other objects. In order to successfully persist an object these references need to also be persisted.  In order to accomplish this the \code{Roots} graph object to the persisted object is connected to the graph object through pathways leading to the references that are to also be persisted~\cite[p.~10]{PAPER:PaxosCleipnir}.
+The Cleipnir serialization process follows a graph-like structure. The original object graph that is to be serialized is called a \code{Roots} object. In order to accomplish this the \code{Roots} graph object to the persisted object is connected to the graph object through pathways leading to the references that are to also be persisted~\cite[p.~10]{PAPER:PaxosCleipnir}.
 
 %If the object that is to be serialized has references to other objects that are also going to be serialized, then the graph object has pathways leading from the \code{Roots} object to the other objects graph object~\cite[p.~10]{PAPER:PaxosCleipnir}.
 
