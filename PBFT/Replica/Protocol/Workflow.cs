@@ -330,7 +330,7 @@ namespace PBFT.Replica.Protocol
                     qcertpre.SeqNr, 
                     Serv.CurView, digest, 
                     CertType.Committed
-                );   
+                );
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     .Where(pm => pm.SeqNr == qcertcom.SeqNr)
