@@ -15,18 +15,21 @@ For this reason, asynchronous programming has become the preferred programming m
 
 Asynchronous programming usually follows one or more of these three design patterns:
 \begin{itemize}
-	\item{Asynchronous Programming Model(APM)}
-	\item{Event-based Asynchronous pattern(EAP)}
-	\item{Task-based Asynchronous Pattern (TAP)}
+	%\item{Asynchronous Programming Model(APM)}
+	%\item{Event-based Asynchronous pattern(EAP)}
+	%\item{Task-based Asynchronous Pattern (TAP)}
+	\item{\ac{apm}}
+	\item{\ac{eap}}	
+	\item{\ac{tap}}
 \end{itemize}
-TAP is the most used design pattern and is the model used by the async/await workflow~\cite{DOC:AsyncAwait, WEB:AsyncAwaitTut}.
+\ac{tap} is the most used design pattern and is the model used by the async/await workflow~\cite{DOC:AsyncAwait, WEB:AsyncAwaitTut}.
 
 Asynchronous programming should not be confused with parallel programming as asynchronous methods do not create new threads. It instead runs on the current thread whenever the scheduler has resources ready and the operation itself is ready to progress. Therefore, the work required to create new threads as well as a lot of the work to keep the threads consistent can be omitted~\cite{DOC:TaskAsyncProgModel}. %Potentially write more once you have more control over how consistency works between async functions and how they fail in my implementation.
 
 \subsection{Async/Await}
 Asynchronous programming is not a new concept and C\# has long had support for it. However, before the async/await workflow became normalized programming asynchronously was quite difficult and even worse for others to read~\cite{DOC:TaskAsyncProgModel}. The workflow consisting of a lot of nested callback functions which is quite a struggle to manage properly. Today managing this kind of structure is referred to as \emph{callback hell}~\cites[p.~1-2]{PAPER:Callbackhell}[p~.2]{PAPER:PaxosCleipnir}.
 
-As mentioned previously the async/await workflow follows the TAP abstraction~\cite{DOC:TaskAsyncProgModel} meaning the workflow initializes the asynchronous operations.. Then in the workflow which calls the asynchronous operation there is a point chosen where the result of the asynchronous operation needs to be collected before the workflow can move on to other operations. The async/await workflow consists of three steps for the programmer. The first step is to assign the \code{async} modifier to a function to mark it as an asynchronous function. This allows asynchronous calls to be made inside the chosen function. The second step is to make an asynchronous call. Lastly specify the \code{await} operator for the awaiter for the asynchronous task~\cite{WEB:AsyncAwaitTut, DOC:AsyncAwait, VIDEO:AsyncConBack}.
+As mentioned previously the async/await workflow follows the \ac{tap} abstraction~\cite{DOC:TaskAsyncProgModel} meaning the workflow initializes the asynchronous operations. Then in the workflow which calls the asynchronous operation there is a point chosen where the result of the asynchronous operation needs to be collected before the workflow can move on to other operations. The async/await workflow consists of three steps for the programmer. The first step is to assign the \code{async} modifier to a function to mark it as an asynchronous function. This allows asynchronous calls to be made inside the chosen function. The second step is to make an asynchronous call. Lastly specify the \code{await} operator for the awaiter for the asynchronous task~\cite{WEB:AsyncAwaitTut, DOC:AsyncAwait, VIDEO:AsyncConBack}.
 It is important to remember that the \code{await} operator can only be used in a function marked with the \code{async} modifier. In order to use an asynchronous function call in a synchronous function, the traditional operators have to be used instead~\cite{DOC:AsyncAwait, DOC:TaskAsyncProgModel}.
 
 In \autoref{code:asyncawaitex} we can see a practical example of the async/await workflow.
