@@ -33,9 +33,30 @@ As mentioned previously the async/await workflow follows the \ac{tap} abstractio
 It is important to remember that the \code{await} operator can only be used in a function marked with the \code{async} modifier. In order to use an asynchronous function call in a synchronous function, the traditional operators have to be used instead~\cite{DOC:AsyncAwait, DOC:TaskAsyncProgModel}.
 
 In \autoref{code:asyncawaitex} we can see a practical example of the async/await workflow.
-The code in \autoref{code:asyncawaitex} is the asynchronous function that is responsible for sending a message over the network in our system. In order for the \code{SendMessage} to be marked as an asynchronous function it has a \code{async} modifier. \code{SendMessage} does not return any values, therefore it returns a .Net \code{Task} object. Most of the code in the function is synchronous and this code transforms a message object to byte streams. The last line however is asynchronous where the socket object calls the asynchronous function \code{SendAsync}. As we want to avoid the function returning before the asynchronous operation is finished, the \code{await} operator is used to wait for the asynchronous operation to finish.
-NEED TO REPLACE CODE SEMENT AND DESCRIPTION FOR THE CODE SEGMENT UNDER. SEND MESSAGE IS NO LONGER ASYNCHRONOUS FIND ANOTHER EXAMPLE!!!
+The code in \autoref{code:asyncawaitex} is the asynchronous function that is responsible for having a chosen \code{Socket} object connect to a designated \ac{ip} address. The \code{IPEndPoint} object being the reference to the chosen \ac{ip} address. In order for the \code{Connect} function to be marked as an asynchronous function it has a \code{async} modifier. \code{Connect} returns a .Net \code{Task} object of type boolean, meaning the function returns a reference to the active Connect \code{Task} which will return a boolean value once the \code{Task} is completed. In this case the \code{Connect} function returns true if the socket succeeds in connecting to the \ac{ip} address, otherwise it returns false. The asynchronous operation performed in the \code{Connect} function is when the \code{ConnectAsync} function is called for the socket. As we want to avoid the function returning the result before the asynchronous operation is finished, the \code{await} operator is used to have the \code{Task} wait for the asynchronous operation to finish.
 
+\begin{figure}[h]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:asyncawaitex, caption=Example of async/await workflow, captionpos=b, basicstyle=\scriptsize]
+public static async Task<bool> Connect(Socket sock, IPEndPoint endpoint)
+{
+    try
+    {
+        await sock.ConnectAsync(endpoint);
+        return true;
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
+        Console.WriteLine(e);
+        return false;
+    }
+}
+	\end{lstlisting}
+\end{figure}
+
+\iffalse
 %TODO find/write a better example.
 \begin{figure}[h]
 	\centering
@@ -56,6 +77,7 @@ public async Task SendMessage(byte[] sermessage,
 
 	\end{lstlisting}
 \end{figure}
+\fi
 %\cite{VIDEO:AsyncConBack}
 %\cite{DOC:AsyncAwait}
 %\cite{DOC:TaskAsyncProgModel}

@@ -88,7 +88,7 @@ scheduler.Schedule(() =>
 \section{Cleipnir Reactive Programming}
 %TODO rewrite this segment, it is basically all wrong!
 The Cleipnir framework has a custom-made reactive layer that follows most of the functionality provided by the Reactive X API. However, the basic functionality introduced in \autoref{section:reactive} is mostly hidden and the overall workflow is simplified for use. This implementation uses a \code{Stream} object in order to replicate the data returned by the respective observers and operators. The \code{Stream} is similar to an observable object.
-Cleipnir reactive layer support fewer reactive operators compared to most other current reactive implementations. However, the current operators that exist also support persistent programming, meaning the data stream and the scheduled operations are not lost if the system crashes during an operation. Traditional LINQ commands do not work on the \code{Stream} object. Instead inbuilt LINQ statements are available for the reactive \code{Stream} object to use. Cleipnir reactive operators can by design be chained together just like the majority of reactive operators. The main difference being that the Cleipnir's reactive operators and Linq operators result in a new \code{Stream} object instead of a new observable or a new enumerable. Using reactive operator chains, it is possible to create a lot of the consensus algorithms workflow within a few lines of code. \autoref{code:operatorreq} shows an example of operator chaining using Cleipnir’s reactive framework. The objective here is to get the first valid Preprepare message emitted to the observable. In order for a message to be considered valid, it must pass the first two \code{Where} clauses. The \code{Next} function returns the resulting prepare message~\cites[p.~6,8,13]{PAPER:PaxosCleipnir, WEB:ReactiveOperator}.
+Cleipnir reactive layer support fewer reactive operators compared to most other current reactive implementations. However, the current operators that exist also support persistent programming, meaning the data stream and the scheduled operations are not lost if the system crashes during an operation. Traditional LINQ commands do not work on the \code{Stream} object. Instead inbuilt LINQ statements are available for the reactive \code{Stream} object to use. Cleipnir reactive operators can by design be chained together just like the majority of reactive operators. The main difference being that the Cleipnir's reactive operators and Linq operators result in a new \code{Stream} object instead of a new observable or a new enumerable. Using reactive operator chains, it is possible to create a lot of the consensus algorithms workflow within a few lines of code. \autoref{code:operatorreq} shows an example of operator chaining using Cleipnir’s reactive framework. The objective here is to get the first valid Preprepare message emitted to the observable. In order for a message to be considered valid, it must pass all \code{Where} clauses. The \code{Next} operator at the end of the chain returns the resulting prepare message~\cites[p.~6,8,13]{PAPER:PaxosCleipnir, WEB:ReactiveOperator} The \code{Merge} operator is used to listen for incoming items from the \code{ShutdownBridgePhase} \code{Source} object. More information in regards to the \code{Merge} operator is discussed in \autoref{chapter:Imp}
 
 
 \begin{figure}[H]
@@ -96,15 +96,14 @@ Cleipnir reactive layer support fewer reactive operators compared to most other 
 	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:operatorreq, caption=Chaining Cleipnir Operators, captionpos=b, basicstyle=\scriptsize]
 var preprepared = await MesBridge
-                 .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
-                 .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID],
-                                          Serv.CurView,
-                                          Serv.CurSeqRange)
-                 )
-                 .Next();
+                        .Where(pm => pm.PhaseType == PMessageType.PrePrepare)
+                        .Where(pm => pm.Digest != null && pm.Digest.SequenceEqual(digest))
+                        .Where(pm => pm.Validate(Serv.ServPubKeyRegister[pm.ServID], Serv.CurView, Serv.CurSeqRange))
+                        .Merge(ShutdownBridgePhase)
+                        .Next();
 \end{lstlisting}
 \end{figure}
-THIS  FIGURE IS ALSO OUTDATED!!! SWITCH AND WRITE NEW/UPDATE EXPLANATION
+%THIS  FIGURE IS ALSO OUTDATED!!! SWITCH AND WRITE NEW/UPDATE EXPLANATION
 Cleipnir supports reactive subjects, however they are instead known as \code{Sources}. The user can emit items to the \code{Source} object, and any observer linked to it will receive the response item. The \code{Source} object needs to be used in order for the developer to access and interact with the reactive layer in Cleipnir. \autoref{code:sourcereq} shows an example on how to initialize, emit and wait for incoming events in regards to the \code{Source} object. The \code{await reqbridge.Next()} makes sure that the resulting variable \code{req} receives the \code{Request} emitted to the \code{Source} object~\cite[p.~8]{PAPER:PaxosCleipnir}.
 
 \begin{figure}[H]

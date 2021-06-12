@@ -517,7 +517,7 @@ namespace PBFT.Replica
             _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(Subjects.ShutdownSubject, length, cancel);
         }
         
-        public async Task InitializeConnections() //Add Client To Client Dictionaries
+        public async Task InitializeConnections() //Initialize Connections
         {
             if (rebooted) //Rebooting
             {
