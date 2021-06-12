@@ -70,7 +70,7 @@ namespace PBFT
                 Console.WriteLine(con);
                 Engine scheduler;
                 Server server = null;
-                ProtocolExecution protexec = null;
+                Workflow protexec = null;
                 if (!con || !usememory)
                 {
                     Source<Request> reqSource = new Source<Request>();
@@ -100,7 +100,7 @@ namespace PBFT
                     server = new Server(id, 0, serversInfo.Count, scheduler, 5, ipaddr, sh, serversInfo);
                     server.Start();
                     Thread.Sleep(1000);
-                    protexec = new ProtocolExecution(
+                    protexec = new Workflow(
                         server, 
                         1, 
                         protSource, 
@@ -130,7 +130,7 @@ namespace PBFT
                     scheduler.Schedule(() =>
                     {
                         PseudoApp = Roots.Resolve<CList<string>>();
-                        protexec = Roots.Resolve<ProtocolExecution>();
+                        protexec = Roots.Resolve<Workflow>();
                         server = protexec.Serv;
                     }).GetAwaiter().OnCompleted(() =>
                     {
@@ -152,12 +152,12 @@ namespace PBFT
             else Console.WriteLine("No arguments given! Terminate Application");
         }
         
-        public static void StartRequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhase, Engine scheduler)
+        public static void StartRequestHandler(Workflow execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhase, Engine scheduler)
         {
             _ = RequestHandler(execute, requestMessage, shutdownPhase, scheduler);
         }
         
-        public static async CTask RequestHandler(ProtocolExecution execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
+        public static async CTask RequestHandler(Workflow execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
         {
             Console.WriteLine("RequestHandler");
             Server serv = execute.Serv;
@@ -180,7 +180,7 @@ namespace PBFT
             }
         }
 
-        public static async CTask PerformProtocol(ProtocolExecution execute, Server serv, Engine scheduler, Source<PhaseMessage> shutdownPhaseSource, Request req, int seq)
+        public static async CTask PerformProtocol(Workflow execute, Server serv, Engine scheduler, Source<PhaseMessage> shutdownPhaseSource, Request req, int seq)
         {
             Console.WriteLine("Handling client request");
             CancellationTokenSource cancel = new CancellationTokenSource();
@@ -241,7 +241,7 @@ namespace PBFT
             return await shutdown.Next();
         }
         
-        public static async CTask<bool> AppOperation(Request req, ProtocolExecution execute, int curSeq, CancellationTokenSource cancel)
+        public static async CTask<bool> AppOperation(Request req, Workflow execute, int curSeq, CancellationTokenSource cancel)
         {
             var reply = await execute.HandleRequest(req, curSeq, cancel);
             if (reply.Status && execute.Active) PseudoApp.Add(reply.Result);

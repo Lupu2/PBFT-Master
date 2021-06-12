@@ -18,7 +18,7 @@ using PBFT.Certificates;
 
 namespace PBFT.Replica.Protocol
 {
-    public class ProtocolExecution : IPersistable
+    public class Workflow : IPersistable
     {
         public Server Serv { get; set;}
         public int FailureNr { get; set;}
@@ -30,7 +30,7 @@ namespace PBFT.Replica.Protocol
         private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
 
-        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
+        public Workflow(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
         {
             Serv = server;
             FailureNr = fnodes;
@@ -655,8 +655,8 @@ namespace PBFT.Replica.Protocol
             stateToSerialize.Set(nameof(ShutdownBridgePhase), ShutdownBridgePhase);
         }
 
-        public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new ProtocolExecution(
+        public static Workflow Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new Workflow(
                 sd.Get<Server>(nameof(Serv)),
                 sd.Get<int>(nameof(FailureNr)),
                 sd.Get<Source<PhaseMessage>>(nameof(MesBridge)),

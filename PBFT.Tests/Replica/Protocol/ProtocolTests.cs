@@ -39,7 +39,7 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv, 1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv, 1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello World!", "12:00");
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv ,req, pesbridge, _scheduler).GetAwaiter().GetResult();
@@ -56,14 +56,14 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>() ,new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>() ,new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             var reply = PerformTestFunction(exec, testserv, req, pesbridge, _scheduler).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
         
-        public async Task<Reply> PerformTestFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge, Engine scheduler)
+        public async Task<Reply> PerformTestFunction(Workflow exec, Server serv, Request req, Source<PhaseMessage> pmesbridge, Engine scheduler)
         {
             var digest = Crypto.CreateDigest(req);
             var cancel = new CancellationTokenSource();
@@ -118,7 +118,7 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(0,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1,pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv,1,pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello World!", "12:00");
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv ,req, pesbridge, _scheduler).GetAwaiter().GetResult();
@@ -135,14 +135,14 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             var reply = PerformTestWrongOrderFunction(exec, testserv, req, pesbridge, _scheduler).GetAwaiter().GetResult();
             StringAssert.Contains(reply.Result, req.Message);
         }
         
-        public async Task<Reply> PerformTestWrongOrderFunction(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge, Engine scheduler)
+        public async Task<Reply> PerformTestWrongOrderFunction(Workflow exec, Server serv, Request req, Source<PhaseMessage> pmesbridge, Engine scheduler)
         {
             var digest = Crypto.CreateDigest(req);
             CancellationTokenSource cancel = new CancellationTokenSource();
@@ -195,7 +195,7 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(1,0,4,_scheduler,20,"127.0.0.1:9000",sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             PerformTestFunctionTimeout(exec, testserv, req, pesbridge).GetAwaiter().OnCompleted(() => Console.WriteLine("Test"));
@@ -204,7 +204,7 @@ namespace PBFT.Tests.Replica.Protocol
             Thread.Sleep(5000);
         }
         
-        public async CTask<Reply> PerformTestFunctionTimeout(ProtocolExecution exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
+        public async CTask<Reply> PerformTestFunctionTimeout(Workflow exec, Server serv, Request req, Source<PhaseMessage> pmesbridge)
         {
             var digest = Crypto.CreateDigest(req);
             CancellationTokenSource cancel = new CancellationTokenSource();
@@ -258,7 +258,7 @@ namespace PBFT.Tests.Replica.Protocol
             Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
             var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
             Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-            ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+            Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             var prot = PerformTestWithAnyTest(exec, testserv, _scheduler, req, true, pesbridge, shutbridge, shutdownPhase).GetAwaiter();
@@ -277,7 +277,7 @@ namespace PBFT.Tests.Replica.Protocol
            Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+           Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
            Request req = new Request(1, "Hello Galaxy!", "12:00");
            req.SignMessage(_prikey);
            var prot = PerformTestWithAnyTest(exec, testserv, _scheduler, req, false, pesbridge, shutbridge, shutdownPhase).GetAwaiter();
@@ -286,7 +286,7 @@ namespace PBFT.Tests.Replica.Protocol
            Assert.IsFalse(res);
        }
        
-       public async CTask<bool> PerformTestWithAnyTest(ProtocolExecution exec, Server testserver, Engine sche, Request req, bool emit,  Source<PhaseMessage> phasesource, Source<bool> shutdownsource, Source<PhaseMessage> shutdownphase)
+       public async CTask<bool> PerformTestWithAnyTest(Workflow exec, Server testserver, Engine sche, Request req, bool emit,  Source<PhaseMessage> phasesource, Source<bool> shutdownsource, Source<PhaseMessage> shutdownphase)
        {
            exec.Active = true;
            testserver.ProtocolActive = true;
@@ -297,7 +297,7 @@ namespace PBFT.Tests.Replica.Protocol
            return res;
        }
 
-       public async CTask<bool> PerformHandleRequest(ProtocolExecution exec, Request req, CancellationTokenSource cancel)
+       public async CTask<bool> PerformHandleRequest(Workflow exec, Request req, CancellationTokenSource cancel)
        {
            var reply = await exec.HandleRequestTest(req, 1, cancel);
            Console.WriteLine("Received Reply");
@@ -360,7 +360,7 @@ namespace PBFT.Tests.Replica.Protocol
            Source<PhaseMessage> shutdownPhase = new Source<PhaseMessage>();
            var sh = new SourceHandler(reqbridge, pesbridge, null, shutbridge, null, null, null, null, null);
            Server testserv = new Server(1,0,4, _scheduler,20,"127.0.0.1:9000", sh, new CDictionary<int, string>());
-           ProtocolExecution exec = new ProtocolExecution(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
+           Workflow exec = new Workflow(testserv,1, pesbridge, null, shutdownPhase, new Source<bool>(), new Source<NewView>(), shutbridge);
            Request req = new Request(1, "Hello Galaxy!", "12:00");
            ViewPrimary nextvp = new ViewPrimary(4);
            nextvp.NextPrimary();
@@ -372,7 +372,7 @@ namespace PBFT.Tests.Replica.Protocol
            Assert.IsFalse(res);
        }
        
-       public async CTask<bool> PerformTestWithAnyTest2(ProtocolExecution exec, Server testserv, Engine sche, Request req, bool emit, ViewChangeCertificate vcc, Source<PhaseMessage> phasesource, Source<bool> shutdownsource, Source<PhaseMessage> shutdownphase)
+       public async CTask<bool> PerformTestWithAnyTest2(Workflow exec, Server testserv, Engine sche, Request req, bool emit, ViewChangeCertificate vcc, Source<PhaseMessage> phasesource, Source<bool> shutdownsource, Source<PhaseMessage> shutdownphase)
        {
            var (prikey1, pubkey1) = Crypto.InitializeKeyPairs();
            var (prikey2, pubkey2) = Crypto.InitializeKeyPairs();
