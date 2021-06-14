@@ -104,16 +104,16 @@ This design is unfortunately not perfect. The server is required to schedule the
 	\centering
 	%\lstset{style=sharpc}
 	\begin{lstlisting}[label = code:schedulerEmit, caption= Example of server and protocol interaction using Cleipnir scheduler, captionpos=b, basicstyle=\scriptsize]
-	public void EmitPhaseMessageLocally(PhaseMessage mes)
+public void EmitPhaseMessageLocally(PhaseMessage mes)
+{
+    Console.WriteLine("Emitting Phase Locally!");
+    if (ProtocolActive)
+    {
+        _scheduler.Schedule(() =>
         {
-            Console.WriteLine("Emitting Phase Locally!");
-            if (ProtocolActive)
-            {
-                _scheduler.Schedule(() =>
-                {
-                    Subjects.ProtocolSubject.Emit(mes);
-                });    
-            }
-        }
+            Subjects.ProtocolSubject.Emit(mes);
+        });   
+    }
+}
 	\end{lstlisting}
 \end{figure}

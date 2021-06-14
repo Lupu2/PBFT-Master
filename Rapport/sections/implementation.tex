@@ -36,7 +36,8 @@ As persistency is a core part of the Cleipnir it was decided to design the appli
 
 \subsubsection{Starting protocol instance}
 A normal sequence for the \ac{pbft} implementation begins once the request handler receives a request message from the server. The source code for the request handler can be seen in \autoref{code:StartProtocol}. The request handler listens for new requests messages emitted to the \code{Source} object \emph{requestMessage}. As mention in \autoref{sec:persvsephe}, the server is tasked with emitting messages its received in the network layer to the appropriate \code{Source} object in order for the protocol to access the message. The request handler will verify that the request is valid and that the client who sent the request does not already have an active request currently being processed. As mention in \autoref{sec:checkpoint}, \ac{pbft} will only allow a certain amount of requests be processed before a new checkpoint is required to be performed. Therefore, the request handler also needs to confirm that the system is not about the exceed the sequence number upper bound. The received request will not be processed if the system is about to exceed the upper bound. The last check verifies whether or not the protocol execution is active. If it is not active, then the replica is currently performing a view-change and will not accept any new requests until this operation is finished. Once all checks are passed the request handler will call the asynchronous \code{CTask} function \emph{PerformProtocol} which will initialize and start the \ac{pbft} protocol for the given request. It is important that the request handler does not wait for \emph{PerformProtocol} finishes as it is important to not block the \emph{requestMessage} as we desire an application which can process multiple requests from clients at the same time. 
-
+%\paragraph{Testsec1}
+%\paragraph{Testsec2}
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
