@@ -180,9 +180,9 @@ namespace PBFT.Replica.Protocol
                 Console.WriteLine("Waiting for prepares");
                 if (Active) await prepared;
                 else throw new ConstraintException("System is no longer active!");
+                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 
                 //Commit phase
-                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage);
