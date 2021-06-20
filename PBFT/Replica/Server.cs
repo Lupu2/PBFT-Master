@@ -271,7 +271,7 @@ namespace PBFT.Replica
             _ = HandleIncommingMessages(conn);
         }
 
-        //Handle incomming messages
+        //Handle incoming messages
         public async Task HandleIncommingMessages(TempInteractiveConn conn)
         {
             Console.WriteLine("New connection initialized!");
