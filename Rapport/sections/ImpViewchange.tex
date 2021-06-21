@@ -1,0 +1,166 @@
+\subsection{View-change Implementation}
+As previously mentioned in \autoref{sec:view-change} the goal of a view-change is to successfully replace a faulty primary replica with another non-faulty replica. In order for a primary change to be successful, the replicas in the \ac{pbft} network must agree upon a  protocol state that each replica can move on from after the leader change has occurred. Furthermore, the view-change must ensure that the newly selected primary replica is not also faulty. The implementation of the view-change functionality is a lot more complex in comparison to the normal protocol workflow. There are several aspects that make the view-change functionality challenging to handle properly. The view-change must first have some functionality to stop the regular protocol workflow, even in the case where the protocol is still processing a request. Afterwards the view-change messages are exchanged over the \ac{pbft} network until $2f+1$ replicas agree that the system needs to change view. Finally the replicas have to reprocess any protocol certificates saved in the protocol logger. Our implementation of the view-change can be divided into three segments. The first part consists of starting the view-change process and how we set the application to stop and ignore future protocol messages received during the view-change process. The second part consists of updating the replica's view information and creating and multicasting a view-change message to the \ac{pbft} network. The second part is also responsible for creating the view-change certificate. The last segment is the functionality in regards to setting up the correct protocol state of the \ac{pbft} network for the new view.
+We will in the following sections describe the different sections of our view-change implementation in the order in which they are performed.
+
+\subsubsection{Starting a View-Change}
+%insert how to start a view-change. Including timeout, setting application to inactive mode and how view-changes can be started by timeout vs protocol messages.
+
+A View-change is started whenever a replica deems the current primary to be faulty. In our implementation a replica can determine that a primary is faulty in two seperate ways. The first is the more common approach. We use a timeout functionality to detect irregular activity for the primary replica. The other condition that can start a view-change for the replica is when the replica has received a total of $2f$ view-changes messages from the other replicas in the \ac{pbft} network. In this situation the replica knows that the view-change exchange only needs its own view-change to be successful. 
+
+In our case, we only support timeout functionality in the protocol workflow during the period where a replica is waiting for a pre-prepare phase message from the primary for a request the replica previously has received. \autoref{code:timeout} shows the source code for where the timeout functionality is initialized. \autoref{code:timeout} also shows how we initialize and how we stop the overall protocol workflow. On line nine-12 we can initialize the \code{AppOperation} within a \code{WhenAny} asynchronous function. The \code{WhenAny} creates a \code{CTask} for the two asynchronous \code{CTask} operations \code{AppOperation} and \code{ListenForShutdown}. The \code{CTask} created for \code{WhenAny} finishes whenever either of the \code{CTask} has finished its operation. In our case the \code{ListenForShutdown} is simply waiting for the given \code{Source} object \code{ShutdownSubject} to receive an item which constitutes a shutdown signal. When a timeout occurs for the protocol workflow, the timeout emits an item to the \code{ShutdownSubject}, which in turn results in \code{ListenForShutdown} finishes first. Each iteration of the protocol workflow is given a \code{CancellationToken} in order to stop the timeout functionality after it has received a pre-prepare message from the primary. To make sure we know whether or not the \code{AppOperation} finishes or not is determined by the boolean value returned from the \code{CTask} result from the \code{WhenAny} process. If the AppOperation finishes first then the return value is true, otherwise a timeout has occurred and the boolean value has false value.  If the boolean has false value, we set the application to be in what we refer to as inactive mode. In inactive mode all requests and protocol related messages such as phase messages and checkpoints are ignored. The application remains in inactive mode until all of the segments of view-change have been successfully completed. 
+
+After the application has been set to inactive mode, any existing protocol workflows have to be stopped. Theoretically it is possible to keep existing protocol iterations alive during and after a view-change occurs. However, it would be rather wasteful as the \code{CTask} could never finish as the reactive streams never finish all of its reactive operators.  This in turn would unnecessarily drain the system of resources since each time an item is emitted to the protocol \code{Source} the old iterations would receive these items as well. However, the protocol would just end up dropping them fairly quickly due to the fact that the viewnr of the received message never matches the old protocols. Therefore, we decided it would be best to terminate any active protocol process when a view-change occured. To accomplish this the application emits a faulty phase message to secondary \code{Source<Phasemessage>} called \code{shutdownPhaseSource}. This \code{Source} object corresponds to the \code{Source<Phasemessage>} used in the \code{Merge} operator shown in \autoref{code:Pre-PrepareNonPrimary}. As we mentioned earlier in the \autoref{sec:prepare}, once the protocol workflow iterations receives the faulty pre-prepare message it exits the function by throwing as well as catching a \code{TimeoutException}. In the case where the system as already received $2f$ view-change messages, the system emits the shutdown signal to the same \code{ShutdownSubject} \code{Source} object we use in the \code{ListenForShutdown} \code{CTask} function. This means that the initialization for the view-change functionality does remain the same regardless of method used to initiate it. The details in regards to handling view-change messages are described in detail in  \autoref{sec:viewchangeListener}. Line 29 in \autoref{code:timeout} is where the view-change functionality begins and the \code{await} operator is used to make sure the view-change is completed before the protocol can go back to being active. 
+
+\iffalse
+(mention the inactive/active mode, mention timeout func, how the view-change functionality is repeated to stop faulty replicas from ruining everything)
+(Action: )
+(DONT FORGET ME!)
+In inactive mode all protocol related messages and requests are denied by the main protocol execution. This mode is active until all segments of the view-change functionality is completed successfully. The view-change functionality differs from the other functionality due to the handling of timeout. It has already been mentioned that the view-change functionality starts once a replica exceeds its timeout before receiving a pre-prepare message. However, there are two additional timeouts present in the view-change functionality. These timeouts exist in order for the system to be absolutely sure that the new primary chosen by the $p = v ~mod~ R$ formula does not result in a faulty replica. If the formula does result in a faulty replica, then either the view-change process or the redo protocol process most likely is going to fail. Setting a timeout for these two functionalities, the protocol can recover from a potential frozen state and restart the view-change process by now selecting the next replica on the list. Specifically, the view number is incremented every time the view-change protocol starts, meaning a new primary is going to continue being swapped until a non-faulty primary is finally chosen. Unfortunately the current implementation only handles timeout at the start of the normal protocol workflow, which also gets stopped once the replica receives a pre-prepare message. This means the protocol workflow effectively gets stuck in the situation where the protocol fails during either handling prepare and commit messages. 
+
+(Problems with timeout in our protocol workflow, how we currently stop the protocol execution when a view-change occur)
+(Action: )
+%(might be useful for the view-change evaluation)There were two main reasons for why this issue was not resolved in our implementation. The first reason was that timeout functionality relies on the \code{WhenAny} asynchronous function~\cite{WEB:whenany}. This function creates a \code{CTask} that is set to finish once either of the attached \code{Task}'s are completed. In our implementation this effectively is set to either the timeout is exceeded or the intended workflow completes. This was unfortunately not very well integrated with reactive \code{Source} objects. Even if the \code{WhenAny} moves on with the program once the timeout is reached, the protocol workflow cannot be exited due to the reactive \code{Source} is forced to finish all the operators before it is deemed completed. To solve this issue we use the \code{Merge} operator in order to enforce \code{Source} object to stop and dispose of the active reactive stream when a timeout occurs. The \code{Merge} operator requires that both the reactive streams that were to merge have the same format. This means that the stop signal to the \code{Merge} operator needed to also be a phase message for the pre-prepare reactive stream. The current workflow for handling the timeout functionality can be seen in \autoref{code:timeout}. The timeout is initialized with a cancellationtoken which can be used to stop the timeout process. This cancellationtoken is brought into the main protocol workflow so that the replica can cancel the timeout operation after it has received  a pre-prepare message. The timeout used in the current implementation is set to 10 seconds. The timeout operation has a reference to an active \code{Source} object which is the same \code{Source} object which is listened to at the function ListenForShutdown. When the timeout exceeds, the timeout function emits an item to the shutdown \code{Source} which in turn makes the \code{CTask} in ListenForShutdown to return before the AppOperation, which lets the program flow to continue. The AppOperation is still active as an asynchronous function, meaning we want to forcefully shut it down so as to avoid creating conflicts with the future emissions to the protocol \code{Source} object. To solve this we emit an obviously faulty phase message with an unique phase message type called \emph{End}. Thanks to the \code{Merge} operator, the pre-prepare reactive listener will finish and return the faulty pre-prepare message. As seen in \autoref{code:Pre-PrepareNonPrimary}, the protocol calls a timeout exception if the pre-prepare reactive listeners return the faulty phase message, meaning the protocol effectively shuts down as intended. 
+\fi
+
+\begin{figure}[H]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:timeout, caption=Handling timeout for the normal protocol workflow and initiate the View-Change process, captionpos = b, basicstyle=\scriptsize]
+CancellationTokenSource cancel = new CancellationTokenSource();
+_ = TimeoutOps.AbortableProtocolTimeoutOperation( //starts timeout
+  serv.Subjects.ShutdownSubject,
+  10000,
+  cancel.Token,
+  scheduler
+);
+execute.Serv.ChangeClientStatus(req.ClientID);
+bool res = await WhenAny<bool>.Of(
+               AppOperation(req, execute, seq, cancel),
+               ListenForShutdown(serv.Subjects.ShutdownSubject)
+);
+Console.WriteLine("Result: " + res);
+if (res)
+{
+  Console.WriteLine($"APP OPERATION {seq} FINISHED");
+  ...
+}
+else
+{
+  if (execute.Active)
+  {
+     Console.WriteLine("View-Change starting");
+     execute.Active = false;
+     serv.ProtocolActive = false;
+     await scheduler.Schedule(() =>
+        shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
+     ));
+     await execute.HandlePrimaryChange2();
+     Console.WriteLine("View-Change completed");
+     serv.UpdateSeqNr();
+     if (serv.CurSeqNr % serv.CheckpointConstant == 0 && serv.CurSeqNr != 0
+        || serv.StableCheckpointsCertificate == null && serv.CurSeqNr > serv.CheckpointConstant
+        || serv.StableCheckpointsCertificate != null &&
+          (serv.StableCheckpointsCertificate.LastSeqNr + serv.CheckpointConstant) < serv.CurSeqNr)
+        serv.CreateCheckpoint2(execute.Serv.CurSeqNr, PseudoApp);
+     execute.Active = true;
+     serv.ProtocolActive = true;
+     serv.GarbageViewChangeRegistry(serv.CurView);
+     serv.ResetClientStatus();
+   \end{lstlisting}
+\end{figure}
+
+
+\paragraph{View-Change functionality}
+
+\paragraph{Initialize View-Change}
+\paragraph{View-Change Listener Workflow}
+\label{sec:viewchangeListener}
+\paragraph{New-View Workflow}
+
+\iffalse
+As previously mention in \autoref{sec:view-change} the goal of a view-change is to successfully replace a faulty primary replica with another non-faulty replica. In order for a primary change to be successful, the replicas in the \ac{pbft} network needs to agree upon the state the program continues on after the primary change has occurred. Furthermore the view-change must ensure that the new replica selected for primary responsibility is not faulty. 
+
+The operations to ensure these criteria were briefly mentioned in \autoref{sec:view-change}. Although in total there are a quite lot of operations needed for a successful view-change to take place. However, it is possible to divide up the operations into two segments based on which goal the operations attempt to fulfill. Excluding the processes of shutting down the protocol execution, the first part of the view-change process is for the replicas in the network to agree on that a view-change is necessary. This goal is achieved by having the replicas multicast and listen for view-change messages. Since the next primary is determined by the formula $p = v ~mod~ R$, \ac{pbft} doesn't require any election process. The view-change messages instead contains information of the replicas current checkpoint information as well as current state of the logged certificates. This is so that the new primary can have all the relevant information to create the new state for the \ac{pbft} system. The goal of the second segment is to initialize the \ac{pbft} system state after the view-change is finished. This goal is fulfilled by looking at the current stable checkpoint and the current protocol certificates stored in memory. In order to make sure that requests were not fully processed before the view-change occured. The \ac{pbft} needs to redo each of the requests stored in the logger up to the highest sequence number seen in the \ac{pbft} system. Thankfully, due to stable checkpoints, the process does not need to take into account every single request ever processed. The new primary is responsible for starting this process by creating and multicast a new-view message. This message acts as an introduction letter, telling the other replicas in the network that it is the new primary and additionally provide a view-change certificate proving this fact. The new-view message also contain a list of pre-preprepares which are created from the information stored within the protocol certificates in the view-messages received. This new-view message is validated by the other replicas. If the replicas deem the information in new-view message as valid, the replicas will use these pre-prepares message to create prepare and commit messages and redo the \ac{pbft} algorithm for these pre-prepares. The system is finally finished with the view-change once all the pre-prepares have stored their respective two protocol certificates. 
+
+As for implementing this functionality, our implementation can be divided into four segments. The first consist of the timeout functionality that when triggers puts the application into non-active mode. The second part consist of updating the view data, creating view-change messages, multicast these view-changes over the \ac{pbft} network and finally store the collection of view-changes until quorum has been reached. The third consist of creating and validating functionality for new-view message. Finally the last segment consist of the redo protocol functionality. 
+
+In non-active mode all protocol related messages and requests are denied by the main protocol execution. This mode is active until all four segments of the view-change functionality as been completed successfully. The view-change functionality differs from the other functionality due to the handling of timeout. It has already been mention that the view-change functionality start once a replica exceeds its timeout before receiving a pre-preprepare message. However, there are two additional timeout present in the view-change functionality. These timeout exists in order for the system to be absolute sure that the new primary chosen by the $p = v ~mod~ R$ formula does not result in a faulty replica. If the formula does result in a faulty formula, then either view-change process or redo protocol process will most likely fail. Setting a timeout for these two functionalities, the protocol can recover from a potential frozen state and restart the view-change process by now selecting the next replica on the list. Essentially, the view number is incremented every time the view-change protocol changes, meaning a new primary is selected until a non-faulty primary is chosen. Unfortunately the current implementation only handles timeout at the start of the normal protocol workflow, which also gets stopped once the replica receives a pre-prepare message. This means the protocol gets effectively stuck in the case where the protocol fails at handling prepare and commit messages. There were to main reason for why this issue was not resolved in our implementation. The first reason was that timeout functionality relies on the \code{WhenAny} asynchronous function~\cite{WEB:whenany}. This function creates a \code{Task} that is set to finish once either of the attached \code{Task}'s completes. In our implementation this effectively is set to either the timeout is exceeded or the process that is waited for completes. This was unfortunately not very well integrated with reactive listeners, as it is forced to finish all the operators before it is deemed completed. It required the \code{Merge} operator in order to enforce reactive listeners to stop and dispose of the active reactive stream when a timeout occured. The \code{Merge} operator required that both the reactive streams that were to merge had the same format. This means that the stop signal to the \code{Merge} operator needed to also be a phase message for the pre-prepare reactive stream. The current workflow for handling the timeout functionality can be seen in \autoref{code:timeout}. The time is first initialized with a cancellationtoken which is brought into the main protocol workflow so that the protocol can cancel the timeout when it receives a pre-prepare message. The timeout used in the current implementation is set to ten seconds. The timeout gets a reference to an active \code{Source} object which is the same \code{Source} which is listened to at the function ListenForShutdown. When the timeout exceeds, the timeout function will emit a message to the shutdown \code{Source} which in turn makes the \code{CTask} in ListenForShutdown to return before the AppOperation, which lets the program flow to continue. The AppOperation is still active as an asynchronous function, meaning we want to forcefully shut it down so as to avoid creating conflicts with the future emits to the protocol \code{Source} object. To solve this we emit an obviously faulty phase message with an unique phase message type called \emph{End}. Thanks to the \code{Merge} operator, the pre-prepare reactive listener will finish and returns the faulty pre-prepare message. As seen in \autoref{code:Pre-PrepareNonPrimary}, the protocol calls a timeout exception if the pre-prepare reactive listeners returns the faulty phase message, meaning the protocol effectively shuts down as intended.   
+\begin{figure}[H]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:timeout, caption=Handling timeout for the normal protocol workflow and initiate View-Change, captionpos = b, basicstyle=\scriptsize]
+CancellationTokenSource cancel = new CancellationTokenSource();
+_ = TimeoutOps.AbortableProtocolTimeoutOperation( //starts timeout
+   serv.Subjects.ShutdownSubject,
+   10000,
+   cancel.Token,
+   scheduler
+);
+execute.Serv.ChangeClientStatus(req.ClientID);
+bool res = await WhenAny<bool>.Of(
+                AppOperation(req, execute, seq, cancel),
+                ListenForShutdown(serv.Subjects.ShutdownSubject)
+);
+Console.WriteLine("Result: " + res);
+if (res)
+{
+   Console.WriteLine($"APP OPERATION {seq} FINISHED");
+   ...
+}
+else
+{
+   if (execute.Active)
+   {
+      Console.WriteLine("View-Change starting");
+      execute.Active = false;
+      serv.ProtocolActive = false;
+      await scheduler.Schedule(() =>
+         shutdownPhaseSource.Emit(new PhaseMessage(-1, -1, -1, null, PMessageType.End)
+      ));
+      await execute.HandlePrimaryChange2(); 
+      Console.WriteLine("View-Change completed");
+      serv.UpdateSeqNr();
+      ...
+    \end{lstlisting}
+\end{figure} 
+\fi
+The view-change exchange segment of the code starts by first setting the replica into the next view by incrementing its view number. The next operation sets the replicas view-change certificate. This step is dependent on whether or not the replica has received previously received view-change messages from another replica. If the replica has not received any view-messages from other replicas than it initializes the view-change certificate and initializes the view-change reactive listener. Info about the rest of the view-change process in the main workflow...
+
+The view-change listener deviates a bit from the other reactive listeners. The main difference is that it also requires the ability to call upon a shutdown emit in the case where the system already has gotten $2f$ view-change messages. The reason for this functionality is mostly due to making the system more efficient. The replica does not need to wait for a timeout to occur if it already has received $2f$ view-change messages since the \ac{pbft} network only requires that replica's view-change in order for the new view to be initialized. Therefore the process is speed up by calling for a shutdown emit if already has $2f$. Ofcourse this functionality is only useful if the replica is still in active mode. This is the reason as to why the option to not trigger the shutdown emit is an option. Other than that the reactive listener performs relatively the same operators for the reactive stream. Firstly, we want to only accept view-change message that belongs to the same next view nr as the replica. Secondly the view-change messages received are validated to make sure that it is a valid view-change message. Assuming the validation process is successful, the view-change message is added to the view-change certificate proof list. The final reactive operator validates that the view-change certificate to see if it has received the sufficient number of valid view-change messages in its proof list. After the view-change reactive listener is finished and a valid view-change certificate is ready, the callback function \emph{finCallback} calls the servers to emit a signal to the view-change workflow that the view-change certificate is finished and can move on with the next step of the view-change process. 
+
+\begin{figure}[H]
+	\centering
+	%\lstset{style=sharpc}
+	\begin{lstlisting}[label = code:viewListener, caption=Source code for View-Change Listener, captionpos = b, basicstyle=\scriptsize]
+if (Shutdown && shutdownCallback != null)
+{
+   Console.WriteLine("With shutdown");
+   await ViewBridge
+      .Where(vc => vc.NextViewNr == NewViewNr)
+      .Where(vc => vc.Validate(keys[vc.ServID], ServerViewInfo.ViewNr))
+      .Scan(vcc.ProofList, (prooflist, message) =>
+      {
+        prooflist.Add(message);
+        return prooflist;
+      })
+      .Where(_ => vcc.ShutdownReached(FailureNr))
+      .Next();
+   Console.WriteLine("Calling shutdown");
+   shutdownCallback();
+}
+await ViewBridge
+   .Where(vc => vc.NextViewNr == NewViewNr)
+   .Where(vc => vc.Validate(keys[vc.ServID], ServerViewInfo.ViewNr))
+   .Scan(vcc.ProofList, (prooflist, message) =>
+   {
+     prooflist.Add(message);
+     return prooflist;
+   })
+   .Where(_ => vcc.ValidateCertificate(FailureNr))
+   .Next();
+Console.WriteLine("Finished Listen view changes");
+finCallback();
+    \end{lstlisting}
+\end{figure} 
+segment from motivation, rewrite and get it in the main text somehow!
+This could in theory also apply to the view-change description as it is divided into several detailed steps. However, there are several factors which lead to the view-change functionality being split into three separate, but nested, functions. The first reason being that view-changes require the ability to restart the processes in the case where the request processing remains stationary for too long. To handle this functionality we currently use a mix of timeout operations and goto statements in order to reroute the program flow back to the beginning of the view-change process~\cite{WEB:goto}. The second reason, which also applies to checkpoints, is that the view-change process can be initialized early by receiving view-change messages from other replicas. This may seem similar to protocol operations since it is initialized by client requests, however the difference lies in the amount of messages required to initialize the process. Currently, the server needs to support the functionality of starting reactive listeners for view-changes if it ever receives a view-change, however the view-change process itself doesn't start until either the timeout occurs or the replica has received $2f$ messages. Because of this functionality, keeping the code completely synchronous and centered around a single function is not possible. As for checkpoints, because the checkpoint processes can be initialized whenever, and the majority of the time spent for checkpoints is used waiting for a replica to receive $2f+1$ unique checkpoints with identical sequence numbers, the source code cannot be centered around a single function.
