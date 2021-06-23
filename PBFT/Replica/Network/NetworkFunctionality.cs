@@ -64,7 +64,7 @@ namespace PBFT.Replica.Network
             catch (Exception e)
             {
                 Console.WriteLine("Error In Receive");
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
                 throw;
             }
         }
@@ -86,7 +86,7 @@ namespace PBFT.Replica.Network
             catch (Exception e)
             {
                 Console.WriteLine("Failed to send message!");
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
             }
         }
         
@@ -100,7 +100,7 @@ namespace PBFT.Replica.Network
             catch (Exception e)
             {
                 Console.WriteLine("Failed to connect to endpoint: " + endpoint.Address);
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
                 return false;
             }
         }

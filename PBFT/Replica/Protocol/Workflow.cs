@@ -551,8 +551,6 @@ namespace PBFT.Replica.Protocol
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 Console.WriteLine("Calling RedoMessage");
                 await RedoMessage(prepares);
-                Console.WriteLine("RedoMessage finished");
-                return true;
             }
             else
             {
@@ -580,9 +578,9 @@ namespace PBFT.Replica.Protocol
                 Console.WriteLine("Calling RedoMessage");
                 if (check) await RedoMessage(newviewmes.PrePrepMessages);
                 else return false;
-                Console.WriteLine("RedoMessage finished");
-                return true;
             }
+            Console.WriteLine("RedoMessage finished");
+            return true;
         }
 
         public async CTask RedoMessage(CList<PhaseMessage> oldpreList)
@@ -591,7 +589,7 @@ namespace PBFT.Replica.Protocol
             //Step 5.
             foreach (var prepre in oldpreList)
             {
-                var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre); //need a way to know request digest and request message
+                var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre);
                 var comcert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Committed);
                 Console.WriteLine("Initialize Log");
                 Serv.InitializeLog(prepre.SeqNr);
@@ -618,7 +616,7 @@ namespace PBFT.Replica.Protocol
                     })
                     .Where(_ => comcert.ValidateCertificate(FailureNr))
                     .Next();
-                    
+                await Sleep.Until(500);
                 if (!Serv.IsPrimary())
                 {
                     var prepare = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Prepare);

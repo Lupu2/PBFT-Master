@@ -205,7 +205,7 @@ namespace PBFTClient
             catch (Exception e)
             {
                 Console.WriteLine("Failed to send message");
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
                 return false;
             }
         }
@@ -262,7 +262,7 @@ namespace PBFTClient
                 catch (Exception e)
                 {
                     Console.WriteLine("ERROR Listen Response");
-                    Console.WriteLine(e);
+                    Console.WriteLine(e.Message);
                     ServerInformation[id].Active = false;
                     sock.Dispose();
                     return;

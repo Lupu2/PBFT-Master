@@ -422,7 +422,7 @@ namespace PBFT.Replica
                 catch (Exception e)
                 {
                     Console.WriteLine("Error In Handle Incomming Messages");
-                    Console.WriteLine(e);
+                    Console.WriteLine(e.Message);
                     return;
                 }
             }
