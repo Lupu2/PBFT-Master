@@ -586,7 +586,7 @@ namespace PBFT.Replica
         }
 
         public void UpdateRange(int stableSeq)
-            => CurSeqRange = new Range(stableSeq+ 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
+            => CurSeqRange = new Range(stableSeq + 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
 
         public void UpdateSeqNr()
         {
