@@ -25,7 +25,7 @@ These three tools are:
 	\item{Reactive Programming Layer}
 \end{itemize}
 %Scheduler
-Cleipnir uses an inbuilt event-driven \textbf{scheduler} which follows a single threaded structure similar to the JavaScript scheduler~\cites[p.~7]{PAPER:PaxosCleipnir}{WEB:CleipnirScheduler}. The scheduler schedules incoming tasks in a queue structure, meaning the ordering follows a first-come first-serve(FCFS)~\cite{WEB:FIFO} approach. Each task in the queue is executed sequentially using only a single thread, which in theory allows the program to avoid common threading issues~\cite[p.~7]{PAPER:PaxosCleipnir}. %find the actual phrase for this
+Cleipnir uses an inbuilt event-driven \textbf{scheduler} which follows a single threaded structure similar to the JavaScript scheduler~\cites[p.~7]{PAPER:PaxosCleipnir}{WEB:CleipnirScheduler}. The scheduler schedules incoming tasks in a queue structure, meaning the ordering follows a \ac{fcfs}~\cite{WEB:FIFO} approach. Each task in the queue is executed sequentially using only a single thread, which in theory allows the program to avoid common threading issues~\cite[p.~7]{PAPER:PaxosCleipnir}. %find the actual phrase for this
 
 The \textbf{storage engine} is responsible for the actual storage procedure. It is responsible for performing both the serialization and the deserialization process to each of the state objects that is to be persisted. The details in regards to setting up object information for the serialization and deserialization process that the storage engine uses is presented in \autoref{section:PersistentProgramming}. Cleipnir uses different storage engines that are correlated to which storage is used to store the data. Cleipnir currently supports these three storage engines:
 \begin{itemize}
