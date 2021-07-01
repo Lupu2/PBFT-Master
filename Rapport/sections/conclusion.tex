@@ -25,4 +25,11 @@ There are at least two notable issues that must be fixed in order for the applic
 Generally the application functionality could be a lot more advanced than it is now. Currently the only operation the application performs after a request is processed successfully though the \ac{pbft} algorithm is simply printing the message attached to the request to the console window. The message is then added to a \code{CList} representing the state of the system. In the future it would be beneficial if the application functionality was changed to be a bit more practical. For instance, changing the message content in the request to instead be an operation which is performed by the application. The state list would then instead store a record of the operation performed as well as whether or not the application was able to perform the requested operation. In order to change the application functionality, the client functionality for creating requests must also be adjusted.
 
 \section{Conclusion}
-
+\iffalse
+%clearly state that you accomplish the goal of the thesis.
+%Clearly state the answer to the main research question
+%Summarize and reflect on the research done for the thesis. In our case discoveries you've made based on usage of Cleipnir + async
+%future work + what you have learned --> seperate segments
+In conclusion we achieved our goal of creating a \ac{pbft} implementation using Cleipnir with the intended focus of making it faithful to the protocol description which also takes advantage asynchronous and reactive programming paradigms.
+Original goal: Our goal for this thesis is to use the Cleipnir framework to implement the Practical Byzantine Fault Tolerance (PBFT) consensus algorithm using functionality from both asynchronous programming and reactive programming. The desired PBFT implementation
+\fi
