@@ -54,10 +54,17 @@
 \usepackage{tikz}
 \usetikzlibrary{trees}
 \usepackage{wrapfig}
+\usepackage{hyperref}
 \usepackage[version = 2]{acro}
+%\usepackage[toc,page]{appendix}
 %\usepackage[acronym]{glossaries}
 %\usepackage[printonlyused]{acronym} 
 \usepackage{hyperref} % for autoref command
+\hypersetup
+{
+	colorlinks = true,
+	urlcolor = blue,
+}
 \def\chapterautorefname{Chapter}
 \def\sectionautorefname{Section}
 \def\subsectionautorefname{Section}
@@ -298,8 +305,20 @@
 		% Appendix
 		%\include{sections/appendix/appendixMain}
 	%\end{spacing}
+
 \listoffigures
 \lstlistoflistings
+
+\newpage
+\begin{appendices}
+	\chapter{\ac{pbft} Implementation Source Code}
+	\begin{itemize}
+		\item[-] The \ac{pbft} implementation can be found on this \href{https://github.com/Lupu2/PBFT-Master}{Github repository}.
+		\item[-] The source code used for the replica implementation is found in this \href{https://github.com/Lupu2/PBFT-Master/tree/main/PBFT}{sub directory}.
+		\item[-] The source code used for our client implementation is found in this \href{https://github.com/Lupu2/PBFT-Master/tree/main/PBFTClient}{sub directory}. The unit tests can unfortunately not be all run concurrently, due to some issue with the network tests. We therefore recommend running each folder separately, and re-run the test that fail uniquely once they fail. 
+		\item[-] The Github repository provides a detailed explanation in regards to how to run the \ac{pbft} implementation both locally and with docker containers. 
+	\end{itemize} 
+\end{appendices}
 \printbibliography[heading=bibintoc]
 %\printglossary[type=\acronymtype]
 %\printglossary
