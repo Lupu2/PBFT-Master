@@ -1,9 +1,11 @@
 \section{Reactive Programming}
 \label{section:reactive}
+\iffalse
+
 Reactive programming is a programming paradigm that focuses on changing the state of the program in response to some outward changes~\cite{WEB:RxProgIntro, DOC:Cleipnir}.
 Reactive programming follows an event driven workflow. An event can be triggered from one part of the system and when this event is received by the other part it starts altering the state of the system in response. Reactive programming works hand in hand with asynchronous event-based programming which was mentioned previously briefly in \autoref{section:AsyncProgramming}~\cite[p.~2-3]{BOOK:RxLinq}. Reactive programming is commonly used to handle a continuous stream of asynchronous data~\cite{VIDEO:dotnetsheffReactive}. 
-Currently there exists a lot of support for Reactive programming. Specifically, the library Reactive X~\cite{WEB:ReactiveXMainPage} has presented a general \ac{api}~\cite{web:api} for implementing the core concepts of reactive programming. As a result, today there exist a lot of reactive extensions for multiple programming languages. Rx.Net~\cite{Github:ReactiveExtensions} is the official .Net reactive extension. Cleipnirs has implemented its own reactive extension that resembles Rx.Net very closely. The main difference between the two is that Cleipnirs reactive layer supports persistency, but lacks reactive operators that Rx.Net does support~\cite{DOC:Cleipnir}.
-Although Cleipnir and Rx.Net vary somewhat from the general \ac{api}, the general workflow remains the same. Therefore we will introduce the main concepts of Reactive X in this section. Details specific for Cleipnir are instead presented in the upcoming \autoref{chapter:Cleipnir}.
+Currently there exists a lot of support for Reactive programming. Specifically, the library Reactive X~\cite{WEB:ReactiveXMainPage} has presented a general \ac{api}~\cite{WEB:api} for implementing the core concepts of reactive programming. As a result, today there exist a lot of reactive extensions for multiple programming languages. Rx.NET~\cite{Github:ReactiveExtensions} is the official .NET reactive extension. Cleipnirs has implemented its own reactive extension that resembles Rx.NET very closely. The main difference between the two is that Cleipnirs reactive layer supports persistency, but lacks reactive operators that Rx.NET does support~\cite{DOC:Cleipnir}.
+Although Cleipnir and Rx.NET vary somewhat from the general \ac{api}, the general workflow remains the same. Therefore we will introduce the main concepts of Reactive X in this section. Details specific for Cleipnir are instead presented in the upcoming \autoref{chapter:Cleipnir}.
 
 \subsection{Reactive X}
 ReactiveXs workflow can be easily summarized with the following tasks~\cite{WEB:ReactiveObservable}
@@ -26,6 +28,7 @@ Traditionally, the implementation is expected to incorporate the following funct
 OnNext is the function that handles each new incoming event emitted by the Observable. OnError is the function that is called if an error occurs within handling one of the emitted events. OnCompleted is the function that is called when the observable is finished and will no longer emit any new events~\cite{WEB:ReactiveObservable}.
 
 In some implementations the Observable and observer functionality are merged together into an object called subject. A subject object acts as a bridge of sorts between the observer and the observable where its main usage is to simplify the workflow for reactive programming. A subject has the ability to subscribe to an observable just like an observer. However, unlike an observer a subject can also re-emit events already processed in the observable, as well as be used for emitting new events to the observable. Eventually, all the items emitted by the subject will also be handled by the subject, making the programming workflow a lot simpler compared to its traditional style~\cite{WEB:ReactiveSubject}. Cleipnir supports subject in its implementation, however the objects are not referred to as subject, but rather source objects.
+\fi
 
 \iffalse
 -a brief introduce reactive programming
@@ -34,3 +37,30 @@ In some implementations the Observable and observer functionality are merged tog
 -give brief through workflow, concepts with name and definitions and how it works.(Observable, stream of data, subjects, event driven programming)
 -mention briefly Cleipnir support for reactive programming, how they differ, say detail information is given in Cleipnir chapter.
 \fi
+
+Reactive programming is a programming paradigm whose main focus is to change the state of the program in response to some outward changes~\cite{WEB:RxProgIntro, DOC:Cleipnir}.
+Reactive programming follows an event-driven workflow. An event can be triggered from one part of the system, and when the other part of the system receives this event, it alters the state of the system in response. Reactive programming works hand in hand with asynchronous event-based programming, which was previously mentioned briefly in \autoref{section:AsyncProgramming}~\cite[p.~2-3]{BOOK:RxLinq}. Reactive programming is commonly used to handle a continuous stream of asynchronous data~\cite{VIDEO:dotnetsheffReactive}. 
+Currently, there exists a lot of support for Reactive programming. Specifically, the library Reactive X~\cite{WEB:ReactiveXMainPage} has presented a general \ac{api}~\cite{WEB:api} for implementing the core concepts of reactive programming. As a result, today, there exist a lot of reactive extensions for multiple programming languages. Rx.NET~\cite{Github:ReactiveExtensions} is the official .NET reactive extension. Cleipnirs has implemented its own reactive extension that closely resembles  Rx.NET. The main difference between the two is that Cleipnirs reactive layer supports persistency but lacks reactive operators that Rx.NET does support~\cite{DOC:Cleipnir}.
+Although Cleipnir and Rx.NET vary somewhat from the general \ac{api}, the general workflow remains the same. Therefore we will introduce the main concepts of Reactive X in this section. Details specific for Cleipnir are instead presented in the upcoming \autoref{chapter:Cleipnir}.
+
+\subsection{Reactive X}
+ReactiveXs workflow can be easily summarized with the following tasks~\cite{WEB:ReactiveObservable}
+\begin{enumerate}
+	\item{Start an asynchronous operation that will perform some work and eventually return it}
+	\item{Transform the asynchronous operation as an Observable object}
+	\item{Use reactive operators to transform/filter the resulting data.}
+	\item{Observers subscribe to the Observable and waits for the Observable to return the data}
+\end{enumerate}
+
+An observable object follows a similar structure to an enumerable object, where the main difference between an enumerable and an observable object is their method of accessibility. An enumerable object will give the next object in storage whenever asked for it. In other words, the program will dictate when the next entry is collected. In an Observable object, the next result is instead only pushed to its subscriber whenever the result is ready. The program has no control over when the next entry will be ready as it is waiting for an asynchronous operation to complete~\cites{WEB:ReactiveObservable, VIDEO:dotnetsheffReactive, VIDEO:MicroDev}[p.~15]{BOOK:RxLinq}. Observables, like enumerable, support the use of \ac{linq} queries on its resulting data. \ac{linq} add additional operators for filtering and transforming the resulting data into new enumerables~\cites{VIDEO:dotnetsheffReactive}[p.~3-4]{BOOK:RxLinq}[p.~208]{BOOK:DotnetMultithreadCookBook}.
+
+Traditionally, the implementation is expected to incorporate the following functions for its observer object.
+\begin{itemize}
+	\item{OnNext}
+	\item{OnError}
+	\item{OnCompleted}
+\end{itemize}
+
+OnNext is the function that handles each new incoming event emitted by the Observable. OnError is the function that is called if an error occurs within handling one of the emitted events. OnCompleted is the function that is called when the observable is finished and will no longer emit any new events~\cite{WEB:ReactiveObservable}.
+
+In some implementations, the Observable and observer functionality are merged together into an object referred to as a \emph{subject}. A subject object acts as a bridge of sorts between the observer and the observable, where its primary usage is to simplify the workflow for reactive programming. A subject has the ability to subscribe to an observable, just like an observer. However, unlike an observer, a subject can also re-emit events already processed in the observable, and be used for emitting new events to the observable. Eventually, all the items emitted by the subject is handled by the subject, making the programming workflow a lot simpler compared to its traditional style~\cite{WEB:ReactiveSubject}. Cleipnir supports subject object in its implementation, however, the objects are not called subject in Cleipnir`s implementation but are instead called \code{Source} objects.
