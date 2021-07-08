@@ -96,14 +96,11 @@ namespace PBFT.Tests.Replica.Protocol
             serv.ServPubKeyRegister[2] = pubkey2;
             await scheduler.Schedule(() =>
             {
-                //serv.ServPubKeyRegister[3] = pubkey3;
                 pmesbridge.Emit(pm1);
                 pmesbridge.Emit(pm2);
-                //Thread.Sleep(3000);
                 pmesbridge.Emit(pm3);
                 pmesbridge.Emit(pm4);    
             });
-            //pmesbridge.Emit(pm5);
             var rep = await protocol;
             return rep;
         }
@@ -199,8 +196,6 @@ namespace PBFT.Tests.Replica.Protocol
             Request req = new Request(1, "Hello Galaxy!", "12:00");
             req.SignMessage(_prikey);
             PerformTestFunctionTimeout(exec, testserv, req, pesbridge).GetAwaiter().OnCompleted(() => Console.WriteLine("Test"));
-            //Console.WriteLine(reply);
-            //StringAssert.Contains(reply.Result, req.Message);
             Thread.Sleep(5000);
         }
         
@@ -239,10 +234,8 @@ namespace PBFT.Tests.Replica.Protocol
             Thread.Sleep(1000);
             pmesbridge.Emit(pm1);
             pmesbridge.Emit(pm2);
-            //Thread.Sleep(3000);
             pmesbridge.Emit(pm3);
             pmesbridge.Emit(pm4);
-            //pmesbridge.Emit(pm5);
             var rep = await protocol;
             return rep;
         }
@@ -344,7 +337,6 @@ namespace PBFT.Tests.Replica.Protocol
            {
                phaseSource.Emit(pm1);
                phaseSource.Emit(pm2);
-               //Thread.Sleep(3000);
                phaseSource.Emit(pm3);
                phaseSource.Emit(pm4);    
            });

@@ -95,7 +95,6 @@ namespace PBFT.Tests.Replica
             Assert.IsTrue(vcc.IsValid());
             
             var prepreplist = server.CurPrimary.MakePrepareMessagesver2(vcc, lowbound, highbound);
-            //var prepreplist = server.CurPrimary.MakePrepareMessages(protocerts, lowbound, highbound);
             Assert.AreEqual(prepreplist.Count, 6);
             Assert.IsTrue(prepreplist[0].Digest.SequenceEqual(dig1));
             Assert.IsTrue(prepreplist[1].Digest.SequenceEqual(dig2));

@@ -105,7 +105,6 @@ namespace PBFT.Tests.Helper
         [TestMethod]
         public void SerializeDeserializeNewView()
         {
-            /*ViewPrimary info, CheckpointCertificate state, Action<ViewChangeCertificate> shutdown, Action viewchange*/
             ViewPrimary vp = new ViewPrimary(1, 1, 4);
             CList<PhaseMessage> preparemes = new CList<PhaseMessage>();
             ViewChangeCertificate viewproof = new ViewChangeCertificate(vp, null, null, null);

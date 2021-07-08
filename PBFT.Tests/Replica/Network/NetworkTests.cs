@@ -70,11 +70,9 @@ namespace PBFT.Tests.Replica.Network
             }
             else
             {
-                //Console.WriteLine(BitConverter.ToString(bytemes));
                 var bytemesnodel = bytemes
                     .Take(bytemes.Length - 1)
                     .ToArray();
-                //Console.WriteLine(Encoding.ASCII.GetString(bytemesnodel));
                 var (mestype, mes) = Deserializer.ChooseDeserialize(bytemesnodel);
                 types.Add(mestype);
                 incommingMessages.Add(mes);

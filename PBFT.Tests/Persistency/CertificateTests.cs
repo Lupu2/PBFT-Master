@@ -81,8 +81,7 @@ namespace PBFT.Tests.Persistency
                 }
             }
         }
-
-        //Old test that doesn't work for some reason
+        
         [TestMethod]
         public void CheckpointCertificateTest()
         {
@@ -121,9 +120,6 @@ namespace PBFT.Tests.Persistency
             }).Wait();
             
             scheduler.Sync().Wait();
-            /*_objectStore.Persist();
-            _objectStore = null;
-            _objectStore = ObjectStore.Load(_storage);*/
             var newscheduler = ExecutionEngineFactory.Continue(_storage);
             newscheduler.Schedule(() =>
             {
@@ -149,15 +145,13 @@ namespace PBFT.Tests.Persistency
                 check3.SignMessage(_prikey);
                 copycert.AppendProof(check3, _pubkey,1);
                 Assert.IsTrue(copycert.ValidateCertificate(1));
-                
-                Console.WriteLine("THIS SHIT IS BULLLLLLLLLLLL, THE RESULT WAS READY AGES AGO!!!!!!");
-                
                 Assert.IsTrue(copyemits.Count == 1);
                 copysource.Emit(new CheckpointCertificate(0, new byte[]{}, null));
                 Assert.IsTrue(copyemits.Count == 2);
             }).Wait();
         }
 
+        //Old test that doesn't work for some reason
         /*[TestMethod]
         public void CheckpointCertificateSchedulerTest()
         {

@@ -13,7 +13,6 @@ namespace PBFT.Tests.Persistency
     public class MessagesTests
     {
         private InMemoryStorageEngine _storage;
-        //private SimpleFileStorageEngine _storage;
         private ObjectStore _objectStore;
         private RSAParameters _pri;
 
@@ -21,7 +20,6 @@ namespace PBFT.Tests.Persistency
         public void InitializeStorage()
         {
             _storage = new InMemoryStorageEngine();
-            //_storage = new SimpleFileStorageEngine("test.txt");
             _objectStore = ObjectStore.New(_storage);
             (_pri, _) = Crypto.InitializeKeyPairs();
         }

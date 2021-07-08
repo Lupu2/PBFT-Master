@@ -86,7 +86,6 @@ namespace PBFT.Tests.Certificates
         [TestMethod]
         public void MakeLogDigestTest()
         {
-            //int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress, Source<Request> reqbridge, Source<PhaseMessage> pesbridge, CDictionary<int,string> contactList
             var checksource = new Source<CheckpointCertificate>();
             var checksource2 = new Source<CheckpointCertificate>();
             var sh = new SourceHandler(null, null, null, null, null, null, null, null, checksource);
