@@ -12,6 +12,8 @@ using PBFT.Helper;
 
 namespace PBFT.Certificates
 {
+    //ProtocolCertificate is an implementation of the PBFT protocol certificates.
+    //It acts as a record for an iteration of the normal protocol workflow.
     public class ProtocolCertificate : IQCertificate, IPersistable
     {
         public CertType CType { get; set; }
@@ -79,8 +81,7 @@ namespace PBFT.Certificates
                 .Sum(c => c.Count() - 1);
             return count;
         }
-
-        //Checks that the Proofs are valid for PhaseMessages
+        
         public bool ProofsAreValid()
         {
             int preparenr = 0;

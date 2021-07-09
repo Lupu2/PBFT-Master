@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
@@ -7,6 +6,7 @@ using PBFT.Messages;
 
 namespace PBFT.Helper.JsonObjects
 {
+    //JsonNewView is our JSON viable substitute object for our NewView object.
     public class JsonNewView
     {
         public int NewViewNr { get; set; }
@@ -23,7 +23,8 @@ namespace PBFT.Helper.JsonObjects
             Signature = sign;
         }
 
-        public static JsonNewView ConvertToJsonNewViewCertificate(NewView nv)
+        //ConvertToJsonNewView converts a given NewView into a JsonNewView.
+        public static JsonNewView ConvertToJsonNewView(NewView nv)
         {
             var list = new List<PhaseMessage>();
             if (nv.PrePrepMessages != null)
@@ -38,6 +39,7 @@ namespace PBFT.Helper.JsonObjects
             return jsonnv;
         }
 
+        //ConvertToNewView creates a new NewView object based on data stored for the JsonNewView.
         public NewView ConvertToNewView()
         {
             var clist = new CList<PhaseMessage>();

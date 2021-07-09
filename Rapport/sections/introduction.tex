@@ -1,0 +1,39 @@
+\chapter{Introduction}
+%\section*{HUSK Å GJØRE OM ALLE CITATENE SOM HAR MED PAPER/BOK til format [ref, p.sidetall]!}
+\iffalse
+Systems today are required to be both efficient, secure, and reliable. Due to these factors most firmware and software today are organized over multiple systems in what we call a \textit{distributed system}~\cites{WEB:DistSys}[p.~16]{BOOK:MVstandver3}. In distributed systems, network nodes are required to share and collaborate so that the systems can agree on an overall state of the system. This state must remain consistent for the systems even in the event of failure, or in some cases malicious intent. A distributed system must be able to act as if it's a single system, even when in reality it is composed of multiple systems~\cite[p.~18]{BOOK:MVstandver3}. Advanced and technical consensus algorithms are currently being used to handle this functionality.
+%The more commonly used consensus algorithms for distributed systems being Paxos, Raft and Practical Byzantine Fault Tolerance(PBFT)\cite{WEB:ConsesAlgo}.
+However, most consensus algorithms are known for being difficult to fully understand and can be even more difficult to implement due to the unreliable nature of distributed networks~\cites[p.~459]{BOOK:MVstandver3}[p.~13]{PAPER:EivindPaper}. Because of this, alternative ways to describe and implement existing consensus algorithms are being discussed.
+
+The University of Stavanger have previously published work that implements popular consensus algorithms, such as Paxos and Raft~\cite{WEB:ConsesAlgo}, in a simplified manner using frameworks that support reactive programming. In particular, "Cleipnir - Framework Support for Fault-tolerant Distributed Systems"~\cite{PAPER:PaxosCleipnir} and "Implementing a Distributed Key-Value Store Using Corums"~\cite{PAPER:EivindPaper} uses the .NET framework now known today as \textit{Cleipnir}~\cite{DOC:Cleipnir}.
+Cleipnir is a .Net framework that is designed to help make implementations for consensus algorithms simpler for the developer.
+These two previously mentioned works are predecessors for this thesis which intends to use the Cleipnir framework in order to implement another popular consensus algorithm to further analyze Cleipnir ability to simplify implementation of consensus algorithms.
+
+Our goal for this thesis is to use the Cleipnir framework to implement the \acl{pbft} consensus algorithm using functionality from both asynchronous programming and reactive programming. The desired \ac{pbft} implementation should be devised using both async/await functionality existing in the .Net framework~\cite{DOC:AsyncAwait} and reactive event handling which Cleipnir has support for. Using these tools, the end goal is for the workflow of the \ac{pbft} implementation to be simple to understand as well as easier for others to recreate. In order to accomplish these goals we are looking into Cleipnir current support for reactive programming. We also look at the current workflow of modern asynchronous programming for .Net. A detailed summary of the \ac{pbft} algorithm and its operations are also given. Additionally, Cleipnir persistency functionality is also studied.
+In the end, the question is whether Cleipnir and these programming paradigms has the sufficient support required to accomplish these goals We will also see how useful reactive programming paradigm and asynchronous programming are when designing a consensus algorithm.
+%TODO  IF there is missing info about what i'm evaluating add it so we can refer to the good code design based on the protocol description as protocol abstraction!
+\fi
+Systems today are required to be both efficient, secure, and reliable. Due to these factors, most firmware and software today are organized over multiple systems in what we call a \textit{distributed system}~\cites{WEB:DistSys}[p.~16]{BOOK:MVstandver3}. In distributed systems, network nodes are required to share and collaborate so that the systems can agree on an overall state of the system. This state must remain consistent for the systems even in the event of failure, or in some cases, malicious intent. A distributed system must be able to act as if it is a single system, even when in reality it is composed of multiple systems~\cite[p.~18]{BOOK:MVstandver3}. Advanced and technical consensus algorithms are currently being used to handle this functionality.
+%The more commonly used consensus algorithms for distributed systems being Paxos, Raft and Practical Byzantine Fault Tolerance(PBFT)\cite{WEB:ConsesAlgo}.
+However, most consensus algorithms are known for being difficult to comprehend and can be even more demanding to implement due to the unreliable nature of distributed networks~\cites[p.~459]{BOOK:MVstandver3}[p.~13]{PAPER:EivindPaper}. Because of this, alternative ways to describe and implement existing consensus algorithms are being discussed.
+
+The University of Stavanger has previously published work that implements popular consensus algorithms, such as Paxos and Raft~\cite{WEB:ConsesAlgo}, in a simplified manner using frameworks that support reactive programming. In particular, "Cleipnir - Framework Support for Fault-tolerant Distributed Systems"~\cite{PAPER:PaxosCleipnir} and "Implementing a Distributed Key-Value Store Using Corums"~\cite{PAPER:EivindPaper} uses the .NET framework now known as \textit{Cleipnir}~\cite{DOC:Cleipnir}.
+Cleipnir is a .NET framework designed to help make implementations for consensus algorithms simpler for the developer.
+These two previously mentioned works are predecessors for this thesis which intends to use the Cleipnir framework to implement another popular consensus algorithm to analyze Cleipnir ability further to simplify the implementation of consensus algorithms.
+
+The goal for this thesis is to use the Cleipnir framework to implement the \acl{pbft} consensus algorithm using functionality from both asynchronous programming and reactive programming~\cite{WEB:pbftmast}. The desired \ac{pbft} implementation should be devised using both async/await functionality existing in the .NET framework~\cite{DOC:AsyncAwait} and reactive event handling both which Cleipnir supports. The goal for the \ac{pbft} implementation is to use these tools to create a workflow that is simple so that the source code can both be easily read but also easily recreated. To achieve these goals, we are looking into Cleipnir current support for reactive programming. We also look at the current workflow of modern asynchronous programming for .NET. We also examine the \ac{pbft} algorithm and present a detailed summary of all of its processes. Additionally, Cleipnir hybrid persistency functionality is reviewed.
+In the end, the question is whether Cleipnir and these programming paradigms have the sufficient support required to accomplish these goals. We will also see how advantageous reactive programming paradigm and asynchronous programming are when designing a consensus algorithm.
+%\section{Introduction}
+%Introduction Template
+%1. Context/Motivation
+%2. Problem
+%	-Why this is a hard/open problem?
+%	-State-of-the-Art
+%3. Key idea/insight
+%	-Solution overview/some detail (bigger picture)
+%4. Summary of research
+%	-Details of contribution
+%5. Evidence of successful solution (evaluation results)
+%6. Summary of contributions
+%7.  Paper outline
+\input{sections/contributionsOutline}

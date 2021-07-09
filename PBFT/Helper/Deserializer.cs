@@ -6,6 +6,8 @@ namespace PBFT.Helper
 {
     public static class Deserializer 
     {
+        //ChooseDeserialize takes the given bytes and deserialize it to appropriate message object.
+        //The desrialization used is based on the type bit set by the serialization process.
         public static (int, IProtocolMessages) ChooseDeserialize(byte[] sermessage)
         {
             if (sermessage.Length < 4)
@@ -17,7 +19,6 @@ namespace PBFT.Helper
                                                                .Reverse()
                                                                .ToArray()
             );
-            
             byte[] serobj = sermessage.Take(sermessage.Length-4)
                                       .ToArray();
             switch (formatByte) 
@@ -42,6 +43,7 @@ namespace PBFT.Helper
             }
         }
 
+        //DeserializeHash reverts the serialization process we used for the given signature.
         public static byte[] DeserializeHash(string hashstring)
         {
             if (hashstring != null) return Convert.FromBase64String(hashstring);

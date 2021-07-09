@@ -30,7 +30,7 @@ namespace PBFT.Tests.Persistency
         
         [TestMethod]
         public void ServerPersistencyInfoTest()
-        {   //Remember to update this test each time the server object is updated.
+        {   
             var sh = new SourceHandler(
                 new Source<Request>(), new Source<PhaseMessage>(), new Source<ViewChange>(), 
                 new Source<bool>(), new Source<bool>(), new Source<NewView>(),

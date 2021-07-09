@@ -1,0 +1,56 @@
+\section{Contributions}
+%REWRITE: CONTRIBUTIONS --> what is achieved in THIS PAPER, understanding is not an achievement! Try to combine contributions with the outline in some way. Example: Here is our contribution, this can be found here:... (structure).
+%The following contributions are achieved by this thesis:
+%\begin{itemize}
+%\item Understanding the functionality and general workflow of Practical Byzantine Fault Tolerance
+%\item Creating a Practical Byzantine Fault Tolerance implementation using async/await in combination with Cleipnirs reactive event handlers. This combination allowed for the our implementation to handle the main workflow of \ac{pbft} in a single function.
+%\item Learning how to use Cleipnir functionality to support asynchronous programming, reactive programming and persistent programming.
+%\item Providing relevant feedback for Cleipnir.
+%\end{itemize}
+
+\iffalse 
+To tackle the problem we implemented a simple\ac{pbft} implementation that primarily uses async/await asynchronous programming together with reactive event handlers provided by the Cleipnir framework to design the normal workflow of \ac{pbft} inside a single function. This function is designed to follow the protocol description as closely as possible. To accomplish this goal the \ac{pbft} consensus algorithm was studied in great detail. In addition we had to implement the network layer for the \ac{pbft} implementation using .NET asynchronous socket programming~\cite{DOC:AsyncSocketProg, VIDEO:dotnetsocketprog}. In this thesis we have in addition looked at how both asynchronous programming and reactive programming has affected the simplicity of the protocol code and can conclude both positive and negative aspects for the programming model. To the best of our ability we designed the \ac{pbft} application to utilize Cleipnirs tools as much as possible. Although our current implementation does not fully support persistency, we have taken steps to at least ensure that the protocol objects and protocol-related functionality are designed with persistency in mind. We do believe that the thesis does present some helpful feedback for the future development of the Cleipnir framework.
+
+\section{Outline}
+%EDIT once the first draft is finished for each chapter!
+\begin{itemize}
+\item In \textbf{\autoref{chapter:ProgrammingModels}} we briefly describe the background information in regards to this thesis. This includes information in regards to asynchronous programming and reactive programming
+
+\item In \textbf{\autoref{chapter:Cleipnir}} we make an introduction to the Cleipnir framework. This includes describing the intended use-case for Cleipnir, and summarizing its functionality that are helpful for implementing the consensus algorithm.
+
+\item In \textbf{\autoref{chapter:PBFT}} we describe the \ac{pbft} algorithm. This includes introducing the main goals and functionality of the consensus algorithm. Concepts used by or related to the algorithm. Finally, a detailed summary of all the operations taking place in the algorithm.
+
+\item In \textbf{\autoref{chapter:RW}} we introduce previous work in regards to the Cleipnir framework and other related work that are similar in nature to this project.
+
+\item \textbf{\autoref{chapter:Design}} introduces an overview of our application. We first give a short summary of how the network is set up for the \ac{pbft} implementation. Then we go more in depth for how we’ve structured the code for the implementation. Finally the application is divided into separate segments based on whether or not the segment uses Cleipnir to persist its data.
+
+\item \textbf{\autoref{chapter:Imp}} gives a detailed explanation of our \ac{pbft} implementation. Describing in detail how the normal workflow is implemented. In addition, we discuss how the implementation handles view-changes and checkpoints.  Important factors in the overall implementation are mentioned in greater detail. We describe how asynchronous programming and Cleipnir reactive programming has helped simplify the code for our implementation. Finally we discuss some drawbacks to our design.
+
+\item \textbf{\autoref{chapter:Dis}} gives a summary of all of the benefits and disadvantages we encountered for each of the tools and designs we used in our \ac{pbft} implementation %NOT WRITTEN YET! Reintroduce debate topics in implementation and discuss their points once again. Give an opinion on the matters.
+
+\item \textbf{\autoref{chapter:Con}} is the last chapter and it contains a conclusion for the given \ac{pbft} implementation based on the initial goals. Furthermore, we also summarize our results and discuss the knowledge we accumulated during the thesis and give suggestions for future work.
+\end{itemize}
+\fi
+
+To tackle the problem, we implemented a simple \ac{pbft} implementation that primarily uses async/await asynchronous programming and reactive event handlers provided by the Cleipnir framework to design the normal workflow of \ac{pbft} inside a single function. The source for our \ac{pbft} implementation can be found at~\cite{WEB:pbftmast}. The normal workflow function is designed to follow the protocol description as closely as possible. To accomplish this goal, the \ac{pbft} consensus algorithm was studied in great detail. In addition, we had to implement the network layer for the \ac{pbft} implementation using .NET asynchronous socket programming~\cite{DOC:AsyncSocketProg, VIDEO:dotnetsocketprog}. In this thesis, we have also looked at how both asynchronous programming and reactive programming have affected the simplicity of the protocol code and can conclude both positive and negative aspects for the programming models. To the best of our ability, we designed the \ac{pbft} application to utilize Cleipnirs tools as much as possible. Although our current implementation does not fully support persistency, we have taken steps to ensure at least that the protocol objects and protocol-related functionality are designed with persistency in mind. We believe that the thesis does present some helpful feedback for future development of the Cleipnir framework.
+
+\section{Outline}
+%EDIT once the first draft is finished for each chapter!
+\begin{itemize}
+\item In \textbf{\autoref{chapter:ProgrammingModels}} we briefly describe the background information in regards to this thesis. This includes information in regards to asynchronous programming and reactive programming
+
+\item In \textbf{\autoref{chapter:Cleipnir}} we make an introduction to the Cleipnir framework. This includes describing the intended use-case for Cleipnir and summarize its core functionalities that are potentially helpful for implementing consensus algorithms.
+
+\item In \textbf{\autoref{chapter:PBFT}} we describe the \ac{pbft} algorithm. This includes introducing the main goals and processes of the consensus algorithm. We also briefly describe concepts used by or related to the algorithm. Finally, a detailed summary of all the operations taking place in the algorithm is presented.
+
+\item In \textbf{\autoref{chapter:RW}} we introduce previous work in regards to the Cleipnir framework and other related work that are similar to this project.
+
+\item \textbf{\autoref{chapter:Design}} introduces an overview of our application. We first give a short summary of how the network is set up for the \ac{pbft} implementation. Then we go more in-depth about how we’ve structured the code for the implementation. Finally, we describe how the application is divided into separate segments based on whether or not the segment uses Cleipnir to persist its data.
+
+\item \textbf{\autoref{chapter:Imp}} gives a detailed explanation of our \ac{pbft} implementation. We start by first presenting our choices in design to accomplish our main objectives. Then the normal workflow implementation is described in detail. In addition, we discuss how the implementation handles view-changes and checkpoints. We describe for each workflow how asynchronous programming and Cleipnir reactive programming have helped or hindered simplifying the code for our implementation. Finally, we discuss some drawbacks to our design.
+
+\item \textbf{\autoref{chapter:Dis}} gives a summary of all of the benefits and disadvantages we encountered for each of the tools and designs we used in our \ac{pbft} implementation.
+%NOT WRITTEN YET! Reintroduce debate topics in implementation and discuss their points once again. Give an opinion on the matters.
+
+\item \textbf{\autoref{chapter:Con}} is the last chapter and it contains a conclusion for the given \ac{pbft} implementation based on the initial goals. Furthermore, we also summarize our results, discuss the knowledge we accumulated during the thesis, and suggest future work.
+\end{itemize}

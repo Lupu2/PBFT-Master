@@ -1,4 +1,4 @@
-using Newtonsoft.Json; //Replace Newtonsoft.JSON with System.Text.Json it is faster apperently
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,14 +8,12 @@ using Cleipnir.ObjectDB.Persistency.Serialization.Serializers;
 using Cleipnir.ObjectDB.Persistency;
 using Cleipnir.ObjectDB.Persistency.Deserialization;
 using Cleipnir.ObjectDB.Persistency.Serialization;
-using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Helper;
 using PBFT.Certificates;
 
-
 namespace PBFT.Messages
 {
-
+    //PhaseMessage object is our implementation of a PBFT pre-prepare, prepare and commit message. 
     public class PhaseMessage : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int ServID { get; set; }

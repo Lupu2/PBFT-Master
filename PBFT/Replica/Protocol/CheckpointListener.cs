@@ -14,6 +14,7 @@ using PBFT.Messages;
 
 namespace PBFT.Replica.Protocol
 {
+    //CheckpointListener is our implementation of a reactive listener that listens for checkpoint messages.
     public class CheckpointListener : IPersistable
     {
         private int StableSeqNr { get; set; }
@@ -30,6 +31,7 @@ namespace PBFT.Replica.Protocol
             CheckpointBridge = checkbridge;
         }
 
+        //Listen listens for checkpoint messages emitted to the CheckpointBridge and attempts to use these messages to create a stable checkpoint certificate.
         public async CTask Listen(CheckpointCertificate cpc, Dictionary<int, RSAParameters> keys, Action<CheckpointCertificate> finCallback)
         {
             Console.WriteLine("Checkpoint Listener: " + StableSeqNr);

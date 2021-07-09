@@ -12,6 +12,7 @@ using PBFT.Messages;
 
 namespace PBFT.Replica
 {
+    //ViewPrimary is an object that collects the relevant view information for our replica implementation.
     public class ViewPrimary : IPersistable
     {
         public int ServID { get; set; }
@@ -34,6 +35,7 @@ namespace PBFT.Replica
             NrOfNodes = numberReplicas;
         }
         
+        //NextPrimary calculates the next primary replica based on the replica current view information.
         public void NextPrimary()
         {
             Console.WriteLine("Next Primary Called");
@@ -41,12 +43,15 @@ namespace PBFT.Replica
             ServID = ViewNr % NrOfNodes;
         }
         
+        //UpdateView updates the current view information based on the given view number
         public void UpdateView(int viewnr)
         {
             ViewNr = viewnr;
             ServID = ViewNr % NrOfNodes;
         }
         
+        //MakePrepareMessages creates the pre-prepare phase messages for the redo processing functionality.
+        //This version is outdated.
         public CList<PhaseMessage> MakePrepareMessages(CDictionary<int, ProtocolCertificate> protcerts, int lowbound, int highbound)
         {
             CList<PhaseMessage> premessages = new CList<PhaseMessage>();
@@ -59,6 +64,39 @@ namespace PBFT.Replica
                         i, 
                         ViewNr, 
                         protcerts[i].CurReqDigest,
+                        PMessageType.PrePrepare
+                    );
+                else newpre = new PhaseMessage(ServID, i, ViewNr, null, PMessageType.PrePrepare);
+                premessages.Add(newpre);
+            }
+            return premessages;
+        }
+        
+        //MakePrepareMessagesver2 creates the pre-prepare phase messages for the redo processing functionality.
+        //This version is our current version.
+        public CList<PhaseMessage> MakePrepareMessagesver2(ViewChangeCertificate vcc, int lowbound, int highbound)
+        {
+            CList<PhaseMessage> premessages = new CList<PhaseMessage>();
+            for (int i = lowbound; i <= highbound; i++)
+            {
+                bool foundproof = false;
+                int proofidx = -1;
+                PhaseMessage newpre;
+                for (int j = 0; j<vcc.ProofList.Count; j++)
+                {
+                    if (vcc.ProofList[j].RemPreProofs.ContainsKey(i))
+                    {
+                        foundproof = true;
+                        proofidx = j;
+                        break;
+                    }
+                }
+                if (foundproof)
+                    newpre = new PhaseMessage(
+                        ServID, 
+                        i, 
+                        ViewNr, 
+                        vcc.ProofList[proofidx].RemPreProofs[i].CurReqDigest,
                         PMessageType.PrePrepare
                     );
                 else newpre = new PhaseMessage(ServID, i, ViewNr, null, PMessageType.PrePrepare);

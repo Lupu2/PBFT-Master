@@ -11,6 +11,7 @@ namespace PBFT.Helper
     public static class TimeoutOps
     {
         //Client
+        //TimeoutOperation simply creates a timeout operation for the given length of time in milliseconds.
         public static async Task<bool> TimeoutOperation(int length)
         {
             await Task.Delay(length);
@@ -18,6 +19,8 @@ namespace PBFT.Helper
         } 
         
         //Server
+        //ProtocolTimeoutOperation simply creates a timeout operation for the given length of time in milliseconds.
+        //Supposed to be only used together with CTask asynchronous operations.
         public static async CTask ProtocolTimeoutOperation(Source<bool> shutdown, int length, int id)
         {
             await Sleep.Until(length);
@@ -25,6 +28,8 @@ namespace PBFT.Helper
             shutdown.Emit(false);
         }
 
+        //AbortableProtocolTimeoutOperation creates an interruptible timeout operation for the given length of time in milliseconds.
+        //If the timeout occurs, then a signal is emitted to the given shutdown Source<bool> object.
         public static async Task AbortableProtocolTimeoutOperation(
             Source<bool> shutdown, 
             int length,
@@ -48,6 +53,9 @@ namespace PBFT.Helper
             }
         }
 
+        //AbortableProtocolTimeoutOperationCTask creates an interruptible timeout operation for the given length of time in milliseconds.
+        //If the timeout occurs, then a signal is emitted to the given shutdown Source<bool> object.
+        //Supposed to be only used together with CTask asynchronous operations.
         public static async CTask AbortableProtocolTimeoutOperationCTask(
             Source<bool> shutdown,
             int length,

@@ -14,6 +14,7 @@ using PBFT.Replica.Network;
 
 namespace PBFTClient
 {
+    //Client is our PBFT client implementation.
     public class Client
     {
         public int ClientID { get; }
@@ -41,6 +42,7 @@ namespace PBFTClient
             _scheduler = ExecutionEngineFactory.StartNew(new InMemoryStorageEngine());
         }
         
+        //LoadServerInfo loads and initializes the client server information based on the information collected from the given JSON file.
         public void LoadServerInfo(string filename)
         {
             var serverdata = LoadJSONValues.LoadJSONFileContent(filename).Result;
@@ -51,6 +53,7 @@ namespace PBFTClient
             }
         }
 
+        //SetFNumber sets the number of faulty servers based on the number of entries in the clients server information.
         public void SetFNumber()
         {
             int nrservers = ServerInformation.Count;
@@ -71,6 +74,7 @@ namespace PBFTClient
             }
         }
 
+        //ClientIOperation runs the client interacitve operation.
         public void ClientOperation()
         {
             while (true)
@@ -81,6 +85,7 @@ namespace PBFTClient
             }
         }
         
+        //CreateOperation creates an operation based on input from the user.
         private string CreateOperation()
         {
             string op = ""; 
@@ -99,6 +104,7 @@ namespace PBFTClient
             return op;
         }
         
+        //CreateOperations creates several operations based on input from the user.
         private List<string> CreateOperations()
         {
             List<string> operations = new List<string>();
@@ -129,6 +135,7 @@ namespace PBFTClient
             return operations;
         }
 
+        //CreateRequest creates a client request based on the given message.
         private Request CreateRequest(string mes)
         {
             Request req = new Request(ClientID, mes, DateTime.Now.ToString()); //G, or empty
@@ -136,18 +143,19 @@ namespace PBFTClient
             return req;
         }
         
+        //RunCommand performs the operations related to sending a request and listening for replies.
         private async Task RunCommand(string op)
         {
             Request req = CreateRequest(op);
             Req:
             await SendRequest(req);
             bool val = await Task.WhenAny(ValidateRequest(req), TimeoutOps.TimeoutOperation(15000)).GetAwaiter().GetResult();
-            //bool val = await ValidateRequest(req);
-            Console.WriteLine("Finished await");
+            Console.WriteLine("Finished waiting! Result: " + val);
             if (val) return;
             goto Req;
         }
 
+        //Outdated
         private async Task RunCommands(List<string> ops)
         {
             foreach (string op in ops)
@@ -157,27 +165,31 @@ namespace PBFTClient
             }
         }
 
+        //SendSessionMessage first prepares the session messages to be send out to PBFT network and then multicast the message to its socket connections.
         private async Task SendSessionMessage(Session ses)
         {
+            byte[] sesbuff = NetworkFunctionality.AddEndDelimiter(
+                Serializer.AddTypeIdentifierToBytes(
+                    ses.SerializeToBuffer(), MessageType.SessionMessage)
+            );
             foreach (var (id, servinfo) in ServerInformation)
             {
                 Console.WriteLine(id);
-                byte[] sesbuff = NetworkFunctionality.AddEndDelimiter(
-                    Serializer.AddTypeIdentifierToBytes(
-                        ses.SerializeToBuffer(), MessageType.SessionMessage)
-                    );
+                
                 await Send(servinfo.Socket, sesbuff);
             }
         }
 
+        //SendRequest first prepares the request to be send out to PBFT network, then it multicast the request to each of its socket connections.
+        //It will also attempt to reconnect to old socket connections.
         private async Task SendRequest(Request req)
         {
+            byte[] reqbuff = NetworkFunctionality.AddEndDelimiter(
+                Serializer.AddTypeIdentifierToBytes(
+                    req.SerializeToBuffer(), MessageType.Request)
+            );
             foreach (var (id, servinfo) in ServerInformation)
             {
-                byte[] reqbuff = NetworkFunctionality.AddEndDelimiter(
-                    Serializer.AddTypeIdentifierToBytes(
-                        req.SerializeToBuffer(), MessageType.Request)
-                    );
                 if (!servinfo.Active)
                 {
                     var newsock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -196,6 +208,7 @@ namespace PBFTClient
             }
         }
 
+        //Send simply sends the buffer out of the desired socket connection.
         private async Task<bool> Send(Socket sock, byte[] buff)
         {
             try
@@ -206,11 +219,12 @@ namespace PBFTClient
             catch (Exception e)
             {
                 Console.WriteLine("Failed to send message");
-                Console.WriteLine(e);
+                Console.WriteLine(e.Message);
                 return false;
             }
         }
         
+        //InitializeConnections initializes the socket connections for the client to each replica in the PBFT network.
         public async Task InitializeConnections()
         {
             foreach (var (id,info) in ServerInformation)
@@ -227,6 +241,7 @@ namespace PBFTClient
             
         }
         
+        //ListenForResponse listens for incoming messages to the client for a given socket connection.
         public async Task ListenForResponse(Socket sock, int id)
         {
             while (true)
@@ -247,7 +262,6 @@ namespace PBFTClient
                                 break;
                             case MessageType.Reply:
                                 var replymes = (Reply) mes;
-                                //ServerInformation[replymes.ServID].AddReply(replymes);
                                 Console.WriteLine("Emitting reply");
                                 await _scheduler.Schedule(() =>
                                 {
@@ -262,8 +276,8 @@ namespace PBFTClient
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine("ERROR Listen Response");
-                    Console.WriteLine(e);
+                    Console.WriteLine("Error Listen Response");
+                    Console.WriteLine("Error Message:" + e.Message);
                     ServerInformation[id].Active = false;
                     sock.Dispose();
                     return;
@@ -271,6 +285,7 @@ namespace PBFTClient
             }
         }
 
+        //ValidateRequest validates a request by waiting for the desired number replicas to send back their replies.
         public async Task<bool> ValidateRequest(Request req)
         {
             try

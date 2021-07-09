@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Serialization;
 using Cleipnir.ObjectDB.PersistentDataStructures;
 using PBFT.Certificates;
@@ -10,6 +8,7 @@ using PBFT.Tests.Helper;
 
 namespace PBFT.Helper.JsonObjects
 {
+    //JsonViewChangeCertificate is our JSON viable substitute object for our ViewChangeCertificate object.
     public class JsonViewChangeCertificate
     {
         public ViewPrimary ViewInfo { get; set; }
@@ -33,6 +32,7 @@ namespace PBFT.Helper.JsonObjects
             ProofList = prooflist;
         }
 
+        //ConvertToJsonViewChangeCertificate converts a given ViewChangeCertificate into a JsonViewChangeCertificate.
         public static JsonViewChangeCertificate ConvertToJsonViewChangeCertificate(ViewChangeCertificate vcc)
         {
             var list = new List<JsonViewChange>();
@@ -48,6 +48,7 @@ namespace PBFT.Helper.JsonObjects
             return jsonvcc;
         }
 
+        //ConvertToViewChangeCertificate creates a new ViewChangeCertificate object based on data stored for the JsonViewChangeCertificate.
         public ViewChangeCertificate ConvertToViewChangeCertificate()
         {
             var clist = new CList<ViewChange>();

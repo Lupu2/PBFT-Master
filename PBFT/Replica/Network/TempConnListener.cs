@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 
 namespace PBFT.Replica.Network
 {
+    //TempConnListener is our implementation of a network listener.
+    //Creates socket connections whenever a replica tries to connect to the replicas bound address.
     public class TempConnListener
     {
-        //https://www.youtube.com/watch?v=rrlRydqJbv0&t=244s
-        //Template for Conn Object using Source for messages
+        //Initial inspiration: https://youtu.be/rrlRydqJbv0
         private IPEndPoint endpoint;
         public Socket socket;
         private bool active;
@@ -28,7 +29,7 @@ namespace PBFT.Replica.Network
             active = true;
         }
         
-        //Listener operations
+        //Listener operation
         public async Task Listen()
         {
             socket.Bind(endpoint);

@@ -6,7 +6,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
-    
+    //Session object is a message object used to share public keys between our PBFT replica implementations. 
     public class Session : IProtocolMessages
     {
         public DeviceType Devtype { get; set; }

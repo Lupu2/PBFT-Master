@@ -13,6 +13,8 @@ using PBFT.Messages;
 
 namespace PBFT.Certificates
 {
+    //CheckpointCertificate object is our implementation of a PBFT checkpoint certificate. 
+    //It acts as a record for a checkpoint process.
     public class CheckpointCertificate : IQCertificate, IPersistable
     {
         public int LastSeqNr { get; set;}
@@ -58,6 +60,7 @@ namespace PBFT.Certificates
             if (ProofList.Count < 1) return false;
             foreach (var check in ProofList)
             {
+                Console.WriteLine(check);
                 if (check.StableSeqNr != LastSeqNr) return false;
                 if (check.StateDigest == null && StateDigest != null || check.StateDigest != null && StateDigest == null) 
                     return false;

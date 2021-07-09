@@ -5,6 +5,8 @@ using PBFT.Messages;
 
 namespace PBFT.Certificates
 {
+    //ReplyCertificate is an implementation of the PBFT reply certificates.
+    //It acts as a record for the replies a client has received for one its requests.
     public class ReplyCertificate :IQCertificate
     {
         public Request RequestOrg { get; set; }

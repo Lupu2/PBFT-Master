@@ -10,6 +10,7 @@ namespace PBFT.Helper
 {
     public static class Crypto
     {
+        //InitializeKeyPairs initializes a RSA to create and return a private, public key key pair.
         public static (RSAParameters, RSAParameters) InitializeKeyPairs()
         {
             RSA rsa = RSA.Create();
@@ -24,6 +25,7 @@ namespace PBFT.Helper
             return(prikey, pubkey);
         }
 
+        //CreateDigest creates a digest for the given Request object.
         public static byte[] CreateDigest(Request clientRequest)
         {
             using (var shaalgo = SHA256.Create()) //using: Dispose when finished with package 
@@ -33,6 +35,7 @@ namespace PBFT.Helper
             }
         }
         
+        //MakeStateDigest creates a digest of the given app state.
         public static byte[] MakeStateDigest(CList<string> appstate)
         {
             Console.WriteLine("AppState");
@@ -46,8 +49,9 @@ namespace PBFT.Helper
             }
         }
         
+        //VerifySignature verifies the signature for the given mesdigest and public key is correct.
         public static bool VerifySignature(byte[] signature, byte[] mesdig, RSAParameters pubkey, string hashpro="SHA256")
-        { //https://docs.microsoft.com/en-us/dotnet/standard/security/cryptographic-signatures
+        { //Original Source: https://docs.microsoft.com/en-us/dotnet/standard/security/cryptographic-signatures
             Console.WriteLine("Verifying Signature");
             if (signature == null) return false;
             using(RSA rsa = RSA.Create())
@@ -56,8 +60,7 @@ namespace PBFT.Helper
                 using(SHA256 sha = SHA256.Create())
                 {
                     hashmes = sha.ComputeHash(mesdig);
-                    //Console.WriteLine("Hash2");
-                    //Console.WriteLine(BitConverter.ToString(hashmes));
+
                 }
                 rsa.ImportParameters(pubkey);
                 RSAPKCS1SignatureDeformatter RSADeformatter = new RSAPKCS1SignatureDeformatter();
@@ -66,8 +69,7 @@ namespace PBFT.Helper
                 var sign = RSADeformatter.VerifySignature(hashmes, signature);
                 Console.WriteLine("Verify signature result: " + sign);
                 return sign;
-                //return RSADeformatter.VerifySignature(hashmes, signature);
-            }    
+            }
         }
     }
 }

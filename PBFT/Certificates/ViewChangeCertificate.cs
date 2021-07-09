@@ -13,6 +13,8 @@ using PBFT.Replica;
 
 namespace PBFT.Certificates
 {
+    //ViewChangeCertificate is an implementation of the PBFT view-change certificates.
+    //It acts as a record for a view-change.
     public class ViewChangeCertificate : IQActionCertificate, IPersistable
     {
         public ViewPrimary ViewInfo { get; set; }

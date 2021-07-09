@@ -6,6 +6,7 @@ using PBFT.Messages;
 
 namespace PBFT.Helper.JsonObjects
 {
+    //JsonCheckpointCertificate is our JSON viable substitute object for our CheckpointCertificate object.
     public class JsonCheckpointCertificate
     {
         public int LastSeqNr { get; set; }
@@ -22,6 +23,7 @@ namespace PBFT.Helper.JsonObjects
             ProofList = proofs;
         }
 
+        //ConvertToJsonCheckpointCertificate converts a given CheckpointCertificate into a JsonCheckpointCertificate.
         public static JsonCheckpointCertificate ConvertToJsonCheckpointCertificate(CheckpointCertificate checkcert)
         {
             var checklist = new List<Checkpoint>();
@@ -34,6 +36,7 @@ namespace PBFT.Helper.JsonObjects
             return jsoncheckcert;
         }
 
+        //ConvertToCheckpointCertificate creates a new CheckpointCertificate object based on data stored for the JsonCheckpointCertificate.
         public CheckpointCertificate ConvertToCheckpointCertificate()
         {
             var clist = new CList<Checkpoint>();

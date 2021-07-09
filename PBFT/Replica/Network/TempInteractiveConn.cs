@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 
 namespace PBFT.Replica.Network
 {
+    //TempInteractiveConn is our implementation of a network connection.
+    //A TempInteractiveConn is used to actively connect a socket connection to a given IP address.
     public class TempInteractiveConn
     {
         private string _ipAddress { get; }

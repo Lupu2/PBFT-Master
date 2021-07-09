@@ -1,0 +1,338 @@
+\documentclass[12pt, a4paper]{report}
+
+% Legger inn pakker som skal brukes:	
+\usepackage[utf8]{inputenc}
+\usepackage{color}
+\usepackage[T1]{fontenc}
+\usepackage{titlesec}
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[export]{adjustbox}
+\usepackage[hidelinks]{hyperref}
+\numberwithin{figure}{section}
+\numberwithin{table}{section}	
+\usepackage{graphicx,color,boxedminipage}
+\usepackage{subcaption}
+\usepackage{verbatim,amsmath}
+\graphicspath{{bilder/}}
+\usepackage{etoolbox}
+\usepackage{tabularx}
+\usepackage[margin=2.54cm]{geometry}
+\usepackage[british]{babel}
+\usepackage[backend=biber, style=ieee, dashed=false]{biblatex}
+\bibliography{references.bib}
+\usepackage{setspace}
+\usepackage{csquotes}
+\usepackage[titletoc]{appendix}
+%\usepackage{color}
+\usepackage{xcolor}
+\definecolor{bluekeywords}{RGB} {0,0,255}%{0.13,0.13,1}
+\definecolor{greencomments}{RGB} {0,128,0} %{0,0.5,0}
+\definecolor{redstrings}{RGB} {204,0,0} %{0.9,0,0}
+\usepackage{listings}
+\lstset{language=[Sharp]C, %https://tex.stackexchange.com/questions/18376/beautiful-listing-for-csharp
+  showspaces=false,
+  showtabs=false,
+  breaklines=true,
+  showstringspaces=false,
+  breakatwhitespace=true,
+  escapeinside={(*@}{@*)},
+  commentstyle=\color{greencomments},
+  keywordstyle=\color{bluekeywords},
+  stringstyle=\color{redstrings},
+  numbers = left,
+  %basicstyle=\ttfamily
+}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{environ}
+\usepackage{fancyhdr,fancyvrb}
+\usepackage{ragged2e,colortbl,appendix}
+\usepackage{here,multirow,pdfpages}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{lipsum,todonotes} 
+\usepackage{tikz}
+\usetikzlibrary{trees}
+\usepackage{wrapfig}
+\usepackage{hyperref}
+\usepackage[version = 2]{acro}
+%\usepackage[toc,page]{appendix}
+%\usepackage[acronym]{glossaries}
+%\usepackage[printonlyused]{acronym} 
+\usepackage{hyperref} % for autoref command
+\hypersetup
+{
+	colorlinks = true,
+	linkcolor = black,
+	urlcolor = blue,
+	citecolor = black,
+}
+\def\chapterautorefname{Chapter}
+\def\sectionautorefname{Section}
+\def\subsectionautorefname{Section}
+\def\subsubsectionautorefname{Section}
+\def\paragraphautorefname{Paragraph}
+\def\tableautorefname{Table}
+\def\equationautorefname{Equation}
+\setcounter{secnumdepth}{5} %numbering of sections
+\setcounter{tocdepth}{5}   %numbering of table of contents
+%\setlength{\parskip}{1em}
+%\titlespacing*{\paragraph}{1pt}
+%Acronym list
+%\newacronym{PBFT}{PBFT}{Practical Byzantine Fault Tolerance}
+%\makeglossaries
+%\newacronym{pbft}{PBFT}{Practical Byzantine Fault Tolerance}
+\DeclareAcronym{pbft}
+{
+	short = PBFT,
+	long = Practical Byzantine Fault Tolerance
+}
+\DeclareAcronym{apm}
+{
+	short = APM,
+	long = Asynchronous Programming Model
+}
+\DeclareAcronym{eap}
+{
+	short = EAP,
+	long = Event-based Asynchronous Pattern
+}
+\DeclareAcronym{tap}
+{
+	short = TAP,
+	long = Task-based Asynchronous Pattern
+}
+\DeclareAcronym{mac}
+{
+	short = MAC,
+	long = Message Authentication Code
+}
+\DeclareAcronym{tcp}
+{
+	short = TCP,
+	long = Transmission Control Protocol
+}
+\DeclareAcronym{json}
+{
+	short = JSON,
+	long = JavaScript Object Notation
+}
+\DeclareAcronym{fcfs}
+{
+	short = FCFS,
+	long = First Come First Serve
+}
+\DeclareAcronym{ip}
+{
+	short = IP,
+	long = Internet Protocol
+}
+\DeclareAcronym{linq}
+{
+	short = LINQ,
+	long = Language Integrated Query
+}
+\DeclareAcronym{sql}
+{
+	short = SQL,
+	long = Structured Query Language
+}
+\DeclareAcronym{api}
+{
+	short = API,
+	long = Application Programming Interface
+}
+%\definecolor{dkgreen}{rgb}{0,0.6,0}
+%\definecolor{gray}{rgb}{0.5,0.5,0.5}
+%\definecolor{mauve}{rgb}{0.58,0,0.82}
+%\lstset{frame=tb,
+%  language=Python,
+%  aboveskip=3mm,
+%  belowskip=3mm,
+%  showstringspaces=false,
+%  columns=flexible,
+%  basicstyle={\small\ttfamily},
+%  numbers=none,
+%  numberstyle=\tiny\color{gray},
+%  keywordstyle=\color{blue},
+%  commentstyle=\color{dkgreen},
+%  stringstyle=\color{mauve},
+%  breaklines=true,
+%  breakatwhitespace=true,
+%  tabsize=3
+%}
+
+\lstdefinestyle{sharpc}{language=[Sharp]C, rulecolor=\color{blue!80!black}}
+%C# listings https://tex.stackexchange.com/questions/30657/lkistings-package-for-c
+%for å sette på ramme, frame=single
+
+% Makro definisjoner
+\newcommand{\code}[1]{\texttt{#1}}
+
+%Fra rapport malen, tuller helt med centering
+% kan definere bredere tekstbredde og -høyde 
+%\textwidth125mm
+%\textheight190mm
+%\parindent0mm  % ingen innrykk ved begynnelsen av avsnitt
+
+\setlength{\marginparwidth}{3cm}
+
+%Usermanual setup found on this page: https://tex.stackexchange.com/a/130099 URL visited 10.05.2019
+%code starts here
+%\newlength\widest
+%\makeatletter
+
+%\NewEnviron{userManualItemlist}{%
+%  \vbox{%
+%    \global\setlength\widest{0pt}%
+ %   \def\item[##1]{%
+%     \settowidth\@tempdima{\textbf{##1}}%
+%      \ifdim\@tempdima>\widest\global\setlength\widest{\@tempdima}\fi%
+%    }%
+%    \setbox0=\hbox{\BODY}%
+%  }
+%  \begin{description}[
+%    leftmargin=\dimexpr\widest+0.5em\relax,
+%    labelindent=0pt,
+%    labelwidth=\widest]
+%  \BODY
+%  \end{description}%
+%}
+\makeatother
+%code ends here
+
+\begin{document}
+	\setlength{\parskip}{0.5cm}   % denne lager 5mm avstand ved avsnitt
+	
+	\pagestyle{fancyplain}
+	\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}}
+	\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+	\lhead[\fancyplain{}{\bfseries\thepage}]{\fancyplain{}{\bfseries\rightmark}}
+	\rhead{}
+	\chead{}
+	\cfoot{\bfseries\thepage}
+	\lfoot{}
+	\rfoot{}	
+	
+	%FrontPage
+	\iffalse	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=\textwidth]{figures/frontpageproto.pdf}
+		\caption{FrontPage prototype!!!, write in info and write your signature before sending in master report.}
+		\label{fig:multithread}
+	\end{figure}
+	\fi
+	
+	\hspace*{-7mm}\scalebox{0.80}{\includegraphics{figures/frontpageproto.pdf}}
+	\vspace*{-15mm}
+	\thispagestyle{empty}
+	\newpage
+
+	% romerske tall før kap.1
+	\pagenumbering{roman}	
+	
+	
+	\title{Implementing PBFT using Reactive programming and asynchronous workflows}
+	\author{Jørgen Melstveit}
+	\date{June 2021}
+	\maketitle
+	\tableofcontents
+	\newpage
+
+	%Content
+	\abstract
+	{
+%Test abstract... This is a message from Lord Nergal! I await you at the dread islands.REMEMBER TO WRITE ME WHEN EVERYTHING IS DONE
+Consensus algorithms are notorious for being both difficult to understand in even harder to implement. Several frameworks and programming paradigms have been introduced to help make consensus algorithms easier to design and implement. One of these frameworks is the .NET Cleipnir framework which primarily focuses on making it simpler to develop a persistent consensus algorithm. In addition, Cleipnir supports functionality that makes both asynchronous and reactive programming paradigms easier for a developer to utilize in their implementation. We want to determine that the Cleipnir framework and the related programming paradigms can help design a simple and understandable consensus algorithm. To accomplish this task, we create a \acl{pbft} implementation that has its protocol workflow run as orderly and synchronous as possible using the Cleipnir framework and the aforementioned protocol paradigms.
+Furthermore, we evaluate each of the previously mentioned tools to ascertain how they benefit and hinder our implementation. We discover that the benefits heavily outrank the disadvantages for both programming paradigms and works well together. We conclude that the Cleipnir framework does provide helpful tools for the implementation of consensus algorithms.  We further learn that the algorithm’s complexity can heavily affect the level of simplicity that can be provided to the algorithm workflow without the loss of functionality. 
+	}
+	%\abstract{}
+	\newpage
+	\section*{Acknowledgement}
+I want to thank my supervisor Professor Leander Nikolaus Jehl, for providing consistent feedback and guidance throughout our thesis. I would also like to express my gratitude forwards Thomas Stidsborg Sylvest, who helped us learn the basics of the Cleipnir framework by sharing his expertise and answering any additional questions we had during our thesis.	
+	%I acknowledge that I have gotten massive amount of support as I would not possibly be able to this by my lonely self! 	
+	%NB, can't copy titles in verbatim, change name that fit you thesis better
+	
+	
+	\newpage		
+	%\section*{Glossary}
+	%\input{sections/glossary}
+	%\glsaddall
+	%\printglossary[type=\acronymtype,title=Acronyms]
+	
+	%\printglossaries
+	%\newpage
+	\printacronyms
+	
+	\setlength{\parindent}{0em} 
+	\pagenumbering{arabic}
+	\input{sections/introduction}
+	
+	\input{sections/background}
+	
+	\input{sections/Cleipnir}
+	
+	\input{sections/PBFT}	
+	
+	\input{sections/relatedWorks}	
+	
+	\input{sections/design}	
+	
+	\input{sections/implementation}	
+	
+	\input{sections/discussion}	
+	
+	\input{sections/conclusion}
+	
+	%Old bachelor references
+	% Front page
+	%\include{sections/frontpage/frontpage}
+
+	%\begin{spacing}{1.25}
+		% Table of contents
+		%\include{sections/tableOfContents/tableOfContents}
+	
+		% Introduction
+		%\include{sections/introduction/introduction}
+		
+		% Background
+		%\include{sections/background/backgroundMain}
+
+		% Construction
+		%\include{sections/construction/constructionMain}
+		
+		% Evaluation
+		%\include{sections/evaluation/evaluation}
+		
+		% Conclusion
+		%\include{sections/conclusion/conclusion}
+	
+		% References
+		%\include{sections/references/references}
+
+		% List of figures
+		%\include{sections/listOfFigures/listOfFigures}
+	
+		% Appendix
+		%\include{sections/appendix/appendixMain}
+	%\end{spacing}
+
+\listoffigures
+\lstlistoflistings
+
+\newpage
+\begin{appendices}
+	\chapter{\ac{pbft} Implementation Source Code}
+	\begin{itemize}
+		\item[-] The \ac{pbft} implementation can be found on this \href{https://github.com/Lupu2/PBFT-Master}{Github repository}.
+		\item[-] The source code used for the replica implementation is found in this \href{https://github.com/Lupu2/PBFT-Master/tree/main/PBFT}{sub directory}.
+		\item[-] The source code used for our client implementation is found in this \href{https://github.com/Lupu2/PBFT-Master/tree/main/PBFTClient}{sub directory}. The unit tests can unfortunately not be all run concurrently, due to some issue with the network tests. We therefore recommend running each folder separately, and re-run the test that fail uniquely once they fail. 
+		\item[-] The Github repository provides a detailed explanation in regards to how to run the \ac{pbft} implementation both locally and with docker containers. 
+	\end{itemize} 
+\end{appendices}
+\printbibliography[heading=bibintoc]
+%\printglossary[type=\acronymtype]
+%\printglossary
+%\printglossaries
+\end{document}

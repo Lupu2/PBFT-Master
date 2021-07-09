@@ -1,5 +1,6 @@
 namespace PBFT.Helper.JsonObjects
 {    
+    //Template object used to easily load our server information from our JSON files.
     public class JSONInfoServer
     {
         public int ID { get; set; }

@@ -18,7 +18,7 @@ using PBFT.Certificates;
 
 namespace PBFT.Replica.Protocol
 {
-    public class ProtocolExecution : IPersistable
+    public class Workflow : IPersistable
     {
         public Server Serv { get; set;}
         public int FailureNr { get; set;}
@@ -29,8 +29,8 @@ namespace PBFT.Replica.Protocol
         public Source<PhaseMessage> ShutdownBridgePhase;
         private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
-
-        public ProtocolExecution(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
+        
+        public Workflow(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
         {
             Serv = server;
             FailureNr = fnodes;
@@ -43,15 +43,32 @@ namespace PBFT.Replica.Protocol
             ShutdownBridgePhase = shutdownphase;
         }
 
+        //ListenForViewChange listens for a items sent to the ViewChangeBridge.
+        public async CTask<bool> ListenForViewChange()
+        {
+            var test = await ViewChangeBridge.Next();
+            Console.WriteLine("Received View-Change");
+            return test;
+        }
+
+        //ListenForShutdown listens for a signals sent to the shutemit Source<bool> object.
+        public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
+        {
+            var test = await shutemit.Next();
+            Console.WriteLine("View Change Received Shutdown");
+            return test;
+        }
+        
+        //HandleRequest performs the workflow for processing a request using the PBFT algorithm.
+        //When this an instance of this function finishes the pbft network will have reached consent and perform the request operation. 
         public async CTask<Reply> HandleRequest(Request clireq, int leaderseq, CancellationTokenSource cancel)
         {
             Console.WriteLine("HandleRequest");
             Console.WriteLine("Initial sequence number: " + leaderseq);
             try
             {
-                byte[] digest;
                 ProtocolCertificate qcertpre;
-                digest = Crypto.CreateDigest(clireq);
+                byte[] digest = Crypto.CreateDigest(clireq);
                 int curSeq;
 
                 if (Serv.IsPrimary()) //Primary
@@ -104,7 +121,7 @@ namespace PBFT.Replica.Protocol
                         PMessageType.Prepare
                     );
                     Serv.SignMessage(prepare, MessageType.PhaseMessage);
-                    qcertpre.ProofList.Add(prepare); //add its own, really should be validated, but not sure how.
+                    qcertpre.ProofList.Add(prepare);
                     Serv.Multicast(prepare.SerializeToBuffer(), MessageType.PhaseMessage);
                 }
 
@@ -139,7 +156,8 @@ namespace PBFT.Replica.Protocol
                     .Next();
                 ProtocolCertificate qcertcom = new ProtocolCertificate(
                     qcertpre.SeqNr, 
-                    Serv.CurView, digest, 
+                    Serv.CurView, 
+                    digest, 
                     CertType.Committed
                 );   
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
@@ -164,17 +182,20 @@ namespace PBFT.Replica.Protocol
                 Console.WriteLine("Waiting for prepares");
                 if (Active) await prepared;
                 else throw new ConstraintException("System is no longer active!");
+                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 
                 //Commit phase
-                Serv.AddProtocolCertificate(qcertpre.SeqNr, qcertpre); //add first certificate to Log
                 PhaseMessage commitmes = new PhaseMessage(Serv.ServID, curSeq, Serv.CurView, digest, PMessageType.Commit);
                 Serv.SignMessage(commitmes, MessageType.PhaseMessage);
                 Serv.Multicast(commitmes.SerializeToBuffer(), MessageType.PhaseMessage);
                 Serv.EmitPhaseMessageLocally(commitmes);
+                //CancellationTokenSource cancel2 = new CancellationTokenSource();
+                //Serv.StartTimer(10000, cancel2.Token);
+                
                 Console.WriteLine("Waiting for commits");
                 if (Active) await committed;
                 else throw new ConstraintException("System is no longer active!");
-                
+                //cancel2.Cancel();
                 Serv.AddProtocolCertificate(qcertcom.SeqNr, qcertcom); //add second certificate to Log
                 Console.WriteLine($"Completing operation: {clireq.Message}");
                 
@@ -212,7 +233,8 @@ namespace PBFT.Replica.Protocol
             }
         }
 
-        //Function that performs all the operations in HandleRequest but without sending anything. Used for testing the operations performed in the function.
+        //Function that performs all the operations in HandleRequest but without sending anything.
+        //Used for testing the operations performed in the function.
         public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq, CancellationTokenSource cancel)
         {
             Console.WriteLine("HandleRequest");
@@ -311,7 +333,7 @@ namespace PBFT.Replica.Protocol
                     qcertpre.SeqNr, 
                     Serv.CurView, digest, 
                     CertType.Committed
-                );   
+                );
                 var committed = MesBridge  //await incoming PhaseMessages Where = MessageType.Commit Until Consensus Reached
                     .Where(pm => pm.PhaseType == PMessageType.Commit)
                     .Where(pm => pm.SeqNr == qcertcom.SeqNr)
@@ -382,6 +404,8 @@ namespace PBFT.Replica.Protocol
             }
         }
         
+        //HandlePrimaryChange is our original implementation for starting and handling the view-change process
+        //Is currently outdated and its version 2 is instead used
         public async CTask HandlePrimaryChange()
         {
             Console.WriteLine("HandlePrimaryChange");
@@ -441,6 +465,8 @@ namespace PBFT.Replica.Protocol
             cancel2.Cancel();
         }
         
+        //HandlePrimaryChange2 is our implementation for starting and handling the processes occuring in a view-change process
+        //When this function finishes a view-change was successfully performed for the PBFT network.
         public async CTask HandlePrimaryChange2()
         {
             Console.WriteLine("HandlePrimaryChange");
@@ -505,21 +531,9 @@ namespace PBFT.Replica.Protocol
             if (!val) goto ViewChange;
             cancel2.Cancel();
         }
-
-        public async CTask<bool> ListenForViewChange()
-        {
-            var test = await ViewChangeBridge.Next();
-            Console.WriteLine("Received View-Change");
-            return test;
-        }
-
-        public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
-        {
-            var test = await shutemit.Next();
-            Console.WriteLine("View Change Received Shutdown");
-            return test;
-        }
-
+        
+        //ViewChangeProtocol performs the New View functionality and starts the redo protocol certificate functionality.
+        //Is part of the view-change process.
         public async CTask<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
         {
             Console.WriteLine("ViewChangeProtocol");
@@ -532,7 +546,8 @@ namespace PBFT.Replica.Protocol
                 if (Serv.StableCheckpointsCertificate == null) low = Serv.CurSeqRange.Start.Value;
                 else low = Serv.StableCheckpointsCertificate.LastSeqNr + 1;
                 int high = Serv.CurSeqNr;
-                var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
+                //var prepares = Serv.CurPrimary.MakePrepareMessages(preps, low, high);
+                var prepares = Serv.CurPrimary.MakePrepareMessagesver2(vcc, low, high);
                 for (var idx=0; idx<prepares.Count; idx++)
                     Serv.SignMessage(prepares[idx], MessageType.PhaseMessage);
                 Console.WriteLine("Creating NewView");
@@ -545,8 +560,6 @@ namespace PBFT.Replica.Protocol
                 Serv.Multicast(nvmes.SerializeToBuffer(), MessageType.NewView);
                 Console.WriteLine("Calling RedoMessage");
                 await RedoMessage(prepares);
-                Console.WriteLine("RedoMessage finished");
-                return true;
             }
             else
             {
@@ -574,18 +587,20 @@ namespace PBFT.Replica.Protocol
                 Console.WriteLine("Calling RedoMessage");
                 if (check) await RedoMessage(newviewmes.PrePrepMessages);
                 else return false;
-                Console.WriteLine("RedoMessage finished");
-                return true;
             }
+            Console.WriteLine("RedoMessage finished");
+            return true;
         }
 
+        //RedoMessage reprocesses each of the given pre-prepare phase messages.
+        //RedoMessage is the last operation performed for the view-change process.
         public async CTask RedoMessage(CList<PhaseMessage> oldpreList)
         {
             Console.WriteLine("RedoMessage");
             //Step 5.
             foreach (var prepre in oldpreList)
             {
-                var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre); //need a way to know request digest and request message
+                var precert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Prepared, prepre);
                 var comcert = new ProtocolCertificate(prepre.SeqNr, prepre.ViewNr, prepre.Digest, CertType.Committed);
                 Console.WriteLine("Initialize Log");
                 Serv.InitializeLog(prepre.SeqNr);
@@ -612,7 +627,7 @@ namespace PBFT.Replica.Protocol
                     })
                     .Where(_ => comcert.ValidateCertificate(FailureNr))
                     .Next();
-                    
+                await Sleep.Until(500);
                 if (!Serv.IsPrimary())
                 {
                     var prepare = new PhaseMessage(Serv.ServID, prepre.SeqNr, prepre.ViewNr, prepre.Digest, PMessageType.Prepare);
@@ -649,8 +664,8 @@ namespace PBFT.Replica.Protocol
             stateToSerialize.Set(nameof(ShutdownBridgePhase), ShutdownBridgePhase);
         }
 
-        public static ProtocolExecution Deserialize(IReadOnlyDictionary<string, object> sd)
-            => new ProtocolExecution(
+        public static Workflow Deserialize(IReadOnlyDictionary<string, object> sd)
+            => new Workflow(
                 sd.Get<Server>(nameof(Serv)),
                 sd.Get<int>(nameof(FailureNr)),
                 sd.Get<Source<PhaseMessage>>(nameof(MesBridge)),

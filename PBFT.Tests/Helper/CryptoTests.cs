@@ -49,7 +49,6 @@ namespace PBFT.Tests.Helper
             byte[] dig1 = Crypto.CreateDigest(req1);
             byte[] dig2 = Crypto.CreateDigest(req2);
             Assert.AreNotEqual(BitConverter.ToString(dig1),BitConverter.ToString(dig2));
-            //Assert.IsTrue(dig1.Equals(testhash));
             Assert.AreEqual(BitConverter.ToString(dig1),BitConverter.ToString(testhash));
         }
         

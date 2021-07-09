@@ -62,7 +62,6 @@ namespace PBFT.Tests.Replica.Protocol
                 viewbridge.Emit(view2);
             });
             Thread.Sleep(3000);
-            Console.WriteLine("Checking Asserts");
             Assert.AreEqual(viewcert.ProofList.Count, 3);
             Assert.IsTrue(viewcert.IsValid());
             Assert.IsTrue(_viewlisten);
@@ -121,7 +120,6 @@ namespace PBFT.Tests.Replica.Protocol
             Assert.IsTrue(_viewlisten);
             _viewlisten = false;
             
-            Console.WriteLine("Starting test2");
             ViewPrimary vp2 = new ViewPrimary(2, 2, 4);
             var viewcert2 = new ViewChangeCertificate(vp2, checkcert, null, null);
             
@@ -198,11 +196,9 @@ namespace PBFT.Tests.Replica.Protocol
                 Thread.Sleep(500);
             });
             Thread.Sleep(3000);
-            Console.WriteLine("Checking shutdown assert");
             Assert.IsTrue(_shutdownlisten);
             _scheduler.Schedule(() => viewbridge.Emit(view2));
             Thread.Sleep(1000);
-            Console.WriteLine("Checking viewchange assert");
             Assert.IsTrue(viewcert.IsValid());
             Assert.IsTrue(_viewlisten);
             _viewlisten = false;
