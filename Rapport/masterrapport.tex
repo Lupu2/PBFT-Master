@@ -142,25 +142,6 @@
 	short = API,
 	long = Application Programming Interface
 }
-%\definecolor{dkgreen}{rgb}{0,0.6,0}
-%\definecolor{gray}{rgb}{0.5,0.5,0.5}
-%\definecolor{mauve}{rgb}{0.58,0,0.82}
-%\lstset{frame=tb,
-%  language=Python,
-%  aboveskip=3mm,
-%  belowskip=3mm,
-%  showstringspaces=false,
-%  columns=flexible,
-%  basicstyle={\small\ttfamily},
-%  numbers=none,
-%  numberstyle=\tiny\color{gray},
-%  keywordstyle=\color{blue},
-%  commentstyle=\color{dkgreen},
-%  stringstyle=\color{mauve},
-%  breaklines=true,
-%  breakatwhitespace=true,
-%  tabsize=3
-%}
 
 \lstdefinestyle{sharpc}{language=[Sharp]C, rulecolor=\color{blue!80!black}}
 %C# listings https://tex.stackexchange.com/questions/30657/lkistings-package-for-c
@@ -243,7 +224,6 @@
 	%Content
 	\abstract
 	{
-%Test abstract... This is a message from Lord Nergal! I await you at the dread islands.REMEMBER TO WRITE ME WHEN EVERYTHING IS DONE
 Consensus algorithms are notorious for being both difficult to understand in even harder to implement. Several frameworks and programming paradigms have been introduced to help make consensus algorithms easier to design and implement. One of these frameworks is the .NET Cleipnir framework which primarily focuses on making it simpler to develop a persistent consensus algorithm. In addition, Cleipnir supports functionality that makes both asynchronous and reactive programming paradigms easier for a developer to utilize in their implementation. We want to determine that the Cleipnir framework and the related programming paradigms can help design a simple and understandable consensus algorithm. To accomplish this task, we create a \acl{pbft} implementation that has its protocol workflow run as orderly and synchronous as possible using the Cleipnir framework and the aforementioned protocol paradigms.
 Furthermore, we evaluate each of the previously mentioned tools to ascertain how they benefit and hinder our implementation. We discover that the benefits heavily outrank the disadvantages for both programming paradigms and works well together. We conclude that the Cleipnir framework does provide helpful tools for the implementation of consensus algorithms.  We further learn that the algorithm’s complexity can heavily affect the level of simplicity that can be provided to the algorithm workflow without the loss of functionality. 
 	}
@@ -251,9 +231,6 @@ Furthermore, we evaluate each of the previously mentioned tools to ascertain how
 	\newpage
 	\section*{Acknowledgement}
 I want to thank my supervisor Professor Leander Nikolaus Jehl, for providing consistent feedback and guidance throughout our thesis. I would also like to express my gratitude forwards Thomas Stidsborg Sylvest, who helped us learn the basics of the Cleipnir framework by sharing his expertise and answering any additional questions we had during our thesis.	
-	%I acknowledge that I have gotten massive amount of support as I would not possibly be able to this by my lonely self! 	
-	%NB, can't copy titles in verbatim, change name that fit you thesis better
-	
 	
 	\newpage		
 	%\section*{Glossary}
@@ -285,39 +262,6 @@ I want to thank my supervisor Professor Leander Nikolaus Jehl, for providing con
 	
 	\input{sections/conclusion}
 	
-	%Old bachelor references
-	% Front page
-	%\include{sections/frontpage/frontpage}
-
-	%\begin{spacing}{1.25}
-		% Table of contents
-		%\include{sections/tableOfContents/tableOfContents}
-	
-		% Introduction
-		%\include{sections/introduction/introduction}
-		
-		% Background
-		%\include{sections/background/backgroundMain}
-
-		% Construction
-		%\include{sections/construction/constructionMain}
-		
-		% Evaluation
-		%\include{sections/evaluation/evaluation}
-		
-		% Conclusion
-		%\include{sections/conclusion/conclusion}
-	
-		% References
-		%\include{sections/references/references}
-
-		% List of figures
-		%\include{sections/listOfFigures/listOfFigures}
-	
-		% Appendix
-		%\include{sections/appendix/appendixMain}
-	%\end{spacing}
-
 \listoffigures
 \lstlistoflistings
 
@@ -332,7 +276,4 @@ I want to thank my supervisor Professor Leander Nikolaus Jehl, for providing con
 	\end{itemize} 
 \end{appendices}
 \printbibliography[heading=bibintoc]
-%\printglossary[type=\acronymtype]
-%\printglossary
-%\printglossaries
 \end{document}
