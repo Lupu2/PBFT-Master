@@ -9,8 +9,12 @@ using PBFT.Replica.Protocol;
 
 namespace PBFT.Replica
 {
+    //MessageHandler has all the code related to handling the incoming message from the PBFT network.
+    //Which message handler used depends on the message type.
     public static class MessageHandler
     {
+        //HandleSessionMessage handles any incoming session messages.
+        //The server's client/server connection and public key registries are updated based on the information given by the session message. 
         public static void HandleSessionMessage(Session sesmes, TempInteractiveConn conn, Server serv)
         {
             int id = sesmes.DevID;
@@ -54,6 +58,8 @@ namespace PBFT.Replica
             }
         }
 
+        //HandlePhaseMessage handles any incoming phase messages.
+        //The phase message is either emitted to the normal protocol workflow, or the redo protocol workflow.
         public static void HandlePhaseMessage(
             PhaseMessage pesmes, 
             int curView, 
@@ -75,6 +81,7 @@ namespace PBFT.Replica
             }
         }
 
+        //HandleViewMessage is our previous version for handling any incoming view-change messages.
         public static void HandleViewChange(ViewChange vc, Server serv, Engine scheduler)
         {
             Console.WriteLine("Handling view-change message");
@@ -127,6 +134,9 @@ namespace PBFT.Replica
             
         }
         
+        //HandleViewMessage is our current version for handling any incoming view-change messages.
+        //If the view-change message uses a view nr not currently worked on by the application it creates a view-change certificate and starts view-change listener.
+        //if the view-change message uses a view nr we already begun working on, it simply emits the view-change message accordingly.
         public static void HandleViewChange2(ViewChange vc, Server serv, Engine scheduler)
         {
             Console.WriteLine("Handling view-change message");
@@ -172,6 +182,7 @@ namespace PBFT.Replica
                 Console.WriteLine("Things did not go as planned :(");
         }
 
+        //HandleCheckpoint is our previous version for handling any incoming checkpoint messages.
         public static void HandleCheckpoint(Checkpoint check, Server serv)
         {
             Console.WriteLine("Handling checkpoint message");
@@ -212,6 +223,9 @@ namespace PBFT.Replica
             }
         }
         
+        //HandleViewMessage is our current version for handling any incoming view-change messages.
+        //If the checkpoint message is for a seq nr not currently worked on by the application it creates a checkpoint certificate and starts checkpoint listener.
+        //if the checkpoint message is for a seq nr we already begun working on, it simply emits the checkpoint message accordingly.
         public static void HandleCheckpoint2(Checkpoint check, Server serv)
         {
             Console.WriteLine("Handling checkpoint message");

@@ -49,7 +49,7 @@ namespace PBFT.Messages
                 ViewProof.EmitShutdown = null;
                 ViewProof.EmitViewChange = null;
             }
-            var jsonnv = JsonNewView.ConvertToJsonNewViewCertificate(this);
+            var jsonnv = JsonNewView.ConvertToJsonNewView(this);
             string jsonval = JsonConvert.SerializeObject(jsonnv);
             if (tempshut != null) ViewProof.EmitShutdown = tempshut;
             if (tempview != null) ViewProof.EmitViewChange = tempview;

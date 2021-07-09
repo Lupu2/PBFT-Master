@@ -10,6 +10,7 @@ using PBFT.Messages;
 
 namespace PBFT.Replica
 {
+    //SourceHandler is simply an object used by the server to gather and keep track of each of the Source objects it uses.
     public class SourceHandler : IPersistable
     {
         public Source<Request> RequestSubject { get; set; }

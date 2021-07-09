@@ -12,6 +12,9 @@ namespace PBFT.Replica.Network
 {
     public static class NetworkFunctionality
     {
+        //Receive is the function used to listen for incoming messages from a socket connection.
+        //Receive is also responsible for deserialize the message properly based on its byte information.
+        //Returns the message type and content.
         public static async Task<(List<int> mestype, List<IProtocolMessages> mes)> Receive(Socket conn)
         {
             try
@@ -50,11 +53,9 @@ namespace PBFT.Replica.Network
                 }
                 else
                 {
-                    //Console.WriteLine(BitConverter.ToString(bytemes));
                     var bytemesnodel = bytemes
                         .Take(bytemes.Length - 1)
                         .ToArray();
-                    //Console.WriteLine(Encoding.ASCII.GetString(bytemesnodel));
                     var (mestype, mes) = Deserializer.ChooseDeserialize(bytemesnodel);
                     types.Add(mestype);
                     incommingMessages.Add(mes);
@@ -77,6 +78,7 @@ namespace PBFT.Replica.Network
             return resobj;
         }
         
+        //Send sends out the given buffer to a given socket connection.
         public static void Send(Socket sock, byte[] buffer)
         {
             try
@@ -90,6 +92,8 @@ namespace PBFT.Replica.Network
             }
         }
         
+        //Connect attempts to connect the socket connection to the given IP address.
+        //Whether or not the connect succeed or not is return as result.
         public static async Task<bool> Connect(Socket sock, IPEndPoint endpoint)
         {
             try

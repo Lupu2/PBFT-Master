@@ -12,6 +12,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
+    //Reply object is our implementation of a PBFT reply. 
     public class Reply : IProtocolMessages, ISignedMessage, IPersistable
     {  
         public int ServID { get; set; }

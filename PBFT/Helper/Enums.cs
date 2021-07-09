@@ -39,25 +39,32 @@ namespace PBFT.Helper
     //Transformations
     public static class Enums
     {
-        
+        //ToEnumCertType converts the given number into the appropriate CertType enum based on its value.
+        //Returns an ArgumentOutOfRangeException if the value is within the CertType enums range.
         public static CertType ToEnumCertType(int number)
         {
             if (!Enum.IsDefined(typeof(CertType), number)) throw new ArgumentOutOfRangeException();
             return (CertType) number;
         }
         
+        //ToEnumDeviceType converts the given number into the appropriate DeviceType enum based on its value.
+        //Returns an ArgumentOutOfRangeException if the value is within the DeviceType enums range.
         public static DeviceType ToEnumDeviceType(int number)
         {
             if (!Enum.IsDefined(typeof(DeviceType), number)) throw new ArgumentOutOfRangeException();
             return (DeviceType) number;
         }
         
+        //ToEnumPMessageType converts the given number into the appropriate PMessageType enum based on its value.
+        //Returns an ArgumentOutOfRangeException if the value is within the PMessageType enums range.
         public static PMessageType ToEnumPMessageType(int number)
         {
             if (!Enum.IsDefined(typeof(PMessageType), number)) throw new ArgumentOutOfRangeException();
             return (PMessageType) number;
         }
         
+        //ToEnumMessageType converts the given number into the appropriate MessageType enum based on its value.
+        //Returns an ArgumentOutOfRangeException if the value is within the MessageType enums range.
         public static MessageType ToEnumMessageType(int number)
         {
             if (!Enum.IsDefined(typeof(MessageType), number)) throw new ArgumentOutOfRangeException();

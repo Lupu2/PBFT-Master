@@ -29,7 +29,7 @@ namespace PBFT.Replica.Protocol
         public Source<PhaseMessage> ShutdownBridgePhase;
         private Source<bool> ShutdownBridge;
         private Source<NewView> NewViewBridge;
-
+        
         public Workflow(Server server, int fnodes, Source<PhaseMessage> mesbridge, Source<PhaseMessage> remesbridge, Source<PhaseMessage> shutdownphase, Source<bool> viewchangebridge, Source<NewView> newviewbridge, Source<bool> shutbridge) 
         {
             Serv = server;
@@ -43,6 +43,7 @@ namespace PBFT.Replica.Protocol
             ShutdownBridgePhase = shutdownphase;
         }
 
+        //ListenForViewChange listens for a items sent to the ViewChangeBridge.
         public async CTask<bool> ListenForViewChange()
         {
             var test = await ViewChangeBridge.Next();
@@ -50,6 +51,7 @@ namespace PBFT.Replica.Protocol
             return test;
         }
 
+        //ListenForShutdown listens for a signals sent to the shutemit Source<bool> object.
         public async CTask<bool> ListenForShutdown(Source<bool> shutemit)
         {
             var test = await shutemit.Next();
@@ -58,7 +60,7 @@ namespace PBFT.Replica.Protocol
         }
         
         //HandleRequest performs the workflow for processing a request using the PBFT algorithm.
-        //When this an instance of this function finishes the pbft network will have reached consent and performed the request operation. 
+        //When this an instance of this function finishes the pbft network will have reached consent and perform the request operation. 
         public async CTask<Reply> HandleRequest(Request clireq, int leaderseq, CancellationTokenSource cancel)
         {
             Console.WriteLine("HandleRequest");
@@ -231,7 +233,8 @@ namespace PBFT.Replica.Protocol
             }
         }
 
-        //Function that performs all the operations in HandleRequest but without sending anything. Used for testing the operations performed in the function.
+        //Function that performs all the operations in HandleRequest but without sending anything.
+        //Used for testing the operations performed in the function.
         public async CTask<Reply> HandleRequestTest(Request clireq, int leaderseq, CancellationTokenSource cancel)
         {
             Console.WriteLine("HandleRequest");
@@ -401,6 +404,8 @@ namespace PBFT.Replica.Protocol
             }
         }
         
+        //HandlePrimaryChange is our original implementation for starting and handling the view-change process
+        //Is currently outdated and its version 2 is instead used
         public async CTask HandlePrimaryChange()
         {
             Console.WriteLine("HandlePrimaryChange");
@@ -460,6 +465,8 @@ namespace PBFT.Replica.Protocol
             cancel2.Cancel();
         }
         
+        //HandlePrimaryChange2 is our implementation for starting and handling the processes occuring in a view-change process
+        //When this function finishes a view-change was successfully performed for the PBFT network.
         public async CTask HandlePrimaryChange2()
         {
             Console.WriteLine("HandlePrimaryChange");
@@ -525,6 +532,8 @@ namespace PBFT.Replica.Protocol
             cancel2.Cancel();
         }
         
+        //ViewChangeProtocol performs the New View functionality and starts the redo protocol certificate functionality.
+        //Is part of the view-change process.
         public async CTask<bool> ViewChangeProtocol(CDictionary<int, ProtocolCertificate> preps, ViewChangeCertificate vcc)
         {
             Console.WriteLine("ViewChangeProtocol");
@@ -583,6 +592,8 @@ namespace PBFT.Replica.Protocol
             return true;
         }
 
+        //RedoMessage reprocesses each of the given pre-prepare phase messages.
+        //RedoMessage is the last operation performed for the view-change process.
         public async CTask RedoMessage(CList<PhaseMessage> oldpreList)
         {
             Console.WriteLine("RedoMessage");

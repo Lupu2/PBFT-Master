@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 
 namespace PBFTClient
 {
+    //ServerInfo is an object that the client uses to store information about a replica.
     public class ServerInfo
     {
         public int ServID {get;}

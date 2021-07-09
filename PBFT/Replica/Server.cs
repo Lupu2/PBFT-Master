@@ -23,6 +23,7 @@ using PBFT.Replica.Protocol;
 
 namespace PBFT.Replica
 {
+    //Server is our PBFT replica implementation.
     public class Server : IPersistable
     {
         //Persistent
@@ -54,6 +55,7 @@ namespace PBFT.Replica
         public Dictionary<int, RSAParameters> ClientPubKeyRegister;
         private bool rebooted;
 
+        //Constructors
         public Server(int id, int curview, int totalreplicas, Engine sche, int checkpointinter, string ipaddress,
             SourceHandler sh, CDictionary<int, string> contactList) //Initial constructor
         {
@@ -77,7 +79,6 @@ namespace PBFT.Replica
             _scheduler = sche;
             _servListener = new TempConnListener(ipaddress, HandleNewClientConnection);
             (_prikey, Pubkey) = Crypto.InitializeKeyPairs();
-            //Console.WriteLine(BitConverter.ToString(Pubkey.Modulus));
             ClientConnInfo = new Dictionary<int, TempInteractiveConn>();
             ServConnInfo = new Dictionary<int, TempInteractiveConn>();
             ClientPubKeyRegister = new Dictionary<int, RSAParameters>();
@@ -186,6 +187,8 @@ namespace PBFT.Replica
             _scheduler = sche;
         }
 
+        //IsPrimary determines whether or not the replica is the primary replica.
+        //Will also update the view information if the current view number is out of date.
         public bool IsPrimary()
         {
             Start:
@@ -199,6 +202,7 @@ namespace PBFT.Replica
             goto Start;
         }
 
+        //SignMessage signs a given message object based on its message type.
         public void SignMessage(IProtocolMessages mes, MessageType type)
         {
             switch (type)
@@ -233,6 +237,7 @@ namespace PBFT.Replica
             }
         }
 
+        //Start starts the Server.
         public void Start()
         {
             Console.WriteLine("Server starting");
@@ -240,6 +245,7 @@ namespace PBFT.Replica
             _ = ListenForStableCheckpoint();
         }
 
+        //Dispose disposes of all socket connections and resets the connection registries.
         public void Dispose()
         {
             _servListener.Dispose();
@@ -256,8 +262,10 @@ namespace PBFT.Replica
             }
         }
 
+        //AddEngine adds a Cleipnir execution engine to the Server object.
         public void AddEngine(Engine sche) => _scheduler = sche;
 
+        //HandleNewClientConnection starts the process for handling established socket connections.
         public void HandleNewClientConnection(TempInteractiveConn conn)
         {
             if (_scheduler == null)
@@ -271,7 +279,7 @@ namespace PBFT.Replica
             _ = HandleIncommingMessages(conn);
         }
 
-        //Handle incoming messages
+        //Handle incoming messages for a given socket connection.
         public async Task HandleIncommingMessages(TempInteractiveConn conn)
         {
             Console.WriteLine("New connection initialized!");
@@ -422,12 +430,13 @@ namespace PBFT.Replica
                 catch (Exception e)
                 {
                     Console.WriteLine("Error In Handle Incomming Messages");
-                    Console.WriteLine(e.Message);
+                    Console.WriteLine("Error Message:" + e.Message);
                     return;
                 }
             }
         }
 
+        //Multicast first prepares a message to be send out to PBFT network and then multicasts it to each replica in its registry.
         public void Multicast(byte[] sermessage, MessageType type)
         {
             Console.WriteLine("Multicasting: " + type);
@@ -440,6 +449,7 @@ namespace PBFT.Replica
             }
         }
 
+        //SendMessage first prepares a message to be send out to PBFT network and then sends the message to desired connection.
         public void SendMessage(byte[] sermessage, Socket sock, MessageType type)
         {
             Console.WriteLine($"Sending: {type} message");
@@ -448,6 +458,9 @@ namespace PBFT.Replica
             NetworkFunctionality.Send(sock, fullbuffmes);
         }
         
+        //Emit Functions
+        
+        //EmitPhaseMessageLocally schedules an emit of a local phase message object to the normal protocol workflow.
         public void EmitPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Phase Locally!");
@@ -460,6 +473,7 @@ namespace PBFT.Replica
             }
         }
 
+        //EmitRedistPhaseMessageLocally schedules an emit of a local phase message object to the reprocess protocol workflow.
         public void EmitRedistPhaseMessageLocally(PhaseMessage mes)
         {
             Console.WriteLine("Emitting Redist Phase Locally");
@@ -472,6 +486,7 @@ namespace PBFT.Replica
             }
         }
 
+        //EmitViewChangeLocally schedules an emit of a local view-change message object to the view-change listeners.
         public void EmitViewChangeLocally(ViewChange viewmes)
         {
             Console.WriteLine("Emitting View Change Locally");
@@ -481,6 +496,7 @@ namespace PBFT.Replica
             });
         }
         
+        //EmitShutdown schedules an emit to the shutdown Source object which terminates any active protocol workflows.
         public void EmitShutdown()
         {
             Console.WriteLine("Received shutdown, emitting");
@@ -493,6 +509,7 @@ namespace PBFT.Replica
             }
         }
         
+        //EmitViewChange schedules an emit to the ViewChangeFin Source object to inform the view-change process that a valid view-change certificate is created.
         public void EmitViewChange()
         {
             Console.WriteLine("Received viewchange, emitting to start new view");
@@ -502,6 +519,7 @@ namespace PBFT.Replica
             });
         }
         
+        //EmitCheckpoint schedules an emit to the CheckpointFin Source object to inform the checkpoint process that a stable checkpoint is ready.
         public void EmitCheckpoint(CheckpointCertificate cpc)
         {
             Console.WriteLine("Receieved stable checkpoint certificate, emitting");
@@ -511,12 +529,15 @@ namespace PBFT.Replica
                 Subjects.CheckpointFinSubject.Emit(cpc);
             });
         }
-
+        
         public void StartTimer(int length, CancellationToken cancel)
         {
             _= TimeoutOps.AbortableProtocolTimeoutOperationCTask(Subjects.ShutdownSubject, length, cancel);
         }
         
+        //InitializeConnections initializes the socket connections for the replica.
+        //When the starts it will only actively initialize socket connections for replicas with lower ids.
+        //When persisted it will initiate a new socket connections for each replica in its registry.
         public async Task InitializeConnections() //Initialize Connections
         {
             if (rebooted) //Rebooting
@@ -553,6 +574,7 @@ namespace PBFT.Replica
             }
         }
         
+        //ChangeClientStatus changes the client status for a given client.
         public void ChangeClientStatus(int cid)
         {
             //Assuming Client Already added during client initialization
@@ -560,22 +582,29 @@ namespace PBFT.Replica
             else ClientActive[cid] = true;
         }
 
+        //ResetClientStatus resets the client active registry.
         public void ResetClientStatus()
         {
             foreach (var (cid, _) in ClientActive) ClientActive[cid] = false;
         }
 
+        //AddPubkeyClientRegister adds a public key to the replicas client public key registry.
         public void AddPubKeyClientRegister(int id, RSAParameters key)
             => ClientPubKeyRegister[id] = key;
         
+        //AddPubKeyServerRegister adds a public key to the replicas server public key registry.
         public void AddPubKeyServerRegister(int id, RSAParameters key)
             => ServPubKeyRegister[id] = key;
         
         //Log functions
+        
+        //InitializeLog initializes a persisted list for a protocol logger for a given sequence number. 
         public void InitializeLog(int seqNr) => Log[seqNr] = new CList<ProtocolCertificate>();
         
+        //NrOfLogEntries returns the current protocol iterations in the replica's protocol log. 
         public int NrOfLogEntries() => Log.Count;
 
+        //AddProtocolCertificate adds a protocol certificate for a protocol iteration to the replica's protocol log.
         public void AddProtocolCertificate(int seqNr, ProtocolCertificate cert)
         {
             Console.WriteLine("Saving Certificate: ");
@@ -585,18 +614,7 @@ namespace PBFT.Replica
             SeeLog();
         }
 
-        public void UpdateRange(int stableSeq)
-            => CurSeqRange = new Range(stableSeq + 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
-
-        public void UpdateSeqNr()
-        {
-            int newsqnr = 0;
-            foreach (var (seqNr, certs) in Log)
-            {
-                if (seqNr > newsqnr && certs.Count == 2) newsqnr = seqNr;
-            }
-            CurSeqNr = newsqnr;
-        }
+        //SeeLog prints the current protocol log to the console window.
         public void SeeLog()
         {
             Console.WriteLine("Current Log: ");
@@ -606,7 +624,9 @@ namespace PBFT.Replica
                 foreach (var proof in proofs) Console.WriteLine("Proof: " + proof);
             }
         }
-
+        
+        //OperationInMemory checks whether or not the replica has a record for the given request.
+        //Returns the sequence number if the request is found, but -1 if no replies in its log match the content of request.
         public int OperationInMemory(Request req)
         {
             Console.WriteLine("OperationInMemory");
@@ -617,12 +637,14 @@ namespace PBFT.Replica
             return -1;
         }
         
+        //GetProtocolCertificate returns a list of protocol certificates for a given sequence number.
         public CList<ProtocolCertificate> GetProtocolCertificate(int seqNr)
         {
             if (Log.ContainsKey(seqNr)) return Log[seqNr];
             else return new CList<ProtocolCertificate>();
-        }
-
+        } 
+        
+        //CollectPrepareCertificates collections protocol certificates for sequence number higher than the given stable sequence number.
         public CDictionary<int, ProtocolCertificate> CollectPrepareCertificates(int stableSeqNr)
         {
             CDictionary<int, ProtocolCertificate> prepdict = new CDictionary<int, ProtocolCertificate>();
@@ -635,27 +657,28 @@ namespace PBFT.Replica
                             prepdict[seqNr] = cert;
                 }
             }
-
             Console.WriteLine(prepdict.Count);
             return prepdict;
         }
 
-        public async CTask ListenForStableCheckpoint()
-        {
-            Console.WriteLine("Listen for stable checkpoints");
-            while (true)
-            {
-                var stablecheck = await Subjects.CheckpointFinSubject.Next();
-                Console.WriteLine("Update Checkpoint State");
-                Console.WriteLine(stablecheck);
-                StableCheckpointsCertificate = stablecheck;
-                GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
-                GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
-                GarbageCollectCheckpointLog(StableCheckpointsCertificate.LastSeqNr);
-                UpdateRange(stablecheck.LastSeqNr);
-            }
-        }
+        //Sequence number functions
+        
+        //UpdateRange updates the sequence number range.
+        public void UpdateRange(int stableSeq)
+            => CurSeqRange = new Range(stableSeq + 1, CurSeqRange.End.Value + (2 * CheckpointConstant));
 
+        //UpdateSeqNr updates the replica's sequence number.
+        public void UpdateSeqNr()
+        {
+            int newsqnr = 0;
+            foreach (var (seqNr, certs) in Log)
+            {
+                if (seqNr > newsqnr && certs.Count == 2) newsqnr = seqNr;
+            }
+            CurSeqNr = newsqnr;
+        }
+        
+        //MakeStateDigest creates a digest based on the n'th state of the protocol log.
         private byte[] MakeStateDigest(int n)
         {
             if (Log.Count > 0 && n > 0 && n <= Log.Count)
@@ -680,8 +703,11 @@ namespace PBFT.Replica
             throw new ArgumentException();
         }
 
+        //TestMakeStateDigest tests the MakeStateDigest function for a sequence number given number.
         public byte[] TestMakeStateDigest(int n) => MakeStateDigest(n);
 
+        //CreateCheckpoint initializes and creates a checkpoint process.
+        //outdated version.
         public void CreateCheckpoint(int limseqNr, CList<string> appstate)
         {
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
@@ -708,6 +734,8 @@ namespace PBFT.Replica
             }
         }
 
+        //CreateCheckpoint initializes and creates a checkpoint process.
+        //current version.
         public void CreateCheckpoint2(int limseqNr, CList<string> appstate)
         {
             if (StableCheckpointsCertificate == null || StableCheckpointsCertificate.LastSeqNr < limseqNr)
@@ -739,6 +767,28 @@ namespace PBFT.Replica
             }
         }
 
+        
+        //Garbage Collection functions
+        
+        //ListenForStableCheckpoint listens for new stable checkpoint certificates. 
+        //The Garbage collection is started once it receives a stable checkpoint certificate.
+        public async CTask ListenForStableCheckpoint()
+        {
+            Console.WriteLine("Listen for stable checkpoints");
+            while (true)
+            {
+                var stablecheck = await Subjects.CheckpointFinSubject.Next();
+                Console.WriteLine("Update Checkpoint State");
+                Console.WriteLine(stablecheck);
+                StableCheckpointsCertificate = stablecheck;
+                GarbageCollectLog(StableCheckpointsCertificate.LastSeqNr);
+                GarbageCollectReplyLog(StableCheckpointsCertificate.LastSeqNr);
+                GarbageCollectCheckpointLog(StableCheckpointsCertificate.LastSeqNr);
+                UpdateRange(stablecheck.LastSeqNr);
+            }
+        }
+        
+        //GarbageCollectLog garbage collects the protocol logger up to the given stable sequence.
         private void GarbageCollectLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in Log)
@@ -746,6 +796,7 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
+        //GarbageCollectReplyLog garbage collects the reply logger up to the given stable sequence.
         private void GarbageCollectReplyLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in ReplyLog)
@@ -753,6 +804,7 @@ namespace PBFT.Replica
                     Log.Remove(entrySeqNr);
         }
 
+        //GarbageCollectViewChangeRegistry garbage collects the view-change registry up to the given stable sequence.
         public void GarbageViewChangeRegistry(int viewNr)
         {
             foreach (var (entryViewNr, _) in ViewMessageRegister)
@@ -760,6 +812,7 @@ namespace PBFT.Replica
                     ViewMessageRegister.Remove(entryViewNr);
         }
 
+        ////GarbageCollectCheckpointLog garbage collects the checkpoint logger up to the given stable sequence.
         private void GarbageCollectCheckpointLog(int seqNr)
         {
             foreach (var (entrySeqNr, _) in CheckpointLog)

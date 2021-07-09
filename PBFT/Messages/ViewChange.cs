@@ -15,6 +15,7 @@ using PBFT.Tests.Helper;
 
 namespace PBFT.Messages
 {
+    //ViewChange object is our implementation of a PBFT view-change message. 
     public class ViewChange : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int StableSeqNr { get; set; }

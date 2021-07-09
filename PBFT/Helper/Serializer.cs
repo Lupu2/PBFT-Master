@@ -8,6 +8,8 @@ namespace PBFT.Helper
     
     public static class Serializer
     {
+        //AddTypeIdentifierToBytes adds a bit value to the given byte array.
+        //The bit chosen is based on the given MessageType enum.
         public static byte[] AddTypeIdentifierToBytes(byte[] sermes, MessageType type)
         {
             byte[] copyobj = sermes.ToArray();

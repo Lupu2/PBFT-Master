@@ -7,6 +7,7 @@ using PBFT.Messages;
 
 namespace PBFT.Tests.Helper
 {
+    //JsonViewChange is our JSON viable substitute object for our ViewChange object.
     public class JsonViewChange
     {
         public int StableSeqNr { get; set; }
@@ -27,6 +28,7 @@ namespace PBFT.Tests.Helper
             Signature = sign;
         }
 
+        //ConvertToJsonViewChange converts a given ViewChange into a JsonViewChange.
         public static JsonViewChange ConvertToJsonViewChange(ViewChange vc)
         {
             var dict = new Dictionary<int, JsonProtocolCertificate>();
@@ -42,6 +44,7 @@ namespace PBFT.Tests.Helper
             return jsonvc;
         }
 
+        //ConvertToViewChange creates a new ViewChange object based on data stored for the JsonViewChange.
         public ViewChange ConvertToViewChange()
         {
             var cdict = new CDictionary<int, ProtocolCertificate>();

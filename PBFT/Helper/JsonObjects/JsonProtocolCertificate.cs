@@ -6,6 +6,7 @@ using PBFT.Messages;
 
 namespace PBFT.Helper.JsonObjects
 {
+    //JsonProtocolCertificate is our JSON viable substitute object for our ProtocolCertificate object.
     public class JsonProtocolCertificate
     {
         public CertType CType { get; set; }
@@ -26,6 +27,7 @@ namespace PBFT.Helper.JsonObjects
             ProofList = proof;
         }
 
+        //ConvertToJsonProtocolCertificate converts a given ProtocolCertificate into a JsonProtocolCertificate.
         public static JsonProtocolCertificate ConvertToJsonProtocolCertificate(ProtocolCertificate pcert)
         {
             var list = new List<PhaseMessage>();
@@ -44,6 +46,7 @@ namespace PBFT.Helper.JsonObjects
             return jsonprotcert;
         }
 
+        //ConvertToProtocolCertificate creates a new ProtocolCertificate object based on data stored for the JsonProtocolCertificate.
         public ProtocolCertificate ConvertToProtocolCertificate()
         {
             var clist = new CList<PhaseMessage>();

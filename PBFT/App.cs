@@ -18,13 +18,17 @@ namespace PBFT
 {
     public static class App
     {
+        //PseudoApp = Application State
         public static CList<string> PseudoApp;
 
+        //PseudoApp
         public static void PseudoAppContent()
         {
             foreach (var con in PseudoApp)
                 Console.WriteLine(con);
         }
+        
+        //Run initializes the processes for the PBFT replica implementation.
         public static void Run(string[] args)
         {
             Console.WriteLine("Application running...");
@@ -152,12 +156,13 @@ namespace PBFT
             else Console.WriteLine("No arguments given! Terminate Application");
         }
         
+        //StartRequestHandler initializes the RequestHandler for the application.
         public static void StartRequestHandler(Workflow execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhase, Engine scheduler)
         {
             _ = RequestHandler(execute, requestMessage, shutdownPhase, scheduler);
         }
         
-        //RequestHandler ...
+        //RequestHandler handles incoming request messages received from the server and if conditions are met, starts an instance of the normal protocol workflow.
         public static async CTask RequestHandler(Workflow execute, Source<Request> requestMessage, Source<PhaseMessage> shutdownPhaseSource, Engine scheduler)
         {
             Console.WriteLine("RequestHandler");
@@ -181,6 +186,7 @@ namespace PBFT
             }
         }
 
+        //PerformProtocol is responsible for starting an instance of the normal protocol workflow, in addition to starting view-changes and checkpoints whenever necessary.
         public static async CTask PerformProtocol(Workflow execute, Server serv, Engine scheduler, Source<PhaseMessage> shutdownPhaseSource, Request req, int seq)
         {
             Console.WriteLine("Handling client request");
@@ -236,12 +242,14 @@ namespace PBFT
             }
         }
 
+        //ListenForShutdown listens for shutdown signals from the shutdown Source<bool> object.
         public static async CTask<bool> ListenForShutdown(Source<bool> shutdown)
         {
             Console.WriteLine("ListenForShutdown");
             return await shutdown.Next();
         }
         
+        //AppOperation starts and waits for the pbft normal protocol workflow to finish. The result of the protocol instance is also saved to the application state.
         public static async CTask<bool> AppOperation(Request req, Workflow execute, int curSeq, CancellationTokenSource cancel)
         {
             var reply = await execute.HandleRequest(req, curSeq, cancel);

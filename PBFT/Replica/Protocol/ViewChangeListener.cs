@@ -13,6 +13,7 @@ using PBFT.Messages;
 
 namespace PBFT.Replica.Protocol
 {
+    //ViewChangeListener is our implementation of a reactive listener that listens for view-change messages.
     public class ViewChangeListener : IPersistable
     {
         private int NewViewNr;
@@ -37,6 +38,7 @@ namespace PBFT.Replica.Protocol
             Shutdown = shutdown;
         }
         
+        //Listen listens for view-change messages emitted to the ViewBridge and attempts to use these messages to create a valid checkpoint certificate.
         public async CTask Listen(ViewChangeCertificate vcc, Dictionary<int, RSAParameters> keys, Action finCallback, Action shutdownCallback)
         {
             Console.WriteLine("ViewChange Listener: " + NewViewNr);

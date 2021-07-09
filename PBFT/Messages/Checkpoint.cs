@@ -12,6 +12,7 @@ using PBFT.Helper;
 
 namespace PBFT.Messages
 {
+    //Checkpoint object is our implementation of a PBFT checkpoint message. 
     public class Checkpoint : IProtocolMessages, ISignedMessage, IPersistable
     {
         public int ServID { get; set; }

@@ -13,6 +13,8 @@ using PBFT.Messages;
 
 namespace PBFT.Certificates
 {
+    //CheckpointCertificate object is our implementation of a PBFT checkpoint certificate. 
+    //It acts as a record for a checkpoint process.
     public class CheckpointCertificate : IQCertificate, IPersistable
     {
         public int LastSeqNr { get; set;}
