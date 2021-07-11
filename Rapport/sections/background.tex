@@ -16,9 +16,6 @@ For this reason, asynchronous programming has become the preferred programming m
 
 Asynchronous programming usually follows one or more of these three design patterns:
 \begin{itemize}
-	%\item{Asynchronous Programming Model(APM)}
-	%\item{Event-based Asynchronous pattern(EAP)}
-	%\item{Task-based Asynchronous Pattern (TAP)}
 	\item{\ac{apm}}
 	\item{\ac{eap}}	
 	\item{\ac{tap}}
@@ -37,7 +34,7 @@ In \autoref{code:asyncawaitex} we can see a practical example of the async/await
 The code in \autoref{code:asyncawaitex} is the asynchronous function that is responsible for having a chosen \code{Socket} object connect to a designated \ac{ip} address. The \code{IPEndPoint} object being the reference to the chosen \ac{ip} address. In order for the \code{Connect} function to be marked as an asynchronous function it has a \code{async} modifier. \code{Connect} returns a .NET \code{Task} object of type boolean, meaning the function returns a reference to the active Connect \code{Task} which will return a boolean value once the \code{Task} is completed. In this case the \code{Connect} function returns true if the socket succeeds in connecting to the \ac{ip} address, otherwise it returns false. The asynchronous operation performed in the \code{Connect} function is when the \code{ConnectAsync} function is called for the socket. As we want to avoid the function returning the result before the asynchronous operation is finished, the \code{await} operator is used to have the \code{Task} wait for the asynchronous operation to finish.
 \fi
 
-Information about the asynchronous programming and reactive programming models are introduced in this chapter. This includes their intended use cases and general workflow. The asynchronous programming section mentions several design patterns used for asynchronous operations. We will mainly concentrate on the async/await model has ~\cite{DOC:AsyncAwait}. The reactive programming section covers information about ReactiveX~\cite{WEB:ReactiveXMainPage} which is the cornerstone for all Rx-driven implementations.
+Information about the asynchronous programming and reactive programming models are introduced in this chapter. This includes their intended use cases and general workflow. The asynchronous programming section mentions several design patterns used for asynchronous operations. We will mainly concentrate on the async/await model~\cite{DOC:AsyncAwait}. The reactive programming section covers information about ReactiveX~\cite{WEB:ReactiveXMainPage} which is the cornerstone for all Rx-driven implementations.
 \section{Asynchronous Programming}
 \label{section:AsyncProgramming}
 %\subsection{Introduction}
@@ -52,9 +49,6 @@ For this reason, asynchronous programming has become the preferred programming m
 
 Asynchronous programming usually follows one or more of these three design patterns:
 \begin{itemize}
-	%\item{Asynchronous Programming Model(APM)}
-	%\item{Event-based Asynchronous pattern(EAP)}
-	%\item{Task-based Asynchronous Pattern (TAP)}
 	\item{\ac{apm}}
 	\item{\ac{eap}}	
 	\item{\ac{tap}}
@@ -122,5 +116,3 @@ public async Task SendMessage(byte[] sermessage,
 %\cite{BOOK:DotnetMultithreadCookBook}
 %\cite{WEB:AsyncAwaitTut}
 \input{sections/reactive}
-
-%\input{sections/PBFT}

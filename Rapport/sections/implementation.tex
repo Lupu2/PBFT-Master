@@ -89,7 +89,7 @@ A normal sequence for the \ac{pbft} implementation begins once the request handl
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:StartProtocol, caption=Code section from the request handler, captionpos = b, basicstyle=\scriptsize]
+	\begin{lstlisting}[label = code:StartProtocol, caption=Code section for the request handler, captionpos = b, basicstyle=\scriptsize]
 while (true)
 {
     var req = await requestMessage.Next();
@@ -173,7 +173,7 @@ if (Serv.IsPrimary()) //Primary
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:Pre-PrepareNonPrimary, caption= Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
+	\begin{lstlisting}[label = code:Pre-PrepareNonPrimary, caption= Source code for Pre-prepare phase for non-primary replica, captionpos = b, basicstyle=\scriptsize]
 else	//Not Primary
 { 
     var preprepared = await MesBridge
@@ -280,7 +280,7 @@ To summarize the main benefits, the Cleipnir reactive framework provided our nor
 \begin{figure}[H]
 	\centering
 	%\lstset{style=sharpc}
-	\begin{lstlisting}[label = code:PrepareAndCommit, caption= Prepare and Commit phase, captionpos = b, basicstyle=\scriptsize]
+	\begin{lstlisting}[label = code:PrepareAndCommit, caption=Source code for Prepare and Commit phase, captionpos = b, basicstyle=\scriptsize]
 var prepared = MesBridge
                .Where(pm => pm.PhaseType == PMessageType.Prepare)
                .Where(pm => pm.SeqNr == qcertpre.SeqNr)
